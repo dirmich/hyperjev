@@ -31,6 +31,7 @@ class ConfigTests(unittest.TestCase):
         self.assertFalse(config.privacy_allow_training_from_user_data)
         self.assertTrue(config.cache_enabled)
         self.assertEqual(config.cache_max_entries, 1024)
+        self.assertEqual(config.model_registry_path.name, "models.json")
 
     def test_teacher_environment_overrides_are_scoped(self) -> None:
         with patch.dict(

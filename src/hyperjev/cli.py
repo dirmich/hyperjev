@@ -19,6 +19,7 @@ from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
 from .golden import generate_review_queue
 from .mock_server import serve
+from .model_registry import ModelRegistry
 from .registry import RegistryError, TaskRegistry
 from .routing import DecisionRouter
 from .student import StudentConfig, student_manifest
@@ -167,6 +168,34 @@ def _student_manifest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _model_registry(args: argparse.Namespace) -> ModelRegistry:
+    config, _ = _load(args.config)
+    return ModelRegistry(args.registry or config.model_registry_path)
+
+
+def _model_register(args: argparse.Namespace) -> int:
+    record = _model_registry(args).register(json.loads(Path(args.manifest).read_text(encoding="utf-8")))
+    print(json.dumps(record, ensure_ascii=False))
+    return 0
+
+
+def _model_promote(args: argparse.Namespace) -> int:
+    record = _model_registry(args).transition(args.model_id, args.to, reason=args.reason)
+    print(json.dumps(record, ensure_ascii=False))
+    return 0
+
+
+def _model_rollback(args: argparse.Namespace) -> int:
+    record = _model_registry(args).rollback(args.model_id, reason=args.reason)
+    print(json.dumps(record, ensure_ascii=False))
+    return 0
+
+
+def _model_list(args: argparse.Namespace) -> int:
+    print(json.dumps(list(_model_registry(args).list()), ensure_ascii=False))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hyperjev")
     parser.add_argument("--version", action="version", version=__version__)
@@ -263,6 +292,31 @@ def build_parser() -> argparse.ArgumentParser:
     student_manifest_parser.add_argument("--max-sequence-length", type=int, default=1024)
     student_manifest_parser.add_argument("--precision", choices=("fp32", "fp16", "bf16"), default="bf16")
     student_manifest_parser.set_defaults(handler=_student_manifest)
+
+    model = subparsers.add_parser("model")
+    model_subparsers = model.add_subparsers(dest="model_command", required=True)
+    model_register = model_subparsers.add_parser("register")
+    _config_argument(model_register)
+    model_register.add_argument("--registry")
+    model_register.add_argument("--manifest", required=True)
+    model_register.set_defaults(handler=_model_register)
+    model_promote = model_subparsers.add_parser("promote")
+    _config_argument(model_promote)
+    model_promote.add_argument("--registry")
+    model_promote.add_argument("model_id")
+    model_promote.add_argument("--to", required=True, choices=("evaluated", "calibrated", "candidate", "canary", "active", "retired"))
+    model_promote.add_argument("--reason", default="")
+    model_promote.set_defaults(handler=_model_promote)
+    model_rollback = model_subparsers.add_parser("rollback")
+    _config_argument(model_rollback)
+    model_rollback.add_argument("--registry")
+    model_rollback.add_argument("model_id")
+    model_rollback.add_argument("--reason", default="rollback")
+    model_rollback.set_defaults(handler=_model_rollback)
+    model_list = model_subparsers.add_parser("list")
+    _config_argument(model_list)
+    model_list.add_argument("--registry")
+    model_list.set_defaults(handler=_model_list)
     return parser
 
 

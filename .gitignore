@@ -10,4 +10,5 @@ build/
 *.egg-info/
 .env
 runs/phase0/*.jsonl
+runs/phase6/*.json
 !runs/phase0/.gitkeep

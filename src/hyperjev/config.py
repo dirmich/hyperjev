@@ -76,6 +76,7 @@ class Phase0Config:
     runs_path: Path
     review_path: Path
     feedback_path: Path
+    model_registry_path: Path
     hypermemory_base_url: str
     hypermemory_feedback_enabled: bool
     privacy_store_raw_inputs: bool
@@ -151,6 +152,7 @@ class Phase0Config:
             runs_path=(root / str(paths.get("runs", "runs/phase0"))).resolve(),
             review_path=(root / str(paths.get("review_queue", "runs/phase1/review.jsonl"))).resolve(),
             feedback_path=(root / str(paths.get("feedback", "runs/phase1/feedback.jsonl"))).resolve(),
+            model_registry_path=(root / str(paths.get("model_registry", "runs/phase6/models.json"))).resolve(),
             hypermemory_base_url=hypermemory_base_url,
             hypermemory_feedback_enabled=bool(hypermemory.get("feedback_enabled", True)),
             privacy_store_raw_inputs=bool(privacy.get("store_raw_inputs", False)),
