@@ -36,10 +36,11 @@
 | 6 | [Dataset, Student, Training](06-dataset-student-training.md) | 학습 데이터와 typed-head 준비 | 진행 중 |
 | 7 | [검증과 운영](07-verification-and-operations.md) | 테스트, DGX, 관측성, 남은 gate | 진행 중 |
 | 8 | [구현 일지](08-implementation-ledger.md) | 단계별 version/commit/push 증거 | 계속 갱신 |
+| 9 | [최종 gate 체크리스트](09-final-gates.md) | 재현 명령과 출시 전 판정 | 초안 완료 |
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.13.1까지 진행되어 있다. Python 테스트 59개와
+현재 `main`은 origin에 push될 1.13.2까지 진행되어 있다. Python 테스트 59개와
 Ruff 검사가 통과한 상태이며, dataset validator와 training plan, optional
 reference train CLI까지 완료됐다. 실제 사람 검수 golden set, Gemma live
 baseline 전수 실행, production PyTorch

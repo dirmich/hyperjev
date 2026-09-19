@@ -31,6 +31,7 @@
 | 1.11.1 | `511326e` | reference training milestone 문서 기록 |
 | 1.12.0 | `13287a1` | PRD quality/calibration metric coverage |
 | 1.13.0 | `3fd213a` | Gemma generation timeout을 900초로 확장 |
+| 1.13.1 | `2064058` | Gemma timeout 결과와 운영 gate 문서화 |
 
 ## 다음 기록 규칙
 
