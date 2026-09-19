@@ -38,6 +38,24 @@ class MockServerTests(unittest.TestCase):
         self.assertEqual(health["status"], "ready")
         self.assertEqual(len(tasks["tasks"]), 6)
 
+    def test_v1_registry_validation_and_model_listing_endpoints(self) -> None:
+        with urlopen(f"{self.base_url}/health", timeout=2) as response:
+            health = json.loads(response.read())
+        request = Request(
+            f"{self.base_url}/v1/tasks/validate",
+            data=json.dumps({"tasks": ["memory.type@1", "memory.importance@1"]}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=2) as response:
+            validation = json.loads(response.read())
+        with urlopen(f"{self.base_url}/v1/models", timeout=2) as response:
+            models = json.loads(response.read())
+        self.assertEqual(health["status"], "ok")
+        self.assertTrue(validation["valid"])
+        self.assertEqual(len(validation["tasks"]), 2)
+        self.assertEqual(models["models"], [])
+
     def test_decide_returns_typed_abstentions(self) -> None:
         body = json.dumps(
             {

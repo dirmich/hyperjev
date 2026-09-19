@@ -19,6 +19,7 @@ from .contracts import (
     ScoreDecision,
     parse_task_reference,
 )
+from .model_registry import ModelRegistry, ModelRegistryError
 from .registry import RegistryError, TaskRegistry
 from .routing import DecisionRouter
 
@@ -73,7 +74,11 @@ def _decision_payload(
     return response.to_dict()
 
 
-def handler_for(registry: TaskRegistry, router: DecisionRouter | None = None):
+def handler_for(
+    registry: TaskRegistry,
+    router: DecisionRouter | None = None,
+    model_registry: ModelRegistry | None = None,
+):
     """Create a request handler bound to a registry and optional Phase 1 router."""
 
     class MockHandler(BaseHTTPRequestHandler):
@@ -94,6 +99,9 @@ def handler_for(registry: TaskRegistry, router: DecisionRouter | None = None):
             if self.path == "/health/live":
                 self._send(200, {"status": "ok"})
                 return
+            if self.path == "/health":
+                self._send(200, {"status": "ok"})
+                return
             if self.path == "/health/ready":
                 self._send(
                     200,
@@ -107,19 +115,42 @@ def handler_for(registry: TaskRegistry, router: DecisionRouter | None = None):
             if self.path == "/v1/tasks":
                 self._send(200, {"tasks": [registry.get(task_id).to_dict() for task_id in registry.ids()]})
                 return
+            if self.path == "/v1/models":
+                self._send(200, {"models": list(model_registry.list()) if model_registry else []})
+                return
             if self.path == "/metrics":
-                self._send(200, {"hyperjev_phase0_mock_requests_total": 0})
+                self._send(200, {"hyperjev_requests_total": 0})
                 return
             self._error(404, "not found")
 
         def do_POST(self) -> None:
-            if self.path not in {"/v1/decide", "/v1/batch/decide"}:
+            is_decision = self.path in {"/v1/decide", "/v1/batch/decide"}
+            is_task_validation = self.path == "/v1/tasks/validate"
+            is_activation = self.path.startswith("/v1/models/") and self.path.endswith("/activate")
+            if not is_decision and not is_task_validation and not is_activation:
                 self._error(404, "not found")
                 return
             try:
                 content_length = int(self.headers.get("Content-Length", "0"))
                 raw = self.rfile.read(content_length)
+                if is_activation:
+                    if model_registry is None:
+                        raise ModelRegistryError("model registry is not configured")
+                    model_id = self.path[len("/v1/models/") : -len("/activate")].strip("/")
+                    payload = json.loads(raw.decode("utf-8")) if raw else {}
+                    reason = str(payload.get("reason", "api activation")) if isinstance(payload, dict) else "api activation"
+                    self._send(200, model_registry.transition(model_id, "active", reason=reason))
+                    return
                 decoded = json.loads(raw.decode("utf-8"))
+                if is_task_validation:
+                    if not isinstance(decoded, dict) or not isinstance(decoded.get("tasks"), list):
+                        raise ContractError("task validation requires a tasks list")
+                    validated = []
+                    for task_reference in decoded["tasks"]:
+                        task_id, version = parse_task_reference(str(task_reference))
+                        validated.append(registry.get(task_id, version).to_dict())
+                    self._send(200, {"valid": True, "tasks": validated})
+                    return
                 if self.path == "/v1/batch/decide":
                     if not isinstance(decoded, dict) or not isinstance(decoded.get("requests"), list):
                         raise ContractError("batch request must contain a requests list")
@@ -140,7 +171,7 @@ def handler_for(registry: TaskRegistry, router: DecisionRouter | None = None):
                     return
                 request = DecisionRequest.from_dict(decoded)
                 self._send(200, _decision_payload(registry, request, raw, router))
-            except (ContractError, RegistryError, json.JSONDecodeError, ValueError) as exc:
+            except (ContractError, ModelRegistryError, RegistryError, json.JSONDecodeError, ValueError) as exc:
                 self._error(400, str(exc))
 
         def log_message(self, _format: str, *_args: Any) -> None:
@@ -155,10 +186,11 @@ def create_server(
     registry: TaskRegistry,
     *,
     router: DecisionRouter | None = None,
+    model_registry: ModelRegistry | None = None,
 ) -> ThreadingHTTPServer:
     """Create, but do not start, a mock or Phase 1 router server."""
 
-    return ThreadingHTTPServer((host, port), handler_for(registry, router))
+    return ThreadingHTTPServer((host, port), handler_for(registry, router, model_registry))
 
 
 def serve(
@@ -171,10 +203,17 @@ def serve(
     """Run the local mock or Phase 1 router server until interrupted."""
 
     registry = TaskRegistry.load(config.registry_path)
-    router = DecisionRouter(config, registry) if mode == "router" else None
     if mode not in {"mock", "router"}:
         raise ValueError(f"unsupported server mode: {mode}")
-    server = create_server(host or config.server_host, port or config.server_port, registry, router=router)
+    router = DecisionRouter(config, registry) if mode == "router" else None
+    model_registry = ModelRegistry(config.model_registry_path)
+    server = create_server(
+        host or config.server_host,
+        port or config.server_port,
+        registry,
+        router=router,
+        model_registry=model_registry,
+    )
     try:
         server.serve_forever()
     finally:
