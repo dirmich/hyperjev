@@ -13,4 +13,12 @@ uv run hyperjev train plan \
   --dataset runs/phase2/dataset.jsonl \
   --output runs/phase3/training-plan.json \
   --model-id hyperjev-0.3b-poc
+uv run hyperjev train run \
+  --dataset runs/phase2/dataset.jsonl \
+  --output runs/phase3/reference-student.pt \
+  --device auto
 ```
+
+`train run` is an optional contract smoke trainer using a deterministic
+byte-hash encoder. It requires PyTorch and must not be treated as the
+production multilingual Student checkpoint.

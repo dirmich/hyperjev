@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import tempfile
 import unittest
@@ -11,8 +12,10 @@ from hyperjev.student import StudentConfig
 from hyperjev.training import (
     TrainingConfig,
     TrainingDataError,
+    TrainingDependencyError,
     build_training_plan,
     load_training_dataset,
+    run_reference_training,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -123,6 +126,21 @@ class TrainingTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(plan["record_type"], "training_plan")
         self.assertEqual(json.loads(stdout.getvalue())["checkpoint"]["status"], "not_created")
+
+    def test_reference_training_has_an_explicit_torch_dependency_gate(self) -> None:
+        if importlib.util.find_spec("torch") is not None:
+            self.skipTest("the host has torch; DGX execution is covered by the optional runtime")
+        registry = TaskRegistry.load(ROOT / "registry" / "tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            dataset = Path(directory) / "dataset.jsonl"
+            checkpoint = Path(directory) / "student.pt"
+            dataset.write_text(
+                json.dumps(_record("sample-bool", "memory.remember_worthy", True, "train", 0.9)) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(TrainingDependencyError):
+                run_reference_training(dataset, checkpoint, registry, training=TrainingConfig(epochs=1))
+            self.assertFalse(checkpoint.exists())
 
 
 if __name__ == "__main__":

@@ -19,8 +19,9 @@ uv run hyperjev benchmark --dry-run --limit 1
 uv run hyperjev golden --help
 ```
 
-현재 마지막 확정 증거는 1.9.0 기준 Ruff 통과와 Python 테스트 55개 통과다.
-Golden review와 metric unit test가 포함되어 있다.
+현재 마지막 확정 증거는 1.11.0 기준 Ruff 통과와 Python 테스트 59개 통과다.
+Golden review, metric, training validator, torch dependency gate가 포함되어
+있다.
 
 ## 7.2 DGX Spark runbook
 
@@ -71,4 +72,3 @@ docker compose --profile phase0 run --rm phase0-check
 - privacy exclusion: training에 포함시키지 않는 정상 결과
 - dependency unavailable: torch/cargo 같은 실행환경 준비 문제
 - quality gate failure: code bug가 아니라 데이터/모델 품질 미달일 수 있음
-

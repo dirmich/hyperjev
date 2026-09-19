@@ -20,6 +20,10 @@ class TrainingDataError(ValueError):
     """Raised when a normalized dataset is not safe to use for training."""
 
 
+class TrainingDependencyError(RuntimeError):
+    """Raised when the optional PyTorch training runtime is unavailable."""
+
+
 @dataclass(frozen=True)
 class TrainingConfig:
     epochs: int = 3
@@ -208,3 +212,128 @@ def write_training_plan(
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(plan, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return plan | {"output_path": str(output.resolve())}
+
+
+def _encode_reference_sample(sample: CanonicalSample, *, vocab_size: int, max_length: int) -> tuple[list[int], list[int]]:
+    """Encode text deterministically for the dependency-light reference trainer."""
+
+    if vocab_size <= 2:
+        raise TrainingDataError("vocab_size must be greater than 2")
+    raw = f"{sample.state}\n{sample.question}".encode()[:max_length]
+    token_ids = [2 + (byte % (vocab_size - 2)) for byte in raw]
+    attention = [1] * len(token_ids)
+    token_ids.extend([0] * (max_length - len(token_ids)))
+    attention.extend([0] * (max_length - len(attention)))
+    return token_ids, attention
+
+
+def run_reference_training(
+    dataset_path: str | Path,
+    output_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    student: StudentConfig | None = None,
+    training: TrainingConfig | None = None,
+    device: str = "auto",
+) -> dict[str, Any]:
+    """Train the small registry-derived reference Student when PyTorch is installed.
+
+    This deliberately uses a deterministic byte-hash encoder and is a contract
+    smoke trainer, not the production multilingual backbone from the PRD.
+    """
+
+    selected_student = student or StudentConfig()
+    selected_training = training or TrainingConfig()
+    selected_student.validate()
+    selected_training.validate()
+    dataset = load_training_dataset(dataset_path, registry)
+    train_samples = tuple(
+        sample
+        for sample in dataset.samples
+        if sample.provenance.get("split") == "train"
+    )
+    if not train_samples:
+        raise TrainingDataError("training dataset has no train split")
+    try:
+        import torch
+        from torch import nn
+    except ImportError as exc:  # pragma: no cover - depends on deployment image
+        raise TrainingDependencyError("PyTorch is required for train run") from exc
+
+    if device not in {"auto", "cpu", "cuda"}:
+        raise TrainingDataError("device must be one of auto, cpu, or cuda")
+    if device == "cuda" and not torch.cuda.is_available():
+        raise TrainingDependencyError("CUDA was requested but is unavailable")
+    selected_device = "cuda" if device == "auto" and torch.cuda.is_available() else device
+    if selected_device == "auto":
+        selected_device = "cpu"
+    torch.manual_seed(selected_training.seed)
+    from .student import build_torch_model
+
+    model = build_torch_model(registry, selected_student).to(selected_device)
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=selected_training.learning_rate,
+        weight_decay=selected_training.weight_decay,
+    )
+    losses: list[float] = []
+    model.train()
+    for _epoch in range(selected_training.epochs):
+        epoch_losses: list[float] = []
+        for sample in train_samples:
+            task = registry.get(sample.task_id, sample.task_version)
+            token_ids, attention = _encode_reference_sample(
+                sample,
+                vocab_size=selected_student.vocab_size,
+                max_length=selected_student.max_sequence_length,
+            )
+            input_ids = torch.tensor([token_ids], dtype=torch.long, device=selected_device)
+            attention_mask = torch.tensor([attention], dtype=torch.long, device=selected_device)
+            output = model(sample.task_id, input_ids, attention_mask)
+            if task.output_type == "boolean":
+                target = torch.tensor([int(sample.target)], dtype=torch.long, device=selected_device)
+                loss = nn.functional.cross_entropy(output["logits"], target)
+            elif task.output_type == "choice":
+                candidates = [str(candidate) for candidate in task.output.get("candidates", [])]
+                target = torch.tensor([candidates.index(str(sample.target))], dtype=torch.long, device=selected_device)
+                loss = nn.functional.cross_entropy(output["logits"], target)
+            else:
+                target = torch.tensor([float(sample.target)], dtype=torch.float32, device=selected_device)
+                loss = nn.functional.mse_loss(output["parameters"][:, 0], target)
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            optimizer.step()
+            epoch_losses.append(float(loss.detach().cpu().item()))
+        losses.append(sum(epoch_losses) / len(epoch_losses))
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint = {
+        "artifact_kind": "reference_student_checkpoint",
+        "student": student_manifest(registry, selected_student),
+        "training": asdict(selected_training),
+        "dataset": {
+            "path": str(dataset.path),
+            "sha256": dataset.dataset_hash,
+            "sample_count": len(dataset.samples),
+        },
+        "runtime": {"device": str(selected_device), "torch_version": torch.__version__},
+        "epochs_completed": selected_training.epochs,
+        "mean_train_loss": losses,
+        "model_state_dict": model.state_dict(),
+    }
+    torch.save(checkpoint, output)
+    return {
+        "record_type": "training_run",
+        "status": "completed",
+        "artifact_kind": "reference_student_checkpoint",
+        "output_path": str(output.resolve()),
+        "checkpoint_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+        "dataset_sha256": dataset.dataset_hash,
+        "sample_count": len(dataset.samples),
+        "train_count": len(train_samples),
+        "validation_count": dataset.split_counts.get("validation", 0),
+        "device": str(selected_device),
+        "epochs_completed": selected_training.epochs,
+        "mean_train_loss": losses,
+    }

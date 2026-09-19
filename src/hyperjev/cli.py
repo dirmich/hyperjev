@@ -24,7 +24,12 @@ from .registry import RegistryError, TaskRegistry
 from .routing import DecisionRouter
 from .student import StudentConfig, student_manifest
 from .teachers import probe_teacher
-from .training import TrainingConfig, write_training_plan
+from .training import (
+    TrainingConfig,
+    TrainingDependencyError,
+    run_reference_training,
+    write_training_plan,
+)
 
 
 def _config_argument(parser: argparse.ArgumentParser) -> None:
@@ -228,6 +233,35 @@ def _training_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _training_run(args: argparse.Namespace) -> int:
+    _, registry = _load(args.config)
+    report = run_reference_training(
+        args.dataset,
+        args.output,
+        registry,
+        student=StudentConfig(
+            model_id=args.model_id,
+            backbone=args.backbone,
+            hidden_size=args.hidden_size,
+            vocab_size=args.vocab_size,
+            max_sequence_length=args.max_sequence_length,
+            precision=args.precision,
+        ),
+        training=TrainingConfig(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            weight_decay=args.weight_decay,
+            seed=args.seed,
+            gradient_accumulation_steps=args.gradient_accumulation_steps,
+            precision=args.precision,
+        ),
+        device=args.device,
+    )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
 def _model_registry(args: argparse.Namespace) -> ModelRegistry:
     config, _ = _load(args.config)
     return ModelRegistry(args.registry or config.model_registry_path)
@@ -389,6 +423,24 @@ def build_parser() -> argparse.ArgumentParser:
     training_plan.add_argument("--seed", type=int, default=7)
     training_plan.add_argument("--gradient-accumulation-steps", type=int, default=1)
     training_plan.set_defaults(handler=_training_plan)
+    training_run = training_subparsers.add_parser("run")
+    _config_argument(training_run)
+    training_run.add_argument("--dataset", required=True, help="normalized dataset JSONL path")
+    training_run.add_argument("--output", required=True, help="reference checkpoint path")
+    training_run.add_argument("--model-id", default="hyperjev-student-dev")
+    training_run.add_argument("--backbone", default="reference-byte-encoder")
+    training_run.add_argument("--hidden-size", type=int, default=256)
+    training_run.add_argument("--vocab-size", type=int, default=32768)
+    training_run.add_argument("--max-sequence-length", type=int, default=1024)
+    training_run.add_argument("--precision", choices=("fp32", "fp16", "bf16"), default="bf16")
+    training_run.add_argument("--epochs", type=int, default=3)
+    training_run.add_argument("--batch-size", type=int, default=32)
+    training_run.add_argument("--learning-rate", type=float, default=2e-4)
+    training_run.add_argument("--weight-decay", type=float, default=0.01)
+    training_run.add_argument("--seed", type=int, default=7)
+    training_run.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    training_run.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    training_run.set_defaults(handler=_training_run)
 
     model = subparsers.add_parser("model")
     model_subparsers = model.add_subparsers(dest="model_command", required=True)
@@ -422,7 +474,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.handler(args))
-    except (ConfigError, RegistryError, ValueError, OSError) as exc:
+    except (ConfigError, RegistryError, TrainingDependencyError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

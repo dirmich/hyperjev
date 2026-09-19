@@ -30,6 +30,24 @@ uv run hyperjev train plan \
 데이터와 head inventory를 사용해야 하는지 재현 가능한 입력으로 고정하는
 것이다.
 
+PyTorch가 설치된 DGX에서는 같은 검증된 dataset으로 reference trainer를
+실행할 수 있다.
+
+```bash
+uv run hyperjev train run \
+  --dataset runs/phase2/dataset.jsonl \
+  --output runs/phase3/reference-student.pt \
+  --model-id hyperjev-reference \
+  --epochs 3 \
+  --device auto
+```
+
+이 trainer는 production tokenizer가 아니라 deterministic byte-hash encoder를
+사용하는 contract smoke path다. 결과는 `reference_student_checkpoint`와
+checkpoint SHA로 보고되고, torch가 없는 호스트에서는 명시적인 dependency
+error를 낸다. 따라서 이 경로의 성공을 production multilingual Student의
+성공으로 해석하지 않는다.
+
 ## 6.2 Encoder + typed heads
 
 Student의 공통 표현은 encoder 하나를 공유하고 task별 head가 typed output을
@@ -79,4 +97,3 @@ training plan
 
 checkpoint 파일이 없는데 model registry를 active로 만들지 않는다. 이 원칙은
 개발 속도보다 재현성과 운영 안전성을 우선하는 HyperJev의 핵심이다.
-
