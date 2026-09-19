@@ -1,0 +1,80 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from hyperjev.baseline import run_benchmark
+from hyperjev.config import load_config
+from hyperjev.registry import TaskRegistry
+from hyperjev.teachers import _message_content, _model_ids, probe_teacher
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+class _Response:
+    status = 200
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self):
+        return json.dumps({"data": [{"id": "test-model"}]}).encode()
+
+
+class TeacherTests(unittest.TestCase):
+    def test_model_ids_supports_openai_and_ollama_shapes(self) -> None:
+        self.assertEqual(_model_ids({"data": [{"id": "a"}, {"id": "b"}]}), ("a", "b"))
+        self.assertEqual(_model_ids({"models": [{"name": "a"}]}), ("a",))
+
+    def test_message_content_supports_function_call_arguments(self) -> None:
+        self.assertEqual(
+            _message_content(
+                {
+                    "message": {
+                        "content": "",
+                        "tool_calls": [{"function": {"arguments": '{"value":true}'}}],
+                    }
+                }
+            ),
+            '{"value":true}',
+        )
+        self.assertEqual(_message_content({"message": {"content": ""}}), "")
+
+    def test_probe_reports_model_match(self) -> None:
+        config = load_config(ROOT / "configs" / "phase0.toml")
+        settings = config.teachers["qwen"]
+        with patch("hyperjev.teachers.urlopen", return_value=_Response()):
+            probe = probe_teacher(settings)
+        self.assertTrue(probe.ok is False)
+        self.assertFalse(probe.model_found)
+        self.assertIn("configured model", probe.error or "")
+
+
+class BaselineTests(unittest.TestCase):
+    def test_dry_run_writes_reproducible_shape_without_raw_text(self) -> None:
+        config = load_config(ROOT / "configs" / "phase0.toml")
+        registry = TaskRegistry.load(config.registry_path)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "run.jsonl"
+            run = run_benchmark(
+                config,
+                registry,
+                limit=1,
+                providers=("qwen", "gemma"),
+                dry_run=True,
+                output_path=output,
+            )
+            output_text = output.read_text(encoding="utf-8")
+            lines = output_text.splitlines()
+        self.assertEqual(len(run.records), 2)
+        self.assertEqual(len(lines), 3)
+        self.assertTrue(all(record["status"] == "dry_run" for record in run.records))
+        self.assertNotIn("PostgreSQL", output_text)
+
+
+if __name__ == "__main__":
+    unittest.main()
