@@ -44,6 +44,35 @@ def _mock_result(task: Any, candidates: tuple[str, ...]):
     raise ContractError(f"unsupported mock task type: {task.output_type}")
 
 
+def _decision_payload(
+    registry: TaskRegistry,
+    request: DecisionRequest,
+    raw: bytes,
+    router: DecisionRouter | None,
+) -> dict[str, Any]:
+    started = time.perf_counter()
+    if router is not None:
+        outcome = router.decide(request)
+        payload = outcome.response.to_dict()
+        if request.options.return_evidence:
+            payload["traces"] = [trace.to_dict() for trace in outcome.traces]
+        return payload
+    results = {}
+    for question in request.questions:
+        task_id, version = parse_task_reference(question.task)
+        task = registry.get(task_id, version)
+        results[question.id] = _mock_result(task, question.candidates)
+    response = DecisionResponse(
+        request_id=hashlib.sha256(raw).hexdigest()[:16] or str(uuid4()),
+        model="phase0-mock",
+        calibration="phase0-none",
+        results=results,
+        route="mock",
+        latency_ms=(time.perf_counter() - started) * 1000,
+    )
+    return response.to_dict()
+
+
 def handler_for(registry: TaskRegistry, router: DecisionRouter | None = None):
     """Create a request handler bound to a registry and optional Phase 1 router."""
 
@@ -84,35 +113,33 @@ def handler_for(registry: TaskRegistry, router: DecisionRouter | None = None):
             self._error(404, "not found")
 
         def do_POST(self) -> None:
-            if self.path != "/v1/decide":
+            if self.path not in {"/v1/decide", "/v1/batch/decide"}:
                 self._error(404, "not found")
                 return
             try:
                 content_length = int(self.headers.get("Content-Length", "0"))
                 raw = self.rfile.read(content_length)
-                request = DecisionRequest.from_dict(json.loads(raw.decode("utf-8")))
-                started = time.perf_counter()
-                if router is not None:
-                    outcome = router.decide(request)
-                    payload = outcome.response.to_dict()
-                    if request.options.return_evidence:
-                        payload["traces"] = [trace.to_dict() for trace in outcome.traces]
-                    self._send(200, payload)
+                decoded = json.loads(raw.decode("utf-8"))
+                if self.path == "/v1/batch/decide":
+                    if not isinstance(decoded, dict) or not isinstance(decoded.get("requests"), list):
+                        raise ContractError("batch request must contain a requests list")
+                    responses = []
+                    for item in decoded["requests"]:
+                        if not isinstance(item, dict):
+                            raise ContractError("batch requests must contain objects")
+                        item_raw = json.dumps(item, ensure_ascii=False, sort_keys=True).encode("utf-8")
+                        responses.append(
+                            _decision_payload(
+                                registry,
+                                DecisionRequest.from_dict(item),
+                                item_raw,
+                                router,
+                            )
+                        )
+                    self._send(200, {"responses": responses})
                     return
-                results = {}
-                for question in request.questions:
-                    task_id, version = parse_task_reference(question.task)
-                    task = registry.get(task_id, version)
-                    results[question.id] = _mock_result(task, question.candidates)
-                response = DecisionResponse(
-                    request_id=hashlib.sha256(raw).hexdigest()[:16] or str(uuid4()),
-                    model="phase0-mock",
-                    calibration="phase0-none",
-                    results=results,
-                    route="mock",
-                    latency_ms=(time.perf_counter() - started) * 1000,
-                )
-                self._send(200, response.to_dict())
+                request = DecisionRequest.from_dict(decoded)
+                self._send(200, _decision_payload(registry, request, raw, router))
             except (ContractError, RegistryError, json.JSONDecodeError, ValueError) as exc:
                 self._error(400, str(exc))
 

@@ -101,6 +101,33 @@ class MockServerTests(unittest.TestCase):
         self.assertTrue(payload["results"]["remember"]["value"])
         self.assertEqual(payload["traces"][0]["final_route"], "rule")
 
+    def test_batch_decide_reuses_one_http_contract_for_multiple_states(self) -> None:
+        body = json.dumps(
+            {
+                "requests": [
+                    {
+                        "state": "첫 상태",
+                        "questions": [{"id": "remember", "task": "memory.remember_worthy@1"}],
+                    },
+                    {
+                        "state": "둘째 상태",
+                        "questions": [{"id": "importance", "task": "memory.importance@1"}],
+                    },
+                ]
+            }
+        ).encode()
+        request = Request(
+            f"{self.base_url}/v1/batch/decide",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=2) as response:
+            payload = json.loads(response.read())
+        self.assertEqual(len(payload["responses"]), 2)
+        self.assertEqual(payload["responses"][0]["route"], "mock")
+        self.assertEqual(payload["responses"][1]["results"]["importance"]["type"], "score")
+
 
 if __name__ == "__main__":
     unittest.main()

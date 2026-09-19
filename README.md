@@ -19,6 +19,7 @@ the Phase 2 dataset builder:
 - a Hyper Memory ingestion gate and `/v1/documents` REST adapter.
 - a Qwen/Gemma agreement-gated dataset factory with redaction, deduplication,
   privacy filtering, and grouped deterministic splits.
+- single and batch typed decision serving plus privacy-preserving shadow logs.
 
 The human-reviewed 1,000-sample golden set and the measured teacher baseline
 are intentionally not claimed complete yet. They are the next Phase 0 work
