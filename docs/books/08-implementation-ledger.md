@@ -27,6 +27,7 @@
 | 1.8.0 | `582a696` | append-only golden review workflow |
 | 1.9.0 | `058d856` | typed evaluation quality/calibration metrics |
 | 1.10.0 | `4bd6b53` | validated training plan CLI와 프로젝트 책 원고 |
+| 1.11.0 | `ea6a55a` | optional reference training run과 checkpoint hash |
 
 ## 다음 기록 규칙
 
