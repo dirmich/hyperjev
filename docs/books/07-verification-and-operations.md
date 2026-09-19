@@ -50,8 +50,8 @@ docker compose --profile phase0 run --rm phase0-check
 | --- | --- | --- |
 | Python package/CLI | uv build, version command | 완료 |
 | registry/contracts | unit/contract tests | 완료 |
-| Qwen smoke | DGX one-sample live run | smoke 완료, 품질 gate 미완료 |
-| Gemma baseline | config/probe path | full live evidence 필요 |
+| Qwen smoke | DGX one-sample live run, schema-valid | smoke 완료, 품질 gate 미완료 |
+| Gemma baseline | `/models` probe 정상, 300초/900초 generation timeout | endpoint 정상, generation 병목 해결 필요 |
 | synthetic queue | deterministic 1,000 queue | human golden 아님 |
 | human golden | review/apply workflow | 1,000개 검수 필요 |
 | dataset factory | unit tests와 privacy/agreement code | 실데이터 run 필요 |
@@ -61,6 +61,13 @@ docker compose --profile phase0 run --rm phase0-check
 | cache/registry/drift | local tests/metrics | production load gate 필요 |
 
 이 표의 `필요`를 코드가 있다고 바꾸어 쓰지 않는 것이 책의 중요한 원칙이다.
+
+2026-09-20의 live check에서 Gemma `google/gemma-4-12b`는 model discovery에는
+응답했지만 한 개의 boolean sample도 900초 안에 completion하지 못했다. 이는
+연결 실패가 아니라 현재 model/server 설정의 generation latency 문제다. 다음
+운영 작업은 thinking 설정, model alias, server queue/GPU 사용량을 별도
+benchmark하고, 실제 응답이 생기기 전에는 Gemma 품질 수치를 기록하지 않는
+것이다.
 
 ## 7.4 실패를 기록하는 방법
 
