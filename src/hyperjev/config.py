@@ -78,6 +78,8 @@ class Phase0Config:
     feedback_path: Path
     hypermemory_base_url: str
     hypermemory_feedback_enabled: bool
+    privacy_store_raw_inputs: bool
+    privacy_allow_training_from_user_data: bool
     teachers: Mapping[str, TeacherSettings]
 
     @classmethod
@@ -92,6 +94,7 @@ class Phase0Config:
         server = raw.get("server", {})
         paths = raw.get("paths", {})
         hypermemory = raw.get("hypermemory", {})
+        privacy = raw.get("privacy", {})
         raw_teachers = raw.get("teachers", {})
         teachers: dict[str, TeacherSettings] = {}
         for name, values in raw_teachers.items():
@@ -144,6 +147,10 @@ class Phase0Config:
             feedback_path=(root / str(paths.get("feedback", "runs/phase1/feedback.jsonl"))).resolve(),
             hypermemory_base_url=hypermemory_base_url,
             hypermemory_feedback_enabled=bool(hypermemory.get("feedback_enabled", True)),
+            privacy_store_raw_inputs=bool(privacy.get("store_raw_inputs", False)),
+            privacy_allow_training_from_user_data=bool(
+                privacy.get("allow_training_from_user_data", False)
+            ),
             teachers=teachers,
         )
 

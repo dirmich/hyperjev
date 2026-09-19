@@ -14,6 +14,7 @@ from . import __version__
 from .baseline import run_benchmark
 from .config import ConfigError, load_config
 from .contracts import DecisionRequest
+from .dataset_factory import build_dataset, validate_dataset
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
 from .golden import generate_review_queue
@@ -127,6 +128,27 @@ def _decide(args: argparse.Namespace) -> int:
     return 0
 
 
+def _dataset_build(args: argparse.Namespace) -> int:
+    config, registry = _load(args.config)
+    report = build_dataset(
+        config,
+        registry,
+        args.seed,
+        args.output,
+        review_path=args.review_output,
+        limit=args.limit,
+    )
+    print(json.dumps(report.to_dict(), ensure_ascii=False))
+    return 0
+
+
+def _dataset_validate(args: argparse.Namespace) -> int:
+    _, registry = _load(args.config)
+    report = validate_dataset(args.samples, registry)
+    print(json.dumps(report, ensure_ascii=False))
+    return 0 if report["ready"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hyperjev")
     parser.add_argument("--version", action="version", version=__version__)
@@ -197,6 +219,20 @@ def build_parser() -> argparse.ArgumentParser:
     _config_argument(decide)
     decide.add_argument("--request", required=True, help="JSON file containing a /v1/decide request")
     decide.set_defaults(handler=_decide)
+
+    dataset = subparsers.add_parser("dataset")
+    dataset_subparsers = dataset.add_subparsers(dest="dataset_command", required=True)
+    dataset_build = dataset_subparsers.add_parser("build")
+    _config_argument(dataset_build)
+    dataset_build.add_argument("--seed", required=True, help="seed JSONL path")
+    dataset_build.add_argument("--output", required=True, help="normalized dataset JSONL path")
+    dataset_build.add_argument("--review-output")
+    dataset_build.add_argument("--limit", type=int)
+    dataset_build.set_defaults(handler=_dataset_build)
+    dataset_validate = dataset_subparsers.add_parser("validate")
+    _config_argument(dataset_validate)
+    dataset_validate.add_argument("--samples", required=True, help="normalized dataset JSONL path")
+    dataset_validate.set_defaults(handler=_dataset_validate)
     return parser
 
 

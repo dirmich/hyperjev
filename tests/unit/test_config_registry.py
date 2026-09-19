@@ -27,6 +27,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.teachers["gemma"].roles, ("cross_validator", "judge"))
         self.assertEqual(config.hypermemory_base_url, "http://127.0.0.1:6767")
         self.assertTrue(config.hypermemory_feedback_enabled)
+        self.assertFalse(config.privacy_store_raw_inputs)
+        self.assertFalse(config.privacy_allow_training_from_user_data)
 
     def test_teacher_environment_overrides_are_scoped(self) -> None:
         with patch.dict(

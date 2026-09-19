@@ -6,7 +6,8 @@ separate research track and is not part of the product baseline.
 
 ## Phase 1 status
 
-The repository now contains the Phase 0 foundation and a Phase 1 local router:
+The repository now contains the Phase 0 foundation, Phase 1 local router, and
+the Phase 2 dataset builder:
 
 - reproducible Python package configuration for ARM64/Linux;
 - environment-specific Qwen/Gemma endpoint configuration without credentials;
@@ -16,6 +17,8 @@ The repository now contains the Phase 0 foundation and a Phase 1 local router:
 - a deterministic `rule → Qwen → Gemma → human` decision router;
 - append-only provenance/review/feedback stores without raw state persistence;
 - a Hyper Memory ingestion gate and `/v1/documents` REST adapter.
+- a Qwen/Gemma agreement-gated dataset factory with redaction, deduplication,
+  privacy filtering, and grouped deterministic splits.
 
 The human-reviewed 1,000-sample golden set and the measured teacher baseline
 are intentionally not claimed complete yet. They are the next Phase 0 work
