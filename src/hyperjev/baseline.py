@@ -15,23 +15,13 @@ from .contracts import ContractError, parse_decision_result, validate_result_for
 from .prompts import PROMPT_VERSION, messages_for_sample
 from .registry import TaskRegistry
 from .samples import load_jsonl
-from .teachers import TeacherClient, response_hash
+from .teachers import TeacherClient, parse_json_object, response_hash
 
 
 def _extract_json(text: str) -> dict[str, Any]:
-    candidate = text.strip()
-    if candidate.startswith("```"):
-        candidate = candidate.strip("`").strip()
-        if candidate.startswith("json"):
-            candidate = candidate[4:].lstrip()
-    start = candidate.find("{")
-    end = candidate.rfind("}")
-    if start < 0 or end <= start:
-        raise ContractError("teacher output does not contain a JSON object")
-    value = json.loads(candidate[start : end + 1])
-    if not isinstance(value, dict):
-        raise ContractError("teacher output JSON must be an object")
-    return value
+    """Backward-compatible alias for the shared teacher parser."""
+
+    return parse_json_object(text)
 
 
 @dataclass(frozen=True)
@@ -144,7 +134,7 @@ def run_benchmark(
                     record["response_type"] = parsed.type
                     record["normalized_result"] = parsed.to_dict()
                     record["schema_valid"] = True
-                except (ContractError, json.JSONDecodeError) as exc:
+                except (ContractError, json.JSONDecodeError, TypeError, ValueError) as exc:
                     record["schema_valid"] = False
                     record["error"] = str(exc)
             except (OSError, TypeError, ValueError) as exc:  # per-sample evidence

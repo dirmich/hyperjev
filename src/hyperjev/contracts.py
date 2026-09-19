@@ -314,7 +314,7 @@ class DecisionResponse:
         route = str(raw.get("route", ""))
         if not request_id or not model or not calibration:
             raise ContractError("response request_id, model, and calibration are required")
-        if route not in {"hyperjev", "qwen", "gemma", "human", "mock"}:
+        if route not in {"hyperjev", "rule", "qwen", "gemma", "human", "mixed", "mock"}:
             raise ContractError(f"unsupported response route: {route!r}")
         try:
             latency_ms = float(raw.get("latency_ms"))

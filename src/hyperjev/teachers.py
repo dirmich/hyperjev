@@ -162,6 +162,29 @@ def response_hash(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
+def parse_json_object(text: str) -> dict[str, Any]:
+    """Extract one JSON object from a teacher response.
+
+    Teachers occasionally wrap an otherwise valid object in a markdown fence.
+    The router accepts that harmless transport variation but still delegates
+    schema validation to ``parse_decision_result``.
+    """
+
+    candidate = text.strip()
+    if candidate.startswith("```"):
+        candidate = candidate.strip("`").strip()
+        if candidate.startswith("json"):
+            candidate = candidate[4:].lstrip()
+    start = candidate.find("{")
+    end = candidate.rfind("}")
+    if start < 0 or end <= start:
+        raise ValueError("teacher output does not contain a JSON object")
+    value = json.loads(candidate[start : end + 1])
+    if not isinstance(value, dict):
+        raise TypeError("teacher output JSON must be an object")
+    return value
+
+
 def _message_content(choice: dict[str, Any]) -> str:
     """Read normal, multimodal, and function-call compatible message output."""
 

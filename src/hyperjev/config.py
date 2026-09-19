@@ -74,6 +74,8 @@ class Phase0Config:
     registry_path: Path
     smoke_set_path: Path
     runs_path: Path
+    review_path: Path
+    feedback_path: Path
     teachers: Mapping[str, TeacherSettings]
 
     @classmethod
@@ -129,6 +131,8 @@ class Phase0Config:
             registry_path=(root / str(paths.get("registry", "registry/tasks"))).resolve(),
             smoke_set_path=(root / str(paths.get("phase0_smoke_set", "tests/golden/phase0_smoke.jsonl"))).resolve(),
             runs_path=(root / str(paths.get("runs", "runs/phase0"))).resolve(),
+            review_path=(root / str(paths.get("review_queue", "runs/phase1/review.jsonl"))).resolve(),
+            feedback_path=(root / str(paths.get("feedback", "runs/phase1/feedback.jsonl"))).resolve(),
             teachers=teachers,
         )
 

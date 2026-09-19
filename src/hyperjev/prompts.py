@@ -53,17 +53,34 @@ def user_prompt(
 
 
 def messages_for_sample(provider: str, sample: Any, task: Any) -> list[dict[str, str]]:
+    return messages_for_question(
+        provider,
+        task,
+        state=sample.state,
+        question=sample.question,
+        candidates=list(task.output.get("candidates", [])),
+    )
+
+
+def messages_for_question(
+    provider: str,
+    task: Any,
+    *,
+    state: str,
+    question: str,
+    candidates: list[str] | None = None,
+) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": system_prompt(provider)},
         {
             "role": "user",
             "content": user_prompt(
-                task_id=sample.task_id,
-                task_version=sample.task_version,
-                state=sample.state,
-                question=sample.question,
+                task_id=task.id,
+                task_version=task.version,
+                state=state,
+                question=question,
                 output_type=task.output_type,
-                candidates=list(task.output.get("candidates", [])),
+                candidates=candidates or list(task.output.get("candidates", [])),
             ),
         },
     ]
