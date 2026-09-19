@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from . import __version__
 from .baseline import run_benchmark
 from .config import ConfigError, load_config
+from .doctor import system_checks
 from .registry import RegistryError, TaskRegistry
 from .teachers import probe_teacher
 
@@ -42,17 +43,19 @@ def _teacher_check(args: argparse.Namespace) -> int:
 def _doctor(args: argparse.Namespace) -> int:
     config, registry = _load(args.config)
     probes = [probe_teacher(settings, timeout_s=args.timeout) for settings in config.teachers.values()]
+    checks = system_checks(config.root)
     report = {
         "version": __version__,
         "phase": config.phase,
         "architecture": platform.machine(),
         "python": sys.version.split()[0],
         "docker": shutil.which("docker") is not None,
+        "system_checks": [check.to_dict() for check in checks],
         "registry_count": len(registry),
         "teachers": [probe.to_dict() for probe in probes],
     }
     print(json.dumps(report, ensure_ascii=False))
-    return 0 if all(probe.ok for probe in probes) else 1
+    return 0 if all(probe.ok for probe in probes) and all(check.ok for check in checks) else 1
 
 
 def _benchmark(args: argparse.Namespace) -> int:

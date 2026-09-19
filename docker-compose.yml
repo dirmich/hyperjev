@@ -1,0 +1,13 @@
+services:
+  phase0-check:
+    profiles: ["phase0"]
+    build:
+      context: .
+      dockerfile: Dockerfile.phase0
+    network_mode: host
+    environment:
+      HYPERJEV_QWEN_BASE_URL: "${HYPERJEV_QWEN_BASE_URL:-http://127.0.0.1:8081/v1}"
+      HYPERJEV_QWEN_MODEL: "${HYPERJEV_QWEN_MODEL:-qwen38fn}"
+      HYPERJEV_GEMMA_BASE_URL: "${HYPERJEV_GEMMA_BASE_URL:-http://macmini:11434/v1}"
+      HYPERJEV_GEMMA_MODEL: "${HYPERJEV_GEMMA_MODEL:-google/gemma-4-12b}"
+    command: ["doctor", "--timeout", "3"]
