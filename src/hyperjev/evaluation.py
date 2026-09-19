@@ -8,6 +8,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from .metrics import binary_metrics, choice_metrics, score_metrics
 from .registry import TaskRegistry
 from .samples import load_jsonl
 
@@ -53,6 +54,7 @@ def evaluate_run(
 
     manifest, records = _load_run(run_path)
     samples = {sample.sample_id: sample for sample in load_jsonl(samples_path, registry)}
+    task_versions = {sample.task_id: sample.task_version for sample in samples.values()}
     by_provider: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for record in records:
         sample_id = record.get("sample_id")
@@ -64,30 +66,39 @@ def evaluate_run(
     for provider, provider_records in sorted(by_provider.items()):
         latencies = [float(record["latency_ms"]) for record in provider_records if record.get("latency_ms") is not None]
         valid_records = [record for record in provider_records if record.get("schema_valid") is True]
-        task_stats: dict[str, dict[str, float | int]] = defaultdict(
-            lambda: {"count": 0, "correct": 0, "absolute_error": 0.0}
+        task_observations: dict[str, dict[str, list[Any]]] = defaultdict(
+            lambda: {"labels": [], "probabilities": [], "selected": [], "scores": [], "intervals": []}
         )
         for record in valid_records:
             sample = samples[record["sample_id"]]
             result = record.get("normalized_result") or {}
-            stats = task_stats[sample.task_id]
-            stats["count"] += 1
+            observations = task_observations[sample.task_id]
             if result.get("type") == "boolean":
-                correct = result.get("value") == sample.target
-                stats["correct"] += int(correct)
+                value = bool(result.get("value"))
+                probability = float(result.get("probability", 0.0))
+                observations["labels"].append(bool(sample.target))
+                observations["probabilities"].append(probability if value else 1.0 - probability)
             elif result.get("type") == "choice":
-                correct = result.get("selected") == sample.target
-                stats["correct"] += int(correct)
+                observations["labels"].append(str(sample.target))
+                observations["selected"].append(str(result.get("selected")))
+                observations["probabilities"].append(result.get("probabilities", {}))
             elif result.get("type") == "score":
-                stats["absolute_error"] += abs(float(result.get("value", 0)) - float(sample.target))
+                observations["labels"].append(float(sample.target))
+                observations["scores"].append(float(result.get("value", 0)))
+                observations["intervals"].append(result.get("interval_90", []))
         quality: dict[str, Any] = {}
-        for task_id, stats in sorted(task_stats.items()):
-            count = int(stats["count"])
-            report: dict[str, Any] = {"count": count}
-            if count and stats["correct"]:
-                report["accuracy"] = round(int(stats["correct"]) / count, 4)
-            if count and stats["absolute_error"]:
-                report["mae"] = round(float(stats["absolute_error"]) / count, 4)
+        for task_id, observations in sorted(task_observations.items()):
+            task = registry.get(task_id, task_versions[task_id])
+            if task.output_type == "boolean":
+                report = binary_metrics(observations["labels"], observations["probabilities"])
+            elif task.output_type == "choice":
+                report = choice_metrics(
+                    observations["labels"], observations["selected"], observations["probabilities"]
+                )
+            else:
+                report = score_metrics(
+                    observations["labels"], observations["scores"], observations["intervals"]
+                )
             quality[task_id] = report
         provider_reports[provider] = {
             "records": len(provider_records),
