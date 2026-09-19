@@ -73,9 +73,11 @@ head와 API contract가 어긋나는 문제를 줄인다.
 deterministic temperature fitting과 probability conversion을 제공한다. 평가는
 정확도 하나로 끝내지 않는다.
 
-- boolean: accuracy, precision, recall, F1, Brier, ECE
-- choice: accuracy, top-2 accuracy, macro-F1, multiclass Brier
-- score: MAE, RMSE, interval-90 coverage/width
+- boolean: accuracy, precision, recall, F1, Brier, ECE, adaptive ECE,
+  NLL, AUROC, AUPRC, risk-coverage
+- choice: accuracy, top-2 accuracy, macro-F1, multiclass Brier, NLL,
+  adaptive ECE, risk-coverage
+- score: MAE, RMSE, Spearman correlation, interval-90 coverage/width
 
 confidence는 route와 fallback 비용에도 쓰이므로 calibration은 장식용 report가
 아니다. 잘못된 confidence로 auto-accept하면 Hyper Memory가 오염될 수 있다.
