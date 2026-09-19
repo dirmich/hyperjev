@@ -25,6 +25,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.teachers["gemma"].response_format, "text")
         self.assertEqual(config.teachers["qwen"].roles, ("data_generator", "labeler", "fallback"))
         self.assertEqual(config.teachers["gemma"].roles, ("cross_validator", "judge"))
+        self.assertEqual(config.hypermemory_base_url, "http://127.0.0.1:6767")
+        self.assertTrue(config.hypermemory_feedback_enabled)
 
     def test_teacher_environment_overrides_are_scoped(self) -> None:
         with patch.dict(
@@ -32,12 +34,14 @@ class ConfigTests(unittest.TestCase):
             {
                 "HYPERJEV_QWEN_MODEL": "test-qwen",
                 "HYPERJEV_GEMMA_BASE_URL": "http://example.test/v1",
+                "HYPERJEV_HYPERMEMORY_BASE_URL": "http://memory.test:6767",
             },
             clear=False,
         ):
             config = load_config(ROOT / "configs" / "phase0.toml")
         self.assertEqual(config.teachers["qwen"].model, "test-qwen")
         self.assertEqual(config.teachers["gemma"].base_url, "http://example.test/v1")
+        self.assertEqual(config.hypermemory_base_url, "http://memory.test:6767")
 
     def test_missing_config_is_explicit(self) -> None:
         with self.assertRaises(ConfigError):

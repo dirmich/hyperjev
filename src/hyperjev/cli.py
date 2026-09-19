@@ -8,15 +8,18 @@ import platform
 import shutil
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from . import __version__
 from .baseline import run_benchmark
 from .config import ConfigError, load_config
+from .contracts import DecisionRequest
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
 from .golden import generate_review_queue
 from .mock_server import serve
 from .registry import RegistryError, TaskRegistry
+from .routing import DecisionRouter
 from .teachers import probe_teacher
 
 
@@ -110,7 +113,17 @@ def _golden_generate(args: argparse.Namespace) -> int:
 
 def _serve(args: argparse.Namespace) -> int:
     config, _ = _load(args.config)
-    serve(config, host=args.host, port=args.port)
+    serve(config, host=args.host, port=args.port, mode=args.mode)
+    return 0
+
+
+def _decide(args: argparse.Namespace) -> int:
+    config, registry = _load(args.config)
+    payload = json.loads(Path(args.request).read_text(encoding="utf-8"))
+    request = DecisionRequest.from_dict(payload)
+    outcome = DecisionRouter(config, registry).decide(request)
+    response = outcome.to_dict() if request.options.return_evidence else outcome.response.to_dict()
+    print(json.dumps(response, ensure_ascii=False))
     return 0
 
 
@@ -177,7 +190,13 @@ def build_parser() -> argparse.ArgumentParser:
     _config_argument(serve_parser)
     serve_parser.add_argument("--host")
     serve_parser.add_argument("--port", type=int)
+    serve_parser.add_argument("--mode", choices=("mock", "router"), default="mock")
     serve_parser.set_defaults(handler=_serve)
+
+    decide = subparsers.add_parser("decide")
+    _config_argument(decide)
+    decide.add_argument("--request", required=True, help="JSON file containing a /v1/decide request")
+    decide.set_defaults(handler=_decide)
     return parser
 
 

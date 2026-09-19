@@ -76,6 +76,8 @@ class Phase0Config:
     runs_path: Path
     review_path: Path
     feedback_path: Path
+    hypermemory_base_url: str
+    hypermemory_feedback_enabled: bool
     teachers: Mapping[str, TeacherSettings]
 
     @classmethod
@@ -89,6 +91,7 @@ class Phase0Config:
         project = raw.get("project", {})
         server = raw.get("server", {})
         paths = raw.get("paths", {})
+        hypermemory = raw.get("hypermemory", {})
         raw_teachers = raw.get("teachers", {})
         teachers: dict[str, TeacherSettings] = {}
         for name, values in raw_teachers.items():
@@ -120,6 +123,12 @@ class Phase0Config:
 
         if not teachers.get("qwen") or not teachers.get("gemma"):
             raise ConfigError("both qwen and gemma teacher configurations are required")
+        hypermemory_base_url = os.getenv(
+            "HYPERJEV_HYPERMEMORY_BASE_URL",
+            str(hypermemory.get("base_url", "http://127.0.0.1:6767")),
+        ).rstrip("/")
+        if not hypermemory_base_url.startswith(("http://", "https://")):
+            raise ConfigError("hypermemory.base_url must be an http(s) URL")
         return cls(
             root=root,
             project_name=str(project.get("name", "hyperjev")),
@@ -133,6 +142,8 @@ class Phase0Config:
             runs_path=(root / str(paths.get("runs", "runs/phase0"))).resolve(),
             review_path=(root / str(paths.get("review_queue", "runs/phase1/review.jsonl"))).resolve(),
             feedback_path=(root / str(paths.get("feedback", "runs/phase1/feedback.jsonl"))).resolve(),
+            hypermemory_base_url=hypermemory_base_url,
+            hypermemory_feedback_enabled=bool(hypermemory.get("feedback_enabled", True)),
             teachers=teachers,
         )
 

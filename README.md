@@ -4,16 +4,18 @@ HyperJev is the local-first typed decision layer for Hyper Memory. The product
 model is an encoder with typed decision heads; `HyperJev-D` is kept as a
 separate research track and is not part of the product baseline.
 
-## Phase 0 status
+## Phase 1 status
 
-This repository currently contains the Phase 0 development foundation:
+The repository now contains the Phase 0 foundation and a Phase 1 local router:
 
 - reproducible Python package configuration for ARM64/Linux;
 - environment-specific Qwen/Gemma endpoint configuration without credentials;
 - versioned task registry for the six initial decision tasks;
 - typed request/response validation and a privacy-preserving baseline evaluator;
 - Rust workspace placeholders for the future API, core, client, and registry;
-- smoke fixtures and test directories for later golden-set and benchmark work.
+- a deterministic `rule → Qwen → Gemma → human` decision router;
+- append-only provenance/review/feedback stores without raw state persistence;
+- a Hyper Memory ingestion gate and `/v1/documents` REST adapter.
 
 The human-reviewed 1,000-sample golden set and the measured teacher baseline
 are intentionally not claimed complete yet. They are the next Phase 0 work
@@ -28,6 +30,7 @@ uv run hyperjev registry validate
 uv run hyperjev teacher check
 uv run hyperjev benchmark --dry-run --limit 1
 uv run hyperjev serve --host 127.0.0.1 --port 6777
+uv run hyperjev serve --mode router --host 127.0.0.1 --port 6777
 ```
 
 The default configuration is `configs/phase0.toml`. Override teacher endpoint
@@ -55,9 +58,9 @@ human-reviewed samples are supplied. The repository contains only a six-record
 non-sensitive smoke fixture, so it does not pretend that the Phase 0 quality
 gate has passed.
 
-The Phase 0 `serve` command is a contract-only mock server. It is suitable for
-integration tests and returns abstained typed results; it is not the Student
-inference runtime.
+The default `serve` mode is the Phase 0 contract-only mock server. The
+`--mode router` server executes the Phase 1 rule/teacher chain; it is still not
+the encoder Student inference runtime.
 
 Create the deterministic synthetic review queue with:
 

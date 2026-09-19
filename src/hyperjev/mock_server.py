@@ -20,6 +20,7 @@ from .contracts import (
     parse_task_reference,
 )
 from .registry import RegistryError, TaskRegistry
+from .routing import DecisionRouter
 
 
 def _json_bytes(value: Any) -> bytes:
@@ -43,11 +44,11 @@ def _mock_result(task: Any, candidates: tuple[str, ...]):
     raise ContractError(f"unsupported mock task type: {task.output_type}")
 
 
-def handler_for(registry: TaskRegistry):
-    """Create a request handler bound to a task registry."""
+def handler_for(registry: TaskRegistry, router: DecisionRouter | None = None):
+    """Create a request handler bound to a registry and optional Phase 1 router."""
 
     class MockHandler(BaseHTTPRequestHandler):
-        server_version = "HyperJevPhase0Mock/0.7"
+        server_version = "HyperJevPhase1Router/0.9" if router else "HyperJevPhase0Mock/0.7"
 
         def _send(self, status: int, payload: Any) -> None:
             body = _json_bytes(payload)
@@ -65,7 +66,14 @@ def handler_for(registry: TaskRegistry):
                 self._send(200, {"status": "ok"})
                 return
             if self.path == "/health/ready":
-                self._send(200, {"status": "ready", "phase": 0, "model": "phase0-mock"})
+                self._send(
+                    200,
+                    {
+                        "status": "ready",
+                        "phase": 1 if router else 0,
+                        "model": "phase1-router" if router else "phase0-mock",
+                    },
+                )
                 return
             if self.path == "/v1/tasks":
                 self._send(200, {"tasks": [registry.get(task_id).to_dict() for task_id in registry.ids()]})
@@ -84,6 +92,13 @@ def handler_for(registry: TaskRegistry):
                 raw = self.rfile.read(content_length)
                 request = DecisionRequest.from_dict(json.loads(raw.decode("utf-8")))
                 started = time.perf_counter()
+                if router is not None:
+                    outcome = router.decide(request)
+                    payload = outcome.response.to_dict()
+                    if request.options.return_evidence:
+                        payload["traces"] = [trace.to_dict() for trace in outcome.traces]
+                    self._send(200, payload)
+                    return
                 results = {}
                 for question in request.questions:
                     task_id, version = parse_task_reference(question.task)
@@ -107,17 +122,32 @@ def handler_for(registry: TaskRegistry):
     return MockHandler
 
 
-def create_server(host: str, port: int, registry: TaskRegistry) -> ThreadingHTTPServer:
-    """Create, but do not start, a Phase 0 mock server."""
+def create_server(
+    host: str,
+    port: int,
+    registry: TaskRegistry,
+    *,
+    router: DecisionRouter | None = None,
+) -> ThreadingHTTPServer:
+    """Create, but do not start, a mock or Phase 1 router server."""
 
-    return ThreadingHTTPServer((host, port), handler_for(registry))
+    return ThreadingHTTPServer((host, port), handler_for(registry, router))
 
 
-def serve(config: Phase0Config, host: str | None = None, port: int | None = None) -> None:
-    """Run the Phase 0 mock server until interrupted."""
+def serve(
+    config: Phase0Config,
+    host: str | None = None,
+    port: int | None = None,
+    *,
+    mode: str = "mock",
+) -> None:
+    """Run the local mock or Phase 1 router server until interrupted."""
 
     registry = TaskRegistry.load(config.registry_path)
-    server = create_server(host or config.server_host, port or config.server_port, registry)
+    router = DecisionRouter(config, registry) if mode == "router" else None
+    if mode not in {"mock", "router"}:
+        raise ValueError(f"unsupported server mode: {mode}")
+    server = create_server(host or config.server_host, port or config.server_port, registry, router=router)
     try:
         server.serve_forever()
     finally:
