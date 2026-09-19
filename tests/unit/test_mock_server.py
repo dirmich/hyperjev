@@ -7,6 +7,7 @@ from urllib.request import Request, urlopen
 
 from hyperjev.config import load_config
 from hyperjev.mock_server import create_server
+from hyperjev.monitoring import TrafficMonitor
 from hyperjev.registry import TaskRegistry
 from hyperjev.review import ReviewStore
 from hyperjev.routing import DecisionRouter
@@ -19,7 +20,8 @@ class MockServerTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         config = load_config(ROOT / "configs" / "phase0.toml")
         registry = TaskRegistry.load(config.registry_path)
-        cls.server = create_server("127.0.0.1", 0, registry)
+        cls.monitor = TrafficMonitor()
+        cls.server = create_server("127.0.0.1", 0, registry, monitor=cls.monitor)
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
         cls.base_url = f"http://127.0.0.1:{cls.server.server_port}"
@@ -145,6 +147,11 @@ class MockServerTests(unittest.TestCase):
         self.assertEqual(len(payload["responses"]), 2)
         self.assertEqual(payload["responses"][0]["route"], "mock")
         self.assertEqual(payload["responses"][1]["results"]["importance"]["type"], "score")
+
+        with urlopen(f"{self.base_url}/metrics", timeout=2) as response:
+            metrics = json.loads(response.read())
+        self.assertGreaterEqual(metrics["total_requests"], 1)
+        self.assertGreaterEqual(metrics["total_questions"], 1)
 
 
 if __name__ == "__main__":

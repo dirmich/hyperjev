@@ -20,6 +20,7 @@ from .contracts import (
     parse_task_reference,
 )
 from .model_registry import ModelRegistry, ModelRegistryError
+from .monitoring import TrafficMonitor
 from .registry import RegistryError, TaskRegistry
 from .routing import DecisionRouter
 
@@ -78,6 +79,7 @@ def handler_for(
     registry: TaskRegistry,
     router: DecisionRouter | None = None,
     model_registry: ModelRegistry | None = None,
+    monitor: TrafficMonitor | None = None,
 ):
     """Create a request handler bound to a registry and optional Phase 1 router."""
 
@@ -119,7 +121,7 @@ def handler_for(
                 self._send(200, {"models": list(model_registry.list()) if model_registry else []})
                 return
             if self.path == "/metrics":
-                self._send(200, {"hyperjev_requests_total": 0})
+                self._send(200, monitor.snapshot() if monitor else {"hyperjev_requests_total": 0})
                 return
             self._error(404, "not found")
 
@@ -159,18 +161,22 @@ def handler_for(
                         if not isinstance(item, dict):
                             raise ContractError("batch requests must contain objects")
                         item_raw = json.dumps(item, ensure_ascii=False, sort_keys=True).encode("utf-8")
-                        responses.append(
-                            _decision_payload(
-                                registry,
-                                DecisionRequest.from_dict(item),
-                                item_raw,
-                                router,
-                            )
+                        response_payload = _decision_payload(
+                            registry,
+                            DecisionRequest.from_dict(item),
+                            item_raw,
+                            router,
                         )
+                        if monitor is not None:
+                            monitor.observe(DecisionResponse.from_dict(response_payload))
+                        responses.append(response_payload)
                     self._send(200, {"responses": responses})
                     return
                 request = DecisionRequest.from_dict(decoded)
-                self._send(200, _decision_payload(registry, request, raw, router))
+                response_payload = _decision_payload(registry, request, raw, router)
+                if monitor is not None:
+                    monitor.observe(DecisionResponse.from_dict(response_payload))
+                self._send(200, response_payload)
             except (ContractError, ModelRegistryError, RegistryError, json.JSONDecodeError, ValueError) as exc:
                 self._error(400, str(exc))
 
@@ -187,10 +193,11 @@ def create_server(
     *,
     router: DecisionRouter | None = None,
     model_registry: ModelRegistry | None = None,
+    monitor: TrafficMonitor | None = None,
 ) -> ThreadingHTTPServer:
     """Create, but do not start, a mock or Phase 1 router server."""
 
-    return ThreadingHTTPServer((host, port), handler_for(registry, router, model_registry))
+    return ThreadingHTTPServer((host, port), handler_for(registry, router, model_registry, monitor))
 
 
 def serve(
@@ -207,12 +214,14 @@ def serve(
         raise ValueError(f"unsupported server mode: {mode}")
     router = DecisionRouter(config, registry) if mode == "router" else None
     model_registry = ModelRegistry(config.model_registry_path)
+    monitor = TrafficMonitor()
     server = create_server(
         host or config.server_host,
         port or config.server_port,
         registry,
         router=router,
         model_registry=model_registry,
+        monitor=monitor,
     )
     try:
         server.serve_forever()
