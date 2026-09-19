@@ -1,0 +1,14 @@
+id: query.route
+version: 1
+input:
+  max_chars: 12000
+output:
+  type: choice
+  candidates: [PROFILE, EXACT, LEXICAL, SEMANTIC, TEMPORAL, GRAPH, HYBRID]
+thresholds:
+  minimum_probability: 0.75
+  otherwise: fallback
+cost:
+  wrong_route: 3
+languages: [ko, en]
+teacher_prompt_version: 1

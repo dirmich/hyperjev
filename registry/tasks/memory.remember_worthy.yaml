@@ -1,0 +1,15 @@
+id: memory.remember_worthy
+version: 1
+input:
+  max_chars: 12000
+output:
+  type: boolean
+thresholds:
+  auto_true: 0.92
+  auto_false: 0.08
+  otherwise: fallback
+cost:
+  false_positive: 2
+  false_negative: 5
+languages: [ko, en]
+teacher_prompt_version: 1

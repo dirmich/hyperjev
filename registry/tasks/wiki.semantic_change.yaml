@@ -1,0 +1,15 @@
+id: wiki.semantic_change
+version: 1
+input:
+  max_chars: 12000
+output:
+  type: boolean
+thresholds:
+  auto_true: 0.90
+  auto_false: 0.10
+  otherwise: fallback
+cost:
+  missed_change: 5
+  false_change: 2
+languages: [ko, en]
+teacher_prompt_version: 1

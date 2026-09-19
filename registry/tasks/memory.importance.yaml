@@ -1,0 +1,15 @@
+id: memory.importance
+version: 1
+input:
+  max_chars: 12000
+output:
+  type: score
+  min: 0.0
+  max: 1.0
+thresholds:
+  high: 0.80
+  low: 0.20
+cost:
+  absolute_error: 1
+languages: [ko, en]
+teacher_prompt_version: 1

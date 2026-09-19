@@ -1,0 +1,14 @@
+id: memory.type
+version: 1
+input:
+  max_chars: 12000
+output:
+  type: choice
+  candidates: [fact, preference, episode, decision, goal, task, relationship, temporary, none]
+thresholds:
+  minimum_probability: 0.70
+  otherwise: fallback
+cost:
+  wrong_type: 3
+languages: [ko, en]
+teacher_prompt_version: 1
