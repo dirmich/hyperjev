@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass, replace
 from typing import Any
 
+from .cache import BoundedCache, result_cache_key, state_cache_key
 from .config import Phase0Config
 from .contracts import (
     BooleanDecision,
@@ -70,6 +71,18 @@ def _request_id(request: DecisionRequest) -> str:
     return f"req-{hashlib.sha256(serialized).hexdigest()[:24]}"
 
 
+def _router_cache_key(request: DecisionRequest) -> str:
+    state_key = state_cache_key("phase1-router", request.state)
+    questions_key = hashlib.sha256(
+        json.dumps(
+            [question.to_dict() for question in request.questions],
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    return result_cache_key("phase1-router", "phase1-router-uncalibrated", state_key, questions_key)
+
+
 def _accepted(task: TaskDefinition, result: DecisionResult) -> bool:
     if result.abstained:
         return False
@@ -111,6 +124,7 @@ class DecisionRouter:
         *,
         clients: dict[str, Any] | None = None,
         review_store: ReviewStore | None = None,
+        cache: BoundedCache[RouterOutcome] | None = None,
     ) -> None:
         self.config = config
         self.registry = registry
@@ -121,6 +135,9 @@ class DecisionRouter:
         if clients:
             self.clients.update(clients)
         self.review_store = review_store or ReviewStore(config.review_path)
+        self.cache = cache if cache is not None else (
+            BoundedCache(max_entries=config.cache_max_entries) if config.cache_enabled else None
+        )
 
     def _teacher_attempt(
         self,
@@ -172,6 +189,11 @@ class DecisionRouter:
             return None, attempt
 
     def decide(self, request: DecisionRequest) -> RouterOutcome:
+        cache_key = _router_cache_key(request)
+        if self.cache is not None:
+            cached = self.cache.get(cache_key)
+            if cached is not None:
+                return cached
         started = time.perf_counter()
         request_id = _request_id(request)
         state_sha256 = _state_hash(request.state)
@@ -269,4 +291,7 @@ class DecisionRouter:
             route=route,
             latency_ms=round((time.perf_counter() - started) * 1000, 3),
         )
-        return RouterOutcome(response=response, traces=tuple(traces))
+        outcome = RouterOutcome(response=response, traces=tuple(traces))
+        if self.cache is not None and not any(trace.review_required for trace in outcome.traces):
+            self.cache.put(cache_key, outcome)
+        return outcome

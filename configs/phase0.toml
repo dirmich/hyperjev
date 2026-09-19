@@ -47,6 +47,10 @@ allow_training_from_user_data = false
 base_url = "http://127.0.0.1:6767"
 feedback_enabled = true
 
+[cache]
+enabled = true
+max_entries = 1024
+
 [paths]
 registry = "registry/tasks"
 phase0_smoke_set = "tests/golden/phase0_smoke.jsonl"

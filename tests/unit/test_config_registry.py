@@ -29,6 +29,8 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(config.hypermemory_feedback_enabled)
         self.assertFalse(config.privacy_store_raw_inputs)
         self.assertFalse(config.privacy_allow_training_from_user_data)
+        self.assertTrue(config.cache_enabled)
+        self.assertEqual(config.cache_max_entries, 1024)
 
     def test_teacher_environment_overrides_are_scoped(self) -> None:
         with patch.dict(

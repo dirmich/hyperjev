@@ -80,6 +80,8 @@ class Phase0Config:
     hypermemory_feedback_enabled: bool
     privacy_store_raw_inputs: bool
     privacy_allow_training_from_user_data: bool
+    cache_enabled: bool
+    cache_max_entries: int
     teachers: Mapping[str, TeacherSettings]
 
     @classmethod
@@ -95,6 +97,7 @@ class Phase0Config:
         paths = raw.get("paths", {})
         hypermemory = raw.get("hypermemory", {})
         privacy = raw.get("privacy", {})
+        cache = raw.get("cache", {})
         raw_teachers = raw.get("teachers", {})
         teachers: dict[str, TeacherSettings] = {}
         for name, values in raw_teachers.items():
@@ -132,6 +135,9 @@ class Phase0Config:
         ).rstrip("/")
         if not hypermemory_base_url.startswith(("http://", "https://")):
             raise ConfigError("hypermemory.base_url must be an http(s) URL")
+        cache_max_entries = int(cache.get("max_entries", 1024))
+        if cache_max_entries < 1:
+            raise ConfigError("cache.max_entries must be positive")
         return cls(
             root=root,
             project_name=str(project.get("name", "hyperjev")),
@@ -151,6 +157,8 @@ class Phase0Config:
             privacy_allow_training_from_user_data=bool(
                 privacy.get("allow_training_from_user_data", False)
             ),
+            cache_enabled=bool(cache.get("enabled", True)),
+            cache_max_entries=cache_max_entries,
             teachers=teachers,
         )
 
