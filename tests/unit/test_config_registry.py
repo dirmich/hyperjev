@@ -18,7 +18,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.teachers["qwen"].base_url, "http://127.0.0.1:8081/v1")
         self.assertEqual(config.teachers["gemma"].base_url, "http://macmini:11434/v1")
         self.assertEqual(config.teachers["qwen"].request_timeout_s, 300.0)
-        self.assertEqual(config.teachers["gemma"].request_timeout_s, 300.0)
+        self.assertEqual(config.teachers["gemma"].request_timeout_s, 900.0)
         self.assertTrue(config.teachers["qwen"].disable_thinking)
         self.assertFalse(config.teachers["gemma"].disable_thinking)
         self.assertEqual(config.teachers["qwen"].response_format, "json_object")

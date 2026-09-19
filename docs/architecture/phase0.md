@@ -10,7 +10,8 @@
 - Teacher access is OpenAI-compatible HTTP and model aliases are configuration
   values, not code constants.
 - `/models` health probes use a short timeout, while generation requests use a
-  separate per-teacher 300-second read timeout because llama.cpp generation can
+  separate per-teacher read timeout (300 seconds for Qwen and 900 seconds for
+  Gemma) because llama.cpp generation can
   legitimately take much longer than endpoint discovery.
 - Raw state and teacher output are not written to baseline run files by
   default. A SHA-256 response hash plus latency/token metadata is retained.

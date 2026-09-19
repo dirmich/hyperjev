@@ -39,7 +39,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.12.0까지 진행되어 있다. Python 테스트 59개와
+현재 `main`은 origin에 push될 1.13.0까지 진행되어 있다. Python 테스트 59개와
 Ruff 검사가 통과한 상태이며, dataset validator와 training plan, optional
 reference train CLI까지 완료됐다. 실제 사람 검수 golden set, Gemma live
 baseline 전수 실행, production PyTorch

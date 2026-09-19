@@ -56,7 +56,7 @@ class TeacherTests(unittest.TestCase):
     def test_generation_client_uses_long_configured_timeout(self) -> None:
         config = load_config(ROOT / "configs" / "phase0.toml")
         client = TeacherClient(config.teachers["gemma"])
-        self.assertEqual(client.timeout_s, 300.0)
+        self.assertEqual(client.timeout_s, 900.0)
 
 
 class BaselineTests(unittest.TestCase):

@@ -322,7 +322,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--timeout",
         type=float,
         default=None,
-        help="teacher read timeout in seconds; defaults to each teacher's config (300s)",
+        help="teacher read timeout in seconds; defaults to each teacher's config (Qwen 300s, Gemma 900s)",
     )
     benchmark.add_argument("--output")
     benchmark.set_defaults(handler=_benchmark)

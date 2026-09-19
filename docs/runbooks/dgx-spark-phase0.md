@@ -44,8 +44,8 @@ not raw state or raw teacher output.
 uv run hyperjev benchmark --limit 1
 ```
 
-Teacher generation uses the configured 300-second read timeout by default. Use
-`--timeout` only when deliberately overriding it for a controlled experiment;
+Teacher generation uses the per-teacher read timeout by default: 300 seconds for
+Qwen and 900 seconds for Gemma. Use `--timeout` only when deliberately overriding it for a controlled experiment;
 the 3-second timeout used by `doctor` is only for the lightweight `/models`
 probe.
 

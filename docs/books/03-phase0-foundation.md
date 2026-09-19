@@ -68,8 +68,8 @@ git push origin main
 
 `doctor`의 3초 timeout은 `/models` connectivity probe용이다. Qwen/Gemma의
 실제 generation은 thinking과 GPU queue 때문에 더 오래 걸릴 수 있으므로
-config 기본 read timeout은 300초로 두고, benchmark의 `--timeout`은 명시적
-실험에서만 override한다. timeout이 짧아서 실패한 것을 모델 품질 실패로
+config 기본 read timeout은 Qwen 300초, Gemma 900초로 두고, benchmark의
+`--timeout`은 명시적 실험에서만 override한다. timeout이 짧아서 실패한 것을 모델 품질 실패로
 오해하지 않도록 probe와 generation 경로를 분리했다.
 
 ## 3.5 Phase 0의 진짜 완료 조건
@@ -82,4 +82,3 @@ metrics, CLI workflow다. 다음은 사람 또는 DGX runtime에서 추가해야
 - Qwen/Gemma live baseline의 충분한 sample run
 - 실제 encoder Student 학습과 checkpoint
 - GPU latency, memory, TensorRT/ONNX export
-
