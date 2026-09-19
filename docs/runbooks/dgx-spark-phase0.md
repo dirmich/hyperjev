@@ -40,6 +40,17 @@ uv run hyperjev benchmark --limit 1 --timeout 60
 For a real Phase 0 baseline, replace the smoke fixture with the reviewed
 dataset through a config override and preserve the printed dataset hash.
 
+Evaluate a completed run without exposing raw state in the report:
+
+```bash
+uv run hyperjev evaluate --run runs/phase0/teacher-baseline-<run-id>.jsonl
+uv run hyperjev golden validate
+```
+
+The golden command must report `ready: true` before the Phase 0 gate can be
+called complete. The checked-in smoke fixture is expected to report `ready:
+false`.
+
 ## Container check
 
 The Compose service is an explicit one-shot check and uses host networking so

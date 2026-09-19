@@ -13,6 +13,7 @@ from . import __version__
 from .baseline import run_benchmark
 from .config import ConfigError, load_config
 from .doctor import system_checks
+from .evaluation import evaluate_run, validate_golden_set
 from .registry import RegistryError, TaskRegistry
 from .teachers import probe_teacher
 
@@ -74,6 +75,29 @@ def _benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def _evaluate(args: argparse.Namespace) -> int:
+    config, registry = _load(args.config)
+    report = evaluate_run(args.run, args.samples or config.smoke_set_path, registry)
+    serialized = json.dumps(report, ensure_ascii=False)
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as handle:
+            handle.write(serialized + "\n")
+    print(serialized)
+    return 0
+
+
+def _golden_validate(args: argparse.Namespace) -> int:
+    config, registry = _load(args.config)
+    report = validate_golden_set(
+        args.samples or config.smoke_set_path,
+        registry,
+        minimum_count=args.minimum_count,
+        require_human=not args.allow_unreviewed,
+    )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0 if report["ready"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hyperjev")
     parser.add_argument("--version", action="version", version=__version__)
@@ -105,6 +129,22 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--timeout", type=float, default=30.0)
     benchmark.add_argument("--output")
     benchmark.set_defaults(handler=_benchmark)
+
+    evaluate = subparsers.add_parser("evaluate")
+    _config_argument(evaluate)
+    evaluate.add_argument("--run", required=True)
+    evaluate.add_argument("--samples")
+    evaluate.add_argument("--output")
+    evaluate.set_defaults(handler=_evaluate)
+
+    golden = subparsers.add_parser("golden")
+    golden_subparsers = golden.add_subparsers(dest="golden_command", required=True)
+    golden_validate = golden_subparsers.add_parser("validate")
+    _config_argument(golden_validate)
+    golden_validate.add_argument("--samples")
+    golden_validate.add_argument("--minimum-count", type=int, default=1000)
+    golden_validate.add_argument("--allow-unreviewed", action="store_true")
+    golden_validate.set_defaults(handler=_golden_validate)
     return parser
 
 
@@ -113,7 +153,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.handler(args))
-    except (ConfigError, RegistryError, ValueError) as exc:
+    except (ConfigError, RegistryError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

@@ -112,6 +112,7 @@ def run_benchmark(
                 "latency_ms": None,
                 "response_sha256": None,
                 "response_type": None,
+                "normalized_result": None,
                 "schema_valid": None,
                 "prompt_tokens": None,
                 "completion_tokens": None,
@@ -134,6 +135,7 @@ def run_benchmark(
                     parsed = parse_decision_result(_extract_json(completion.content))
                     validate_result_for_task(task, parsed)
                     record["response_type"] = parsed.type
+                    record["normalized_result"] = parsed.to_dict()
                     record["schema_valid"] = True
                 except (ContractError, json.JSONDecodeError) as exc:
                     record["schema_valid"] = False
