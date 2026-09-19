@@ -26,6 +26,7 @@
 | 1.7.1 | `6966b13` | drift operation documentation |
 | 1.8.0 | `582a696` | append-only golden review workflow |
 | 1.9.0 | `058d856` | typed evaluation quality/calibration metrics |
+| 1.10.0 | `4bd6b53` | validated training plan CLI와 프로젝트 책 원고 |
 
 ## 다음 기록 규칙
 
@@ -50,4 +51,3 @@ git log --oneline --decorate --max-count=20
 책의 각 장은 이 명령으로 확인 가능한 코드와 실행 명령을 기준으로 쓰며,
 모델 endpoint에 대한 현재 접근 권한이나 DGX local state를 공개 repository에
 복사하지 않는다.
-
