@@ -21,6 +21,7 @@ from .golden import generate_review_queue
 from .mock_server import serve
 from .registry import RegistryError, TaskRegistry
 from .routing import DecisionRouter
+from .student import StudentConfig, student_manifest
 from .teachers import probe_teacher
 
 
@@ -149,6 +150,23 @@ def _dataset_validate(args: argparse.Namespace) -> int:
     return 0 if report["ready"] else 1
 
 
+def _student_manifest(args: argparse.Namespace) -> int:
+    _, registry = _load(args.config)
+    manifest = student_manifest(
+        registry,
+        StudentConfig(
+            model_id=args.model_id,
+            backbone=args.backbone,
+            hidden_size=args.hidden_size,
+            vocab_size=args.vocab_size,
+            max_sequence_length=args.max_sequence_length,
+            precision=args.precision,
+        ),
+    )
+    print(json.dumps(manifest, ensure_ascii=False))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hyperjev")
     parser.add_argument("--version", action="version", version=__version__)
@@ -233,6 +251,18 @@ def build_parser() -> argparse.ArgumentParser:
     _config_argument(dataset_validate)
     dataset_validate.add_argument("--samples", required=True, help="normalized dataset JSONL path")
     dataset_validate.set_defaults(handler=_dataset_validate)
+
+    student = subparsers.add_parser("student")
+    student_subparsers = student.add_subparsers(dest="student_command", required=True)
+    student_manifest_parser = student_subparsers.add_parser("manifest")
+    _config_argument(student_manifest_parser)
+    student_manifest_parser.add_argument("--model-id", default="hyperjev-student-dev")
+    student_manifest_parser.add_argument("--backbone", default="small-multilingual-encoder")
+    student_manifest_parser.add_argument("--hidden-size", type=int, default=256)
+    student_manifest_parser.add_argument("--vocab-size", type=int, default=32768)
+    student_manifest_parser.add_argument("--max-sequence-length", type=int, default=1024)
+    student_manifest_parser.add_argument("--precision", choices=("fp32", "fp16", "bf16"), default="bf16")
+    student_manifest_parser.set_defaults(handler=_student_manifest)
     return parser
 
 
