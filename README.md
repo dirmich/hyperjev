@@ -4,10 +4,11 @@ HyperJev is the local-first typed decision layer for Hyper Memory. The product
 model is an encoder with typed decision heads; `HyperJev-D` is kept as a
 separate research track and is not part of the product baseline.
 
-## Phase 1 status
+## Implementation status
 
 The repository now contains the Phase 0 foundation, Phase 1 local router, and
-the Phase 2 dataset builder:
+the Phase 2 dataset builder, typed evaluation metrics, and reference training
+workflow:
 
 - reproducible Python package configuration for ARM64/Linux;
 - environment-specific Qwen/Gemma endpoint configuration without credentials;
@@ -20,10 +21,15 @@ the Phase 2 dataset builder:
 - a Qwen/Gemma agreement-gated dataset factory with redaction, deduplication,
   privacy filtering, and grouped deterministic splits.
 - single and batch typed decision serving plus privacy-preserving shadow logs.
+- privacy-safe decision cache, model promotion registry, and drift monitoring.
+- append-only typed golden review feedback and reviewed-queue generation.
+- typed quality/calibration metrics and a validated training plan/reference run.
+- a maintained implementation book under `docs/books/`.
 
 The human-reviewed 1,000-sample golden set and the measured teacher baseline
-are intentionally not claimed complete yet. They are the next Phase 0 work
-items after the contracts and connectivity checks are in place.
+are intentionally not claimed complete yet. They remain external quality gates;
+the repository now contains the workflow, validation, and reporting needed to
+run them without treating synthetic data as human evidence.
 
 ## Local setup
 
@@ -74,3 +80,6 @@ uv run hyperjev golden generate --count 1000 --seed 7
 
 The generated queue remains pending until reviewers populate `labels.human`;
 synthetic targets never count as human review.
+
+The step-by-step engineering record is maintained in
+[`docs/books/README.md`](docs/books/README.md).

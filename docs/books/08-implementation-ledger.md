@@ -28,6 +28,7 @@
 | 1.9.0 | `058d856` | typed evaluation quality/calibration metrics |
 | 1.10.0 | `4bd6b53` | validated training plan CLI와 프로젝트 책 원고 |
 | 1.11.0 | `ea6a55a` | optional reference training run과 checkpoint hash |
+| 1.11.1 | `511326e` | reference training milestone 문서 기록 |
 
 ## 다음 기록 규칙
 
