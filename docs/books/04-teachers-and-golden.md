@@ -1,0 +1,83 @@
+# 4장. Qwen과 Gemma를 안전하게 쓰는 법
+
+## 4.1 역할 분리
+
+Qwen은 generation/label/fallback의 빠른 초안 역할이다. Gemma는 독립적인
+cross-validation과 judge 역할이므로 Qwen과 같은 오류를 반복하지 않도록
+prompt와 endpoint metadata를 분리한다. Router는 둘의 typed output을
+`parse_decision_result`와 task registry로 검증한 뒤 agreement와 confidence를
+판정한다.
+
+Teacher response에 대해 보존하는 것은 모델명, latency, token count,
+response hash, schema validity다. raw response와 raw state는 baseline run과
+review log에 넣지 않는다.
+
+## 4.2 실행 예
+
+```bash
+uv run hyperjev teacher check
+uv run hyperjev benchmark --dry-run --limit 1
+uv run hyperjev benchmark --provider qwen --limit 1 \
+  --output runs/phase0/qwen-smoke.jsonl
+uv run hyperjev evaluate \
+  --run runs/phase0/qwen-smoke.jsonl \
+  --samples tests/golden/phase0_smoke.jsonl
+```
+
+실제 Qwen one-sample benchmark는 DGX Spark의 ARM64/Linux 환경에서 실행됐고
+typed boolean 결과, schema validity, latency, hash-only metadata를 반환했다.
+Gemma 전체 benchmark와 production quality 수치는 아직 이 저장소에서
+완료했다고 주장하지 않는다.
+
+## 4.3 Router 흐름
+
+```text
+request
+  → registry/task validation
+  → high-precision rule
+  → Qwen
+  → Gemma cross-check/judge
+  → human review queue
+  → typed response + trace
+```
+
+rule은 정밀도를 우선한다. Qwen이 오류를 내거나 deadline을 넘기면 Gemma로
+넘기고, 두 teacher의 label 또는 confidence가 정책상 불일치하면 human route로
+보낸다. `allow_fallback=false`와 deadline은 request contract에 포함되어
+있으므로 “항상 모델을 호출한다”는 암묵적 동작을 허용하지 않는다.
+
+## 4.4 Golden review workflow
+
+queue를 생성한다.
+
+```bash
+uv run hyperjev golden generate --count 1000 --seed 7
+```
+
+reviewer는 typed correction 하나를 append한다.
+
+```bash
+uv run hyperjev golden review \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --feedback-output runs/phase0/golden-feedback.jsonl \
+  --sample-id phase0-synthetic-0001 \
+  --reviewer reviewer@example.test \
+  --reason "checked against source" \
+  --correction '{"type":"boolean","value":true,"probability":1.0,"abstained":false}'
+```
+
+그 다음 원본을 건드리지 않는 reviewed copy를 만든다.
+
+```bash
+uv run hyperjev golden apply-feedback \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --feedback runs/phase0/golden-feedback.jsonl \
+  --output runs/phase0/phase0-review-queue-reviewed.jsonl
+uv run hyperjev golden validate \
+  --samples runs/phase0/phase0-review-queue-reviewed.jsonl
+```
+
+이 명령은 correction의 타입과 candidate를 registry 기준으로 확인한다.
+feedback은 queue SHA-256과 함께 저장되고, queue가 바뀌면 apply가 실패한다.
+따라서 mutable JSONL을 사람 검수의 유일한 audit trail로 사용하지 않는다.
+

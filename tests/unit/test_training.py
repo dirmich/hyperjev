@@ -1,0 +1,129 @@
+import json
+import tempfile
+import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+from pathlib import Path
+
+from hyperjev.cli import main
+from hyperjev.registry import TaskRegistry
+from hyperjev.student import StudentConfig
+from hyperjev.training import (
+    TrainingConfig,
+    TrainingDataError,
+    build_training_plan,
+    load_training_dataset,
+)
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _record(sample_id: str, task_id: str, target: object, split: str, soft_target: object) -> dict[str, object]:
+    return {
+        "sample_id": sample_id,
+        "task_id": task_id,
+        "task_version": 1,
+        "state": "테스트 상태",
+        "question": "테스트 질문",
+        "target": target,
+        "soft_target": soft_target,
+        "language": "ko",
+        "domain": "test",
+        "source": {"kind": "synthetic", "source_id": sample_id},
+        "labels": {"qwen": None, "gemma": None, "human": None},
+        "provenance": {
+            "prompt_version": 1,
+            "split": split,
+            "privacy_raw_inputs_stored": False,
+        },
+    }
+
+
+class TrainingTests(unittest.TestCase):
+    def test_dataset_validation_and_plan_are_reproducible(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            dataset = Path(directory) / "dataset.jsonl"
+            dataset.write_text(
+                "\n".join(
+                    [
+                        json.dumps(_record("sample-bool", "memory.remember_worthy", True, "train", 0.9)),
+                        json.dumps(
+                            _record(
+                                "sample-choice",
+                                "memory.type",
+                                "decision",
+                                "validation",
+                                {
+                                    "fact": 0.0,
+                                    "preference": 0.0,
+                                    "episode": 0.0,
+                                    "decision": 1.0,
+                                    "goal": 0.0,
+                                    "task": 0.0,
+                                    "relationship": 0.0,
+                                    "temporary": 0.0,
+                                    "none": 0.0,
+                                },
+                            )
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            loaded = load_training_dataset(dataset, registry)
+            plan = build_training_plan(
+                dataset,
+                registry,
+                student=StudentConfig(model_id="test-student"),
+                training=TrainingConfig(epochs=2, batch_size=4),
+            )
+
+        self.assertEqual(len(loaded.samples), 2)
+        self.assertEqual(loaded.split_counts, {"train": 1, "validation": 1})
+        self.assertEqual(plan["status"], "planned")
+        self.assertEqual(plan["dataset"]["sha256"], loaded.dataset_hash)
+        self.assertEqual(plan["student"]["model_id"], "test-student")
+        self.assertEqual(plan["training"]["epochs"], 2)
+        self.assertEqual(plan["checkpoint"], {"status": "not_created", "path": None})
+
+    def test_raw_input_training_data_is_rejected(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            dataset = Path(directory) / "dataset.jsonl"
+            record = _record("sample-bool", "memory.remember_worthy", True, "train", 0.9)
+            record["provenance"] = {"prompt_version": 1, "split": "train", "privacy_raw_inputs_stored": True}
+            dataset.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            with self.assertRaises(TrainingDataError):
+                load_training_dataset(dataset, registry)
+
+    def test_train_plan_cli_writes_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            dataset = Path(directory) / "dataset.jsonl"
+            output = Path(directory) / "training-plan.json"
+            dataset.write_text(
+                json.dumps(_record("sample-bool", "memory.remember_worthy", True, "train", 0.9)) + "\n",
+                encoding="utf-8",
+            )
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "train",
+                        "plan",
+                        "--dataset",
+                        str(dataset),
+                        "--output",
+                        str(output),
+                    ]
+                )
+            plan = json.loads(output.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(plan["record_type"], "training_plan")
+        self.assertEqual(json.loads(stdout.getvalue())["checkpoint"]["status"], "not_created")
+
+
+if __name__ == "__main__":
+    unittest.main()

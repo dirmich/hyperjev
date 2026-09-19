@@ -24,6 +24,7 @@ from .registry import RegistryError, TaskRegistry
 from .routing import DecisionRouter
 from .student import StudentConfig, student_manifest
 from .teachers import probe_teacher
+from .training import TrainingConfig, write_training_plan
 
 
 def _config_argument(parser: argparse.ArgumentParser) -> None:
@@ -199,6 +200,34 @@ def _student_manifest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _training_plan(args: argparse.Namespace) -> int:
+    _, registry = _load(args.config)
+    plan = write_training_plan(
+        args.dataset,
+        args.output,
+        registry,
+        student=StudentConfig(
+            model_id=args.model_id,
+            backbone=args.backbone,
+            hidden_size=args.hidden_size,
+            vocab_size=args.vocab_size,
+            max_sequence_length=args.max_sequence_length,
+            precision=args.precision,
+        ),
+        training=TrainingConfig(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            weight_decay=args.weight_decay,
+            seed=args.seed,
+            gradient_accumulation_steps=args.gradient_accumulation_steps,
+            precision=args.precision,
+        ),
+    )
+    print(json.dumps(plan, ensure_ascii=False))
+    return 0
+
+
 def _model_registry(args: argparse.Namespace) -> ModelRegistry:
     config, _ = _load(args.config)
     return ModelRegistry(args.registry or config.model_registry_path)
@@ -340,6 +369,26 @@ def build_parser() -> argparse.ArgumentParser:
     student_manifest_parser.add_argument("--max-sequence-length", type=int, default=1024)
     student_manifest_parser.add_argument("--precision", choices=("fp32", "fp16", "bf16"), default="bf16")
     student_manifest_parser.set_defaults(handler=_student_manifest)
+
+    training = subparsers.add_parser("train")
+    training_subparsers = training.add_subparsers(dest="training_command", required=True)
+    training_plan = training_subparsers.add_parser("plan")
+    _config_argument(training_plan)
+    training_plan.add_argument("--dataset", required=True, help="normalized dataset JSONL path")
+    training_plan.add_argument("--output", required=True, help="training plan JSON path")
+    training_plan.add_argument("--model-id", default="hyperjev-student-dev")
+    training_plan.add_argument("--backbone", default="small-multilingual-encoder")
+    training_plan.add_argument("--hidden-size", type=int, default=256)
+    training_plan.add_argument("--vocab-size", type=int, default=32768)
+    training_plan.add_argument("--max-sequence-length", type=int, default=1024)
+    training_plan.add_argument("--precision", choices=("fp32", "fp16", "bf16"), default="bf16")
+    training_plan.add_argument("--epochs", type=int, default=3)
+    training_plan.add_argument("--batch-size", type=int, default=32)
+    training_plan.add_argument("--learning-rate", type=float, default=2e-4)
+    training_plan.add_argument("--weight-decay", type=float, default=0.01)
+    training_plan.add_argument("--seed", type=int, default=7)
+    training_plan.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    training_plan.set_defaults(handler=_training_plan)
 
     model = subparsers.add_parser("model")
     model_subparsers = model.add_subparsers(dest="model_command", required=True)
