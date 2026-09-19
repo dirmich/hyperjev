@@ -59,7 +59,7 @@ def run_benchmark(
     limit: int | None = None,
     providers: tuple[str, ...] = ("qwen", "gemma"),
     dry_run: bool = False,
-    timeout_s: float = 30.0,
+    timeout_s: float | None = None,
     output_path: str | Path | None = None,
 ) -> BenchmarkRun:
     """Run the same canonical samples through selected teachers.

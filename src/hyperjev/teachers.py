@@ -106,9 +106,9 @@ def probe_teacher(settings: TeacherSettings, timeout_s: float = 3.0) -> TeacherP
 class TeacherClient:
     """Small dependency-free client for llama.cpp/OpenAI-compatible endpoints."""
 
-    def __init__(self, settings: TeacherSettings, timeout_s: float = 30.0) -> None:
+    def __init__(self, settings: TeacherSettings, timeout_s: float | None = None) -> None:
         self.settings = settings
-        self.timeout_s = timeout_s
+        self.timeout_s = timeout_s if timeout_s is not None else settings.request_timeout_s
 
     def complete(
         self,

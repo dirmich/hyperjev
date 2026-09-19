@@ -26,6 +26,7 @@ class TeacherSettings:
     base_url: str
     model: str
     roles: tuple[str, ...]
+    request_timeout_s: float = 300.0
 
     @classmethod
     def from_mapping(cls, name: str, values: Mapping[str, Any]) -> TeacherSettings:
@@ -33,13 +34,22 @@ class TeacherSettings:
         model = str(values.get("model", "")).strip()
         raw_roles = values.get("roles", ())
         roles = tuple(str(role) for role in raw_roles)
+        request_timeout_s = float(values.get("request_timeout_s", 300.0))
         if not base_url.startswith(("http://", "https://")):
             raise ConfigError(f"teachers.{name}.base_url must be an http(s) URL")
         if not model:
             raise ConfigError(f"teachers.{name}.model must not be empty")
         if not roles:
             raise ConfigError(f"teachers.{name}.roles must not be empty")
-        return cls(name=name, base_url=base_url, model=model, roles=roles)
+        if request_timeout_s <= 0:
+            raise ConfigError(f"teachers.{name}.request_timeout_s must be positive")
+        return cls(
+            name=name,
+            base_url=base_url,
+            model=model,
+            roles=roles,
+            request_timeout_s=request_timeout_s,
+        )
 
 
 @dataclass(frozen=True)

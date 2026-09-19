@@ -34,8 +34,13 @@ Use a non-sensitive fixture first. The run file contains hashes and metrics,
 not raw state or raw teacher output.
 
 ```bash
-uv run hyperjev benchmark --limit 1 --timeout 60
+uv run hyperjev benchmark --limit 1
 ```
+
+Teacher generation uses the configured 300-second read timeout by default. Use
+`--timeout` only when deliberately overriding it for a controlled experiment;
+the 3-second timeout used by `doctor` is only for the lightweight `/models`
+probe.
 
 For a real Phase 0 baseline, replace the smoke fixture with the reviewed
 dataset through a config override and preserve the printed dataset hash.

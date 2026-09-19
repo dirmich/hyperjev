@@ -7,7 +7,7 @@ from unittest.mock import patch
 from hyperjev.baseline import run_benchmark
 from hyperjev.config import load_config
 from hyperjev.registry import TaskRegistry
-from hyperjev.teachers import _message_content, _model_ids, probe_teacher
+from hyperjev.teachers import TeacherClient, _message_content, _model_ids, probe_teacher
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -52,6 +52,11 @@ class TeacherTests(unittest.TestCase):
         self.assertTrue(probe.ok is False)
         self.assertFalse(probe.model_found)
         self.assertIn("configured model", probe.error or "")
+
+    def test_generation_client_uses_long_configured_timeout(self) -> None:
+        config = load_config(ROOT / "configs" / "phase0.toml")
+        client = TeacherClient(config.teachers["gemma"])
+        self.assertEqual(client.timeout_s, 300.0)
 
 
 class BaselineTests(unittest.TestCase):

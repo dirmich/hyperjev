@@ -17,6 +17,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.diffusion_track, "HyperJev-D")
         self.assertEqual(config.teachers["qwen"].base_url, "http://127.0.0.1:8081/v1")
         self.assertEqual(config.teachers["gemma"].base_url, "http://macmini:11434/v1")
+        self.assertEqual(config.teachers["qwen"].request_timeout_s, 300.0)
+        self.assertEqual(config.teachers["gemma"].request_timeout_s, 300.0)
         self.assertEqual(config.teachers["qwen"].roles, ("data_generator", "labeler", "fallback"))
         self.assertEqual(config.teachers["gemma"].roles, ("cross_validator", "judge"))
 
