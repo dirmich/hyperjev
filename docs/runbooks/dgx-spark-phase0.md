@@ -72,6 +72,30 @@ uv run hyperjev golden generate --count 1000 --seed 7
 This creates a pending queue under `runs/phase0/`. Its synthetic targets are
 useful for runner smoke tests but do not satisfy the human-label requirement.
 
+Append each human correction to a separate feedback log. The correction is
+validated against the task registry before it is accepted:
+
+```bash
+uv run hyperjev golden review \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --feedback-output runs/phase0/golden-feedback.jsonl \
+  --sample-id phase0-synthetic-0001 \
+  --reviewer reviewer@example.test \
+  --correction-file /path/to/typed-correction.json
+```
+
+Build a reviewed copy only after collecting feedback. The source queue remains
+unchanged and feedback is rejected if its queue hash is stale:
+
+```bash
+uv run hyperjev golden apply-feedback \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --feedback runs/phase0/golden-feedback.jsonl \
+  --output runs/phase0/phase0-review-queue-reviewed.jsonl
+uv run hyperjev golden validate \
+  --samples runs/phase0/phase0-review-queue-reviewed.jsonl
+```
+
 ## Container check
 
 The Compose service is an explicit one-shot check and uses host networking so

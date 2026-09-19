@@ -4,15 +4,27 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import random
+import tempfile
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .contracts import parse_decision_result, validate_result_for_task
 from .prompts import PROMPT_VERSION
 from .registry import TaskRegistry
+from .samples import load_jsonl
 
 GENERATOR_VERSION = "phase0-synthetic-v1"
+GOLDEN_FEEDBACK_VERSION = "golden-feedback-v1"
+
+
+class GoldenReviewError(ValueError):
+    """Raised when a golden queue or feedback record is invalid."""
+
+
 TASK_ORDER = (
     "memory.remember_worthy",
     "memory.type",
@@ -160,4 +172,166 @@ def generate_review_queue(
         "sha256": digest,
         "review_status": "pending",
         "human_reviewed": False,
+    }
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _read_jsonl(path: str | Path, *, label: str) -> list[dict[str, Any]]:
+    source = Path(path)
+    try:
+        lines = source.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise ValueError(f"cannot read {label} {source}: {exc}") from exc
+    records: list[dict[str, Any]] = []
+    for line_number, line in enumerate(lines, start=1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{source}:{line_number}: invalid JSON: {exc.msg}") from exc
+        if not isinstance(record, dict):
+            raise GoldenReviewError(f"{source}:{line_number}: {label} record must be an object")
+        records.append(record)
+    if not records:
+        raise ValueError(f"{label} is empty: {source}")
+    return records
+
+
+def append_golden_feedback(
+    queue_path: str | Path,
+    feedback_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    sample_id: str,
+    correction: dict[str, Any],
+    reviewer: str,
+    reason: str = "",
+) -> dict[str, Any]:
+    """Append one validated typed human label without changing the source queue."""
+
+    if not reviewer.strip():
+        raise ValueError("reviewer must not be empty")
+    queue_records = _read_jsonl(queue_path, label="golden queue")
+    samples = {sample.sample_id: sample for sample in load_jsonl(queue_path, registry)}
+    sample = samples.get(sample_id)
+    if sample is None:
+        raise ValueError(f"unknown golden sample_id: {sample_id}")
+    task = registry.get(sample.task_id, sample.task_version)
+    parsed = parse_decision_result(correction)
+    validate_result_for_task(task, parsed)
+    queue_digest = hashlib.sha256(Path(queue_path).read_bytes()).hexdigest()
+    record = {
+        "record_type": "golden_feedback",
+        "feedback_version": GOLDEN_FEEDBACK_VERSION,
+        "created_at": _utc_now(),
+        "sample_id": sample_id,
+        "task": f"{task.id}@{task.version}",
+        "queue_sha256": queue_digest,
+        "correction": parsed.to_dict(),
+        "reviewer": reviewer.strip(),
+        "reason": reason,
+    }
+    path = Path(feedback_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    return {
+        "path": str(path.resolve()),
+        "sample_id": sample_id,
+        "task": record["task"],
+        "queue_sha256": queue_digest,
+        "feedback_version": GOLDEN_FEEDBACK_VERSION,
+        "records": 1,
+        "queue_records": len(queue_records),
+    }
+
+
+def _atomic_write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=path.parent, prefix=f".{path.name}.", delete=False
+    ) as handle:
+        temporary = Path(handle.name)
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    os.replace(temporary, path)
+
+
+def apply_golden_feedback(
+    queue_path: str | Path,
+    feedback_path: str | Path,
+    output_path: str | Path,
+    registry: TaskRegistry,
+) -> dict[str, Any]:
+    """Create a reviewed queue copy from append-only feedback records."""
+
+    queue = Path(queue_path)
+    output = Path(output_path)
+    if queue.resolve() == output.resolve():
+        raise ValueError("reviewed queue output must differ from the source queue")
+    queue_records = _read_jsonl(queue, label="golden queue")
+    load_jsonl(queue, registry)
+    queue_digest = hashlib.sha256(queue.read_bytes()).hexdigest()
+    samples = {str(record["sample_id"]): record for record in queue_records}
+    feedback_records = _read_jsonl(feedback_path, label="golden feedback")
+    latest: dict[str, dict[str, Any]] = {}
+    for record in feedback_records:
+        if record.get("record_type") != "golden_feedback":
+            raise ValueError("feedback file contains a non-golden feedback record")
+        sample_id = str(record.get("sample_id", ""))
+        if sample_id not in samples:
+            raise ValueError(f"feedback references unknown golden sample_id: {sample_id}")
+        if record.get("queue_sha256") != queue_digest:
+            raise ValueError(f"feedback queue digest does not match source queue: {sample_id}")
+        raw_task = str(record.get("task", ""))
+        task_id, task_version_text = raw_task.rsplit("@", 1)
+        try:
+            task_version = int(task_version_text)
+        except ValueError as exc:
+            raise ValueError(f"invalid feedback task reference: {raw_task!r}") from exc
+        sample = samples[sample_id]
+        if raw_task != f"{sample['task_id']}@{sample['task_version']}":
+            raise ValueError(f"feedback task does not match sample: {sample_id}")
+        task = registry.get(task_id, task_version)
+        correction = record.get("correction")
+        if not isinstance(correction, dict):
+            raise GoldenReviewError(f"feedback correction must be an object: {sample_id}")
+        parsed = parse_decision_result(correction)
+        validate_result_for_task(task, parsed)
+        latest[sample_id] = record | {"correction": parsed.to_dict()}
+
+    reviewed_records: list[dict[str, Any]] = []
+    for original in queue_records:
+        record = json.loads(json.dumps(original))
+        feedback = latest.get(str(record["sample_id"]))
+        if feedback is not None:
+            labels = dict(record.get("labels", {}))
+            labels["human"] = feedback["correction"]
+            record["labels"] = labels
+            review = dict(record.get("review", {}))
+            review.update(
+                {
+                    "status": "reviewed",
+                    "reviewer": feedback["reviewer"],
+                    "reviewed_at": feedback["created_at"],
+                    "reason": feedback.get("reason", ""),
+                }
+            )
+            record["review"] = review
+        reviewed_records.append(record)
+    _atomic_write_jsonl(output, reviewed_records)
+    reviewed_count = len(latest)
+    return {
+        "path": str(output.resolve()),
+        "source_path": str(queue.resolve()),
+        "feedback_path": str(Path(feedback_path).resolve()),
+        "sample_count": len(reviewed_records),
+        "human_reviewed_count": reviewed_count,
+        "pending_count": len(reviewed_records) - reviewed_count,
+        "sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+        "ready": reviewed_count == len(reviewed_records),
     }

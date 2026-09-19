@@ -17,7 +17,7 @@ from .contracts import DecisionRequest
 from .dataset_factory import build_dataset, validate_dataset
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
-from .golden import generate_review_queue
+from .golden import append_golden_feedback, apply_golden_feedback, generate_review_queue
 from .mock_server import serve
 from .model_registry import ModelRegistry
 from .registry import RegistryError, TaskRegistry
@@ -110,6 +110,37 @@ def _golden_generate(args: argparse.Namespace) -> int:
     config, registry = _load(args.config)
     output = args.output or str(config.runs_path / "phase0-review-queue.jsonl")
     report = generate_review_queue(output, registry, count=args.count, seed=args.seed)
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _golden_review(args: argparse.Namespace) -> int:
+    config, registry = _load(args.config)
+    queue = args.queue or str(config.runs_path / "phase0-review-queue.jsonl")
+    feedback = args.feedback_output or str(config.runs_path / "golden-feedback.jsonl")
+    correction_source = args.correction
+    if args.correction_file:
+        correction_source = Path(args.correction_file).read_text(encoding="utf-8")
+    correction = json.loads(correction_source)
+    report = append_golden_feedback(
+        queue,
+        feedback,
+        registry,
+        sample_id=args.sample_id,
+        correction=correction,
+        reviewer=args.reviewer,
+        reason=args.reason,
+    )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _golden_apply_feedback(args: argparse.Namespace) -> int:
+    config, registry = _load(args.config)
+    queue = Path(args.queue or config.runs_path / "phase0-review-queue.jsonl")
+    feedback = args.feedback or config.runs_path / "golden-feedback.jsonl"
+    output = Path(args.output or queue.with_name(f"{queue.stem}-reviewed{queue.suffix}"))
+    report = apply_golden_feedback(queue, feedback, output, registry)
     print(json.dumps(report, ensure_ascii=False))
     return 0
 
@@ -254,6 +285,23 @@ def build_parser() -> argparse.ArgumentParser:
     golden_generate.add_argument("--count", type=int, default=1000)
     golden_generate.add_argument("--seed", type=int, default=0)
     golden_generate.set_defaults(handler=_golden_generate)
+    golden_review = golden_subparsers.add_parser("review")
+    _config_argument(golden_review)
+    golden_review.add_argument("--queue")
+    golden_review.add_argument("--feedback-output")
+    golden_review.add_argument("--sample-id", required=True)
+    correction = golden_review.add_mutually_exclusive_group(required=True)
+    correction.add_argument("--correction", help="typed decision result as a JSON object")
+    correction.add_argument("--correction-file", help="file containing a typed decision result JSON object")
+    golden_review.add_argument("--reviewer", required=True)
+    golden_review.add_argument("--reason", default="")
+    golden_review.set_defaults(handler=_golden_review)
+    golden_apply = golden_subparsers.add_parser("apply-feedback")
+    _config_argument(golden_apply)
+    golden_apply.add_argument("--queue")
+    golden_apply.add_argument("--feedback")
+    golden_apply.add_argument("--output")
+    golden_apply.set_defaults(handler=_golden_apply_feedback)
 
     serve_parser = subparsers.add_parser("serve")
     _config_argument(serve_parser)
