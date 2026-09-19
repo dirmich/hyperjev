@@ -27,6 +27,7 @@ uv run pytest
 uv run hyperjev registry validate
 uv run hyperjev teacher check
 uv run hyperjev benchmark --dry-run --limit 1
+uv run hyperjev serve --host 127.0.0.1 --port 6777
 ```
 
 The default configuration is `configs/phase0.toml`. Override teacher endpoint
@@ -53,3 +54,7 @@ and Gemma for independent cross-checking/judging, as specified by the PRD.
 human-reviewed samples are supplied. The repository contains only a six-record
 non-sensitive smoke fixture, so it does not pretend that the Phase 0 quality
 gate has passed.
+
+The Phase 0 `serve` command is a contract-only mock server. It is suitable for
+integration tests and returns abstained typed results; it is not the Student
+inference runtime.

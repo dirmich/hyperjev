@@ -14,6 +14,7 @@ from .baseline import run_benchmark
 from .config import ConfigError, load_config
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
+from .mock_server import serve
 from .registry import RegistryError, TaskRegistry
 from .teachers import probe_teacher
 
@@ -98,6 +99,12 @@ def _golden_validate(args: argparse.Namespace) -> int:
     return 0 if report["ready"] else 1
 
 
+def _serve(args: argparse.Namespace) -> int:
+    config, _ = _load(args.config)
+    serve(config, host=args.host, port=args.port)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hyperjev")
     parser.add_argument("--version", action="version", version=__version__)
@@ -150,6 +157,12 @@ def build_parser() -> argparse.ArgumentParser:
     golden_validate.add_argument("--minimum-count", type=int, default=1000)
     golden_validate.add_argument("--allow-unreviewed", action="store_true")
     golden_validate.set_defaults(handler=_golden_validate)
+
+    serve_parser = subparsers.add_parser("serve")
+    _config_argument(serve_parser)
+    serve_parser.add_argument("--host")
+    serve_parser.add_argument("--port", type=int)
+    serve_parser.set_defaults(handler=_serve)
     return parser
 
 

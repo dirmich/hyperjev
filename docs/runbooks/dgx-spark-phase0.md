@@ -22,6 +22,13 @@ The initial tasks are `memory.remember_worthy`, `memory.type`,
 `memory.importance`, `query.route`, `memory.relation`, and
 `wiki.semantic_change`.
 
+Run the contract-only mock API for client integration checks:
+
+```bash
+uv run hyperjev serve
+curl http://127.0.0.1:6777/health/ready
+```
+
 ## Exercise the runner without teacher calls
 
 ```bash

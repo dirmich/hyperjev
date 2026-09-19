@@ -90,7 +90,13 @@ def run_benchmark(
         "providers": list(providers),
         "dry_run": dry_run,
         "prompt_version": PROMPT_VERSION,
-        "request_parameters": {"temperature": 0, "top_p": 1, "seed": 0, "max_tokens": 256},
+        "request_parameters": {
+            "temperature": 0,
+            "top_p": 1,
+            "seed": 0,
+            "max_tokens": 256,
+            "response_format": "per_teacher_config",
+        },
         "environment": _environment_manifest(config),
     }
     records: list[dict[str, Any]] = []
@@ -107,6 +113,7 @@ def run_benchmark(
                 "task_version": sample.task_version,
                 "provider": provider,
                 "model": settings.model,
+                "response_format": settings.response_format,
                 "prompt_version": PROMPT_VERSION,
                 "status": "dry_run" if dry_run else "pending",
                 "latency_ms": None,

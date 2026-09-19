@@ -27,6 +27,8 @@ class TeacherSettings:
     model: str
     roles: tuple[str, ...]
     request_timeout_s: float = 300.0
+    disable_thinking: bool = False
+    response_format: str = "json_object"
 
     @classmethod
     def from_mapping(cls, name: str, values: Mapping[str, Any]) -> TeacherSettings:
@@ -35,6 +37,8 @@ class TeacherSettings:
         raw_roles = values.get("roles", ())
         roles = tuple(str(role) for role in raw_roles)
         request_timeout_s = float(values.get("request_timeout_s", 300.0))
+        disable_thinking = bool(values.get("disable_thinking", False))
+        response_format = str(values.get("response_format", "json_object"))
         if not base_url.startswith(("http://", "https://")):
             raise ConfigError(f"teachers.{name}.base_url must be an http(s) URL")
         if not model:
@@ -43,12 +47,16 @@ class TeacherSettings:
             raise ConfigError(f"teachers.{name}.roles must not be empty")
         if request_timeout_s <= 0:
             raise ConfigError(f"teachers.{name}.request_timeout_s must be positive")
+        if response_format not in {"json_object", "json_schema", "text"}:
+            raise ConfigError(f"teachers.{name}.response_format is unsupported: {response_format}")
         return cls(
             name=name,
             base_url=base_url,
             model=model,
             roles=roles,
             request_timeout_s=request_timeout_s,
+            disable_thinking=disable_thinking,
+            response_format=response_format,
         )
 
 
@@ -102,6 +110,9 @@ class Phase0Config:
                 "base_url": overrides["base_url"] or current.base_url,
                 "model": overrides["model"] or current.model,
                 "roles": current.roles,
+                "request_timeout_s": current.request_timeout_s,
+                "disable_thinking": current.disable_thinking,
+                "response_format": current.response_format,
             }
             teachers[name] = TeacherSettings.from_mapping(name, values)
 

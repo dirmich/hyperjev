@@ -124,8 +124,11 @@ class TeacherClient:
             "top_p": 1,
             "seed": seed,
             "max_tokens": max_tokens,
+            "response_format": {"type": self.settings.response_format},
             "stream": False,
         }
+        if self.settings.disable_thinking:
+            payload["chat_template_kwargs"] = {"enable_thinking": False}
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         request = Request(
             f"{self.settings.base_url}/chat/completions",
