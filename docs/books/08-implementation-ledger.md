@@ -32,6 +32,7 @@
 | 1.12.0 | `13287a1` | PRD quality/calibration metric coverage |
 | 1.13.0 | `3fd213a` | Gemma generation timeout을 900초로 확장 |
 | 1.13.1 | `2064058` | Gemma timeout 결과와 운영 gate 문서화 |
+| 1.13.2 | `f8a2333` | 최종 release gate checklist 장 추가 |
 
 ## 다음 기록 규칙
 
