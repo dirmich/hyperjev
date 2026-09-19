@@ -58,3 +58,12 @@ gate has passed.
 The Phase 0 `serve` command is a contract-only mock server. It is suitable for
 integration tests and returns abstained typed results; it is not the Student
 inference runtime.
+
+Create the deterministic synthetic review queue with:
+
+```bash
+uv run hyperjev golden generate --count 1000 --seed 7
+```
+
+The generated queue remains pending until reviewers populate `labels.human`;
+synthetic targets never count as human review.

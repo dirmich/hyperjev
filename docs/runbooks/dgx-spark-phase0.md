@@ -63,6 +63,15 @@ The golden command must report `ready: true` before the Phase 0 gate can be
 called complete. The checked-in smoke fixture is expected to report `ready:
 false`.
 
+Generate the reproducible synthetic queue that reviewers can work through:
+
+```bash
+uv run hyperjev golden generate --count 1000 --seed 7
+```
+
+This creates a pending queue under `runs/phase0/`. Its synthetic targets are
+useful for runner smoke tests but do not satisfy the human-label requirement.
+
 ## Container check
 
 The Compose service is an explicit one-shot check and uses host networking so

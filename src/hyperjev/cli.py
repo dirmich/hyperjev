@@ -14,6 +14,7 @@ from .baseline import run_benchmark
 from .config import ConfigError, load_config
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
+from .golden import generate_review_queue
 from .mock_server import serve
 from .registry import RegistryError, TaskRegistry
 from .teachers import probe_teacher
@@ -99,6 +100,14 @@ def _golden_validate(args: argparse.Namespace) -> int:
     return 0 if report["ready"] else 1
 
 
+def _golden_generate(args: argparse.Namespace) -> int:
+    config, registry = _load(args.config)
+    output = args.output or str(config.runs_path / "phase0-review-queue.jsonl")
+    report = generate_review_queue(output, registry, count=args.count, seed=args.seed)
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
 def _serve(args: argparse.Namespace) -> int:
     config, _ = _load(args.config)
     serve(config, host=args.host, port=args.port)
@@ -157,6 +166,12 @@ def build_parser() -> argparse.ArgumentParser:
     golden_validate.add_argument("--minimum-count", type=int, default=1000)
     golden_validate.add_argument("--allow-unreviewed", action="store_true")
     golden_validate.set_defaults(handler=_golden_validate)
+    golden_generate = golden_subparsers.add_parser("generate")
+    _config_argument(golden_generate)
+    golden_generate.add_argument("--output")
+    golden_generate.add_argument("--count", type=int, default=1000)
+    golden_generate.add_argument("--seed", type=int, default=0)
+    golden_generate.set_defaults(handler=_golden_generate)
 
     serve_parser = subparsers.add_parser("serve")
     _config_argument(serve_parser)
