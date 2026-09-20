@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.43.0  
+현재 버전: 1.44.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -50,6 +50,20 @@ test `5/8 (62.50%)`였고, baseline보다 각각 12.50%p와 50.00%p 개선됐다
 uv run python scripts/evaluate_control_quality.py \
   --checkpoint runs/control/control-token-300.pt
 ```
+
+v1.44.0에는 다음 provenance gate가 추가됐다.
+
+```bash
+uv run python scripts/validate_control_dataset.py \
+  tests/golden/control_smoke.jsonl
+```
+
+각 control sample은 `source.scenario_id`, `source.episode_id`,
+`source.semantic_group_id`를 가져야 한다. validator는 case/whitespace를
+정규화한 exact state/question, episode, semantic group별로 split 교차 여부를
+검사한다. 기존 smoke fixture는 이 메타데이터가 없어 실패하며, 이것은
+정확도를 낮춘 것이 아니라 아직 production-quality 데이터가 아님을 명시한
+것이다.
 
 simulation safety scenario는 40회 replay에서 action accuracy 100%, safety STOP
 recall 100%였지만, 이는 contract regression 증거이지 새로운 state 일반화 증거가

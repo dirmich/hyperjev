@@ -18,4 +18,5 @@ runs/phase3/*.pt
 runs/control/*.pt
 runs/control/*.json
 runs/phase6/*.json
+scripts/__pycache__/
 !runs/phase0/.gitkeep

@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.43.0까지 진행되어 있다. Python 테스트 98개와
+현재 `main`은 origin에 push될 1.44.0까지 진행되어 있다. Python 테스트 102개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -74,6 +74,11 @@ v1.43.0에서는 validation/test 정확도와 safety STOP recall을 함께 판�
 메타데이터를 report에 고정했다. `reference-token-encoder` 실험은 validation
 50.00%, test 62.50%로 baseline보다 좋아졌지만 99% gate에는 실패했으며,
 human golden 데이터가 없는 synthetic 결과로 production 승격하지 않는다.
+
+v1.44.0에서는 control dataset에 scenario/episode/semantic-group provenance를
+요구하고, normalized exact input과 episode/group이 split 사이에 섞이면
+실패시키는 validator를 추가했다. 기존 smoke fixture는 이 계약을 만족하지
+않으므로 human golden seed를 만들기 전까지 품질 dataset으로 취급하지 않는다.
 
 각 구현 단계는 다음 순서를 따른다.
 

@@ -77,6 +77,7 @@
 | 1.41.0 | 진행 중 | HyperMemory `/v1/context` bounded control context adapter |
 | 1.42.0 | 진행 중 | deterministic control scenario replay와 latency/safety report |
 | 1.43.0 | 진행 중 | accuracy evaluator, split metadata, reference token encoder 실험 |
+| 1.44.0 | 진행 중 | control dataset provenance와 cross-split leakage validator |
 
 ## 다음 기록 규칙
 

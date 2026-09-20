@@ -1438,3 +1438,25 @@ checkpoint SHA-256은
 actuator 안전성을 의미하지 않는다. token path는 baseline보다 좋아졌지만,
 다음 정확도 상승의 우선순위는 human golden dataset, hard-negative,
 episode-level split, calibration/OOD gate다.
+
+### 14.22 control dataset provenance/leakage gate (v1.44.0)
+
+모델 정확도를 올리기 전에 데이터 분모가 유효한지 검사하는 validator를
+추가했다.
+
+```bash
+uv run python scripts/validate_control_dataset.py \
+  tests/golden/control_smoke.jsonl
+```
+
+각 control sample은 `source.scenario_id`, `source.episode_id`,
+`source.semantic_group_id`를 가져야 한다. validator는 state/question을
+case-fold와 whitespace 정규화한 exact group, episode, semantic group이
+train/validation/test 사이에 교차하는지를 검사하고, 필요하면
+`--require-human-labels`로 human label을 강제한다.
+
+기존 `control_smoke.jsonl`의 결과는 sample 48개, unique exact group 48개,
+human label 0개이며, 144건의 필수 provenance 오류로 `FAIL`했다. 이 fixture는
+reference Student 실험용 synthetic 입력으로는 보존하지만, human golden
+control 정확도 산정용으로 승격하지 않는다. 이 gate를 통과하는 데이터만
+향후 99% 목표의 validation/test 분모로 사용한다.

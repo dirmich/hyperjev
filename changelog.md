@@ -3,6 +3,20 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — control dataset provenance/leakage gate (v1.44.0)
+
+- `src/hyperjev/control_data.py`와 `scripts/validate_control_dataset.py`를
+  추가해 control dataset에 `scenario_id`, `episode_id`,
+  `semantic_group_id`가 있는지 검사한다.
+- 정규화된 state/question exact group, episode, semantic group이 train과
+  validation/test 사이에 걸치면 실패한다. human label 요구도 별도 flag로
+  강제할 수 있다.
+- 102개 단위 테스트와 기존 fixture 거부 회귀를 통과했다. 현재 48개 smoke
+  fixture는 provenance와 human label이 없으므로 품질 gate를 통과하지 못한다.
+- 정확도 숫자를 올리기 위해 test를 train으로 이동하거나 duplicate를 삭제해
+  분모를 줄이지 않는다. 다음 단계는 이 계약을 만족하는 human-review control
+  golden seed와 counterfactual hard-negative 생성이다.
+
 ## 2026-09-20 — accuracy evaluator와 token encoder 실험 (v1.43.0)
 
 - validation/test split 정확도와 safety STOP recall을 한 번에 판정하는
