@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — bounded control simulation latency gate (v1.94.0)
+
+- `control simulate`가 p50/p95/p99/max latency를 기록한다.
+- `--max-p95-ms`와 `--max-p99-ms`를 지정하면 threshold 초과 시 exit `1`로
+  실패해 bounded-latency 조건을 자동 검증한다.
+- 현재 4-scenario local CPU replay는 정확도 `4/4`, safe STOP recall `2/2`,
+  p95 `0.066515ms`, p99 `0.066515ms`로 5ms gate를 통과했다.
+- 이 결과는 4개 fixture와 local CPU 관측치이며 DGX 동시성 production benchmark는
+  별도 gate로 남는다.
+
 ## 2026-09-21 — human-only control training gate (v1.93.0)
 
 - `control train --require-human-labels`를 연결해 synthetic control target 학습을

@@ -600,6 +600,9 @@ def _control_evaluate(args: argparse.Namespace) -> int:
 def _control_simulate(args: argparse.Namespace) -> int:
     if args.repeat < 1:
         raise ValueError("control simulation repeat must be positive")
+    for name, value in (("max_p95_ms", args.max_p95_ms), ("max_p99_ms", args.max_p99_ms)):
+        if value is not None and value <= 0:
+            raise ValueError(f"{name} must be positive when provided")
     registry = TaskRegistry.load(args.registry)
     client = ControlStudentClient(
         args.checkpoint,
@@ -651,6 +654,15 @@ def _control_simulate(args: argparse.Namespace) -> int:
     correct = sum(row["correct"] for row in rows)
     expected_stops = [row for row in rows if row["expected_safe_stop"]]
     observed_stops = sum(row["safe_stop"] for row in expected_stops)
+    p95_ms = latencies[max(0, math.ceil(len(latencies) * 0.95) - 1)]
+    p99_ms = latencies[max(0, math.ceil(len(latencies) * 0.99) - 1)]
+    latency_gate = {
+        "max_p95_ms": args.max_p95_ms,
+        "max_p99_ms": args.max_p99_ms,
+        "p95_passed": args.max_p95_ms is None or p95_ms <= args.max_p95_ms,
+        "p99_passed": args.max_p99_ms is None or p99_ms <= args.max_p99_ms,
+    }
+    latency_gate["passed"] = latency_gate["p95_passed"] and latency_gate["p99_passed"]
     report = {
         "record_type": "control_simulation",
         "checkpoint": str(Path(args.checkpoint).resolve()),
@@ -663,9 +675,12 @@ def _control_simulate(args: argparse.Namespace) -> int:
         "safe_stop_recall": round(observed_stops / len(expected_stops), 6) if expected_stops else None,
         "latency_ms": {
             "p50": round(latencies[len(latencies) // 2], 6),
-            "p95": round(latencies[max(0, math.ceil(len(latencies) * 0.95) - 1)], 6),
+            "p95": round(p95_ms, 6),
+            "p99": round(p99_ms, 6),
+            "max": round(max(latencies), 6),
             "mean": round(sum(latencies) / len(latencies), 6),
         },
+        "latency_gate": latency_gate,
         "results": rows,
     }
     if args.output:
@@ -673,7 +688,9 @@ def _control_simulate(args: argparse.Namespace) -> int:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False))
-    return 1 if args.fail_on_mismatch and correct != len(rows) else 0
+    if args.fail_on_mismatch and correct != len(rows):
+        return 1
+    return 0 if latency_gate["passed"] else 1
 
 
 def _training_plan(args: argparse.Namespace) -> int:
@@ -1189,6 +1206,8 @@ def build_parser() -> argparse.ArgumentParser:
     control_simulate.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     control_simulate.add_argument("--output")
     control_simulate.add_argument("--fail-on-mismatch", action="store_true")
+    control_simulate.add_argument("--max-p95-ms", type=float)
+    control_simulate.add_argument("--max-p99-ms", type=float)
     control_simulate.set_defaults(handler=_control_simulate)
 
     training = subparsers.add_parser("train")

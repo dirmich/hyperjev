@@ -2690,3 +2690,21 @@ row마다 typed `labels.human`이 있어야 하고 `target_source`가 `human_rev
 
 이 gate는 정확도를 올리는 학습 자체가 아니라, synthetic target을 production
 training에 섞어 99%를 과장하는 경로를 차단한다.
+
+### 14.71 bounded control simulation latency gate (v1.94.0)
+
+`control simulate`에 p95/p99/max latency report와 선택적 threshold gate를
+추가했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| replay | 4 scenarios, local CPU |
+| action accuracy | `4/4 (100%)` |
+| safe STOP recall | `2/2 (100%)` |
+| p50 / p95 / p99 / max | `0.003456 / 0.066515 / 0.066515 / 0.066515 ms` |
+| p95/p99 threshold | `5 / 5 ms` |
+| latency gate | 통과 |
+| production 의미 | DGX concurrency benchmark 전에는 미확정 |
+
+targeted control tests는 `20 passed, 1 warning, 39 subtests passed`였다. latency
+gate는 정확도나 human gate를 대체하지 않는다.

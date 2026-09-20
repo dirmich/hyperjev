@@ -285,6 +285,10 @@ class ControlContractTests(unittest.TestCase):
                         "--output",
                         str(output),
                         "--fail-on-mismatch",
+                        "--max-p95-ms",
+                        "1000",
+                        "--max-p99-ms",
+                        "1000",
                     ]
                 )
             report = json.loads(output.read_text(encoding="utf-8"))
@@ -292,7 +296,52 @@ class ControlContractTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(report["accuracy"], 1.0)
         self.assertEqual(report["safe_stop_recall"], 1.0)
+        self.assertIn("p99", report["latency_ms"])
+        self.assertIn("max", report["latency_ms"])
+        self.assertTrue(report["latency_gate"]["passed"])
         self.assertEqual(json.loads(stdout.getvalue())["count"], 2)
+
+    def test_control_simulation_fails_latency_gate(self) -> None:
+        class _FakeClient:
+            def __init__(self, *_args, **_kwargs) -> None:
+                pass
+
+            def decide(self, observation, *, now_ms):
+                return ControlAction(skill="APPROACH", confidence=1.0)
+
+        with tempfile.TemporaryDirectory() as directory:
+            scenarios = Path(directory) / "scenarios.jsonl"
+            scenarios.write_text(
+                json.dumps(
+                    {
+                        "scenario_id": "normal",
+                        "observation": {
+                            "observation_id": "normal",
+                            "state": "target ahead",
+                            "domain": "simulation",
+                            "timestamp_ms": 1000,
+                        },
+                        "now_ms": 1001,
+                        "expected_skill": "APPROACH",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with patch("hyperjev.cli.ControlStudentClient", _FakeClient):
+                exit_code = main(
+                    [
+                        "control",
+                        "simulate",
+                        "--checkpoint",
+                        "unused.pt",
+                        "--scenarios",
+                        str(scenarios),
+                        "--max-p95-ms",
+                        "0.000000001",
+                    ]
+                )
+        self.assertEqual(exit_code, 1)
 
     def test_control_student_maps_typed_head_to_registered_skill(self) -> None:
         try:

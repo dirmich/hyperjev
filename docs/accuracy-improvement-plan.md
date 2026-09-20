@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.93.0
+현재 버전: 1.94.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -924,3 +924,22 @@ uv run hyperjev control train \
 `provenance.target_source=human_review`를 요구한다. synthetic target이나 Qwen/
 Gemma draft만 있는 queue에서는 checkpoint를 생성하지 않는다. 따라서 이후
 evaluator의 `--require-human-test`와 결합해야 99% 승격 후보가 된다.
+
+### v1.94.0 bounded latency gate
+
+실시간 control loop의 latency를 단순 기록에서 gate로 승격했다.
+
+```bash
+uv run hyperjev control simulate \
+  --checkpoint /path/to/control-human.pt \
+  --scenarios tests/golden/control_scenarios.jsonl \
+  --max-p95-ms 5 \
+  --max-p99-ms 5 \
+  --output runs/control/simulation-latency.json
+```
+
+threshold를 넘으면 exit `1`이며 report의 `latency_gate.passed`가 false다. 2026-09-21
+local CPU 4-scenario replay는 p95/p99 `0.066515ms`, 정확도 `4/4`, safe STOP
+recall `2/2`였다. 이 수치는 fast-path fixture 증거일 뿐이므로 DGX Spark에서
+Student fallback, 동시성, memory context, teacher fallback을 포함한 p95/p99를
+다시 측정해야 한다.

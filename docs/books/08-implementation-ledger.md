@@ -127,6 +127,7 @@
 | 1.91.0 | 진행 중 | dual-review manifest에서 low-agreement focus action 자동 추출 |
 | 1.92.0 | 진행 중 | automatic focus 입력에 target-exclusion contract guard 추가 |
 | 1.93.0 | 진행 중 | control train human-only target/source gate와 checkpoint 미생성 검증 |
+| 1.94.0 | 진행 중 | control simulation p95/p99/max latency report와 threshold gate 추가 |
 
 ## 다음 기록 규칙
 
