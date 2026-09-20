@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.66.0까지 진행되어 있다. Python 테스트 124개와
+현재 `main`은 origin에 push될 1.67.0까지 진행되어 있다. Python 테스트 125개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -104,6 +104,10 @@ v1.66.0에서는 실제 `control review-pack` CLI handler가 `--prioritize`를
 재생성해 `uncertain_first`, 500 pair, adjacency violation 0, target/labels
 누출 false를 확인했다. 이 smoke가 helper만 통과하고 CLI가 queue order를 내는
 회귀를 잡았으므로 이후 단계의 운영 검증 기준에 포함한다.
+
+v1.67.0에서는 generic `golden review-pack` parser에도 `--prioritize`를 추가해
+control과 memory review 도구의 CLI 계약을 일치시켰다. handler만 수정하고
+parser를 놓치는 회귀를 막기 위해 두 parser flag를 각각 테스트한다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

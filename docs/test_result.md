@@ -2033,3 +2033,17 @@ v1.66.0에서 실제 `control review-pack` handler가 `--prioritize`를 helper�
 
 이 결과는 unit helper만이 아니라 사용자가 호출하는 `control` CLI 경로까지
 priority 정책이 적용됨을 증명한다.
+
+### 14.45 generic golden review CLI parity (v1.67.0)
+
+`_golden_review_pack` handler가 `args.prioritize`를 읽고 있었으므로 generic
+parser에도 동일 flag를 추가했다. control과 golden 두 parser를 각각 실제
+argument parse하는 회귀 테스트를 통과시켰다.
+
+| 검증 | 결과 |
+| --- | ---: |
+| control `--prioritize` parse | passed |
+| golden `--prioritize` parse | passed |
+| review-pack parser tests | 9 passed |
+| human labels | 0/1000 |
+| production eligible | false |

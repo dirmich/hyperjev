@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.66.0
+현재 버전: 1.67.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -163,6 +163,11 @@ hard-negative 1,000건으로 검증했다. manifest는 `uncertain_first`, unique
 counterfactual group은 500개, pair adjacency violation은 0개였으며 review pack
 전체에 target/labels token이 없었다. 앞으로 CLI smoke는 helper 단위 테스트가
 아니라 이 manifest와 leakage 결과까지 확인해야 한다.
+
+v1.67.0에서 generic `golden review-pack`에도 같은 `--prioritize` flag를
+노출했다. control registry와 generic memory registry를 별도 유지하되, human
+review operator가 어느 경로를 호출해도 uncertainty-first contract를 사용할 수
+있게 CLI surface를 맞췄다.
 
 Qwen/Gemma를 모두 실행한 뒤에는 합의 결과만 silver 후보로 표시한다.
 

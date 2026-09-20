@@ -100,6 +100,7 @@
 | 1.64.0 | 진행 중 | uncertainty-first review pack 정렬과 target leakage 없는 priority manifest |
 | 1.65.0 | 진행 중 | counterfactual pair provenance 보존과 pair-aware review ordering |
 | 1.66.0 | 진행 중 | control CLI priority wiring과 실제 1,000건 pair/leakage smoke 검증 |
+| 1.67.0 | 진행 중 | generic golden review CLI에도 priority flag를 노출해 경로 정합성 확보 |
 
 ## 다음 기록 규칙
 

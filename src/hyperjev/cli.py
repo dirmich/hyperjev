@@ -794,6 +794,9 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="explicitly allow raw state/question in this local review artifact",
     )
+    golden_pack.add_argument(
+        "--prioritize", action="store_true", help="place invalid/repaired/low-confidence items first"
+    )
     golden_pack.set_defaults(handler=_golden_review_pack)
     golden_session = golden_subparsers.add_parser("review-session")
     _config_argument(golden_session)

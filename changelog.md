@@ -3,6 +3,14 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — generic golden review CLI parity (v1.67.0)
+
+- `golden review-pack`에도 `--prioritize` parser flag를 추가해 control과
+  generic review 경로의 public CLI 계약을 일치시켰다.
+- v1.66.0에서 handler는 이미 option을 읽고 있었지만 generic parser가 누락된
+  것을 CLI surface 점검으로 발견했다.
+- 검증: control/golden parser review 테스트 9개, 전체 suite, Ruff, diff check.
+
 ## 2026-09-21 — wire pair-aware priority through control CLI (v1.66.0)
 
 - `control review-pack --prioritize`가 실제 `export_review_pack` 호출까지

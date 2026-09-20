@@ -31,6 +31,19 @@ class ReviewPackTests(unittest.TestCase):
         )
         self.assertTrue(args.prioritize)
 
+    def test_golden_review_pack_exposes_priority_flag(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "golden",
+                "review-pack",
+                "--draft",
+                "draft.jsonl",
+                "--allow-raw",
+                "--prioritize",
+            ]
+        )
+        self.assertTrue(args.prioritize)
+
     def test_teacher_priority_puts_invalid_repaired_and_low_confidence_first(self) -> None:
         invalid = {"sample_id": "invalid", "teacher": {"schema_valid": False}}
         repaired = {
