@@ -101,6 +101,7 @@
 | 1.65.0 | 진행 중 | counterfactual pair provenance 보존과 pair-aware review ordering |
 | 1.66.0 | 진행 중 | control CLI priority wiring과 실제 1,000건 pair/leakage smoke 검증 |
 | 1.67.0 | 진행 중 | generic golden review CLI에도 priority flag를 노출해 경로 정합성 확보 |
+| 1.68.0 | 진행 중 | overconfident teacher 오류를 잡는 counterfactual pair-collision priority |
 
 ## 다음 기록 규칙
 

@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.67.0까지 진행되어 있다. Python 테스트 125개와
+현재 `main`은 origin에 push될 1.68.0까지 진행되어 있다. Python 테스트 126개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -108,6 +108,12 @@ v1.66.0에서는 실제 `control review-pack` CLI handler가 `--prioritize`를
 v1.67.0에서는 generic `golden review-pack` parser에도 `--prioritize`를 추가해
 control과 memory review 도구의 CLI 계약을 일치시켰다. handler만 수정하고
 parser를 놓치는 회귀를 막기 위해 두 parser flag를 각각 테스트한다.
+
+v1.68.0에서는 confidence만 믿을 수 없는 teacher 오류를 잡기 위해
+counterfactual pair collision을 최우선 검수로 보냈다. 실제 Qwen hard-negative에서
+HOLD 오답 confidence가 1.0이었지만 pair collision 167개가 검출되어 앞쪽에
+배치됐다. 이는 target을 노출하지 않고도 semantic contradiction을 이용하는
+active-review 개선이다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

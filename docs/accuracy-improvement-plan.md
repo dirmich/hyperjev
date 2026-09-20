@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.67.0
+현재 버전: 1.68.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -143,10 +143,10 @@ control 후보 밖의 값은 거부된다. reviewer가 teacher draft를 그대�
 그 기록은 human feedback으로 남지만, 실제 운영에서는 위험 pair와
 teacher-disagreement를 우선 독립 확인한다.
 
-v1.64.0의 `--prioritize`는 이 원칙을 review pack 순서에 반영한다. invalid
-schema를 먼저 두고, 그 다음 schema repair가 필요한 teacher 결과, 마지막으로
-typed confidence가 낮은 결과를 배치한다. 같은 등급에서는 sample ID를 tie-break로
-사용하므로 resume해도 순서가 결정적이다. 정렬은 queue target을 읽지 않으며,
+v1.64.0의 `--prioritize`는 이 원칙을 review pack 순서에 반영한다. 현재 순서는
+pair collision, invalid schema, schema repair가 필요한 teacher 결과, typed
+confidence가 낮은 결과다. 같은 등급에서는 sample ID를 tie-break로 사용하므로
+resume해도 순서가 결정적이다. 정렬은 queue target을 읽지 않으며,
 manifest의 `priority_order=uncertain_first`로 사용된 정렬을 추적할 수 있다.
 이는 사람의 제한된 검수 시간을 오류 가능성이 높은 row에 먼저 쓰기 위한 운영
 개선이지, human label을 대신하는 자동 판정은 아니다.
@@ -163,6 +163,13 @@ hard-negative 1,000건으로 검증했다. manifest는 `uncertain_first`, unique
 counterfactual group은 500개, pair adjacency violation은 0개였으며 review pack
 전체에 target/labels token이 없었다. 앞으로 CLI smoke는 helper 단위 테스트가
 아니라 이 manifest와 leakage 결과까지 확인해야 한다.
+
+v1.68.0에서 실제 Qwen confidence를 분석한 결과, HOLD 오답 83건은 모두
+confidence `1.0`이었고 APPROACH 오답도 평균 `0.85`였다. 따라서 probability가
+높다는 이유만으로 human review에서 제외하면 안 된다. 같은 counterfactual pair의
+두 typed 결과가 같아지는 collision을 target 없이 계산해 최우선으로 올렸고,
+hard-negative 500 pair 중 167개가 이 조건에 걸렸다. 이 규칙은 calibration의
+대체가 아니라 semantic contradiction을 이용한 active-review 우선순위다.
 
 v1.67.0에서 generic `golden review-pack`에도 같은 `--prioritize` flag를
 노출했다. control registry와 generic memory registry를 별도 유지하되, human

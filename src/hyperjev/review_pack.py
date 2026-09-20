@@ -67,6 +67,23 @@ def _counterfactual_group(item: dict[str, Any]) -> str:
     return str(item.get("sample_id", ""))
 
 
+def _teacher_signature(item: dict[str, Any]) -> tuple[str, Any] | None:
+    result = item.get("teacher", {}).get("normalized_result") or {}
+    result_type = result.get("type")
+    if result_type == "boolean" and isinstance(result.get("value"), bool):
+        return (result_type, result["value"])
+    if result_type == "choice" and result.get("selected"):
+        return (result_type, str(result["selected"]))
+    if result_type == "score" and isinstance(result.get("value"), (int, float)):
+        return (result_type, round(float(result["value"]), 6))
+    return None
+
+
+def _is_teacher_collision(items: list[dict[str, Any]]) -> bool:
+    signatures = [_teacher_signature(item) for item in items]
+    return len(signatures) > 1 and signatures[0] is not None and len(set(signatures)) == 1
+
+
 def _prioritize_review_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Order uncertain items while keeping counterfactual siblings adjacent."""
 
@@ -81,6 +98,7 @@ def _prioritize_review_items(items: list[dict[str, Any]]) -> list[dict[str, Any]
     ordered_groups = sorted(
         group_order,
         key=lambda group_id: (
+            0 if _is_teacher_collision(groups[group_id]) else 1,
             min(_teacher_priority(item) for item in groups[group_id]),
             group_id,
         ),

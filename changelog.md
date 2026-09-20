@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — pair-collision priority for overconfident teacher errors (v1.68.0)
+
+- confidence만으로 정렬하면 Qwen hard-negative의 HOLD 오답 83건이 confidence
+  `1.0`으로 뒤로 밀리는 문제가 확인됐다.
+- 같은 counterfactual pair의 두 typed teacher 결과가 동일하면 pair collision으로
+  간주해 priority 최상단에 함께 배치한다. 이 규칙은 target을 읽지 않는다.
+- 실제 Qwen hard-negative 500 pair에서 collision `167`개가 잡혔고, 모두 pack의
+  앞쪽에 pair 단위로 연속 배치됐다.
+- 검증: collision priority test 포함 review 테스트 10개, 실데이터 CLI smoke,
+  Ruff, diff check 통과.
+
 ## 2026-09-21 — generic golden review CLI parity (v1.67.0)
 
 - `golden review-pack`에도 `--prioritize` parser flag를 추가해 control과

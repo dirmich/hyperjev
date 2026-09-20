@@ -8,7 +8,12 @@ from hyperjev.config import load_config
 from hyperjev.control_data import generate_control_hard_negative_queue
 from hyperjev.golden import generate_review_queue
 from hyperjev.registry import TaskRegistry
-from hyperjev.review_pack import _teacher_priority, export_review_pack, run_review_session
+from hyperjev.review_pack import (
+    _prioritize_review_items,
+    _teacher_priority,
+    export_review_pack,
+    run_review_session,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -72,6 +77,50 @@ class ReviewPackTests(unittest.TestCase):
         }
         ordered = sorted([high, low, repaired, invalid], key=_teacher_priority)
         self.assertEqual([item["sample_id"] for item in ordered], ["invalid", "repaired", "low", "high"])
+
+    def test_pair_collision_precedes_low_confidence_group(self) -> None:
+        collision = [
+            {
+                "sample_id": "collision-a",
+                "source": {"counterfactual_group_id": "collision"},
+                "teacher": {
+                    "schema_valid": True,
+                    "normalized_result": {
+                        "type": "choice",
+                        "selected": "STOP",
+                        "probabilities": {"STOP": 1.0, "HOLD": 0.0},
+                    },
+                },
+            },
+            {
+                "sample_id": "collision-b",
+                "source": {"counterfactual_group_id": "collision"},
+                "teacher": {
+                    "schema_valid": True,
+                    "normalized_result": {
+                        "type": "choice",
+                        "selected": "STOP",
+                        "probabilities": {"STOP": 1.0, "HOLD": 0.0},
+                    },
+                },
+            },
+        ]
+        low = [
+            {
+                "sample_id": "low",
+                "source": {"counterfactual_group_id": "low"},
+                "teacher": {
+                    "schema_valid": True,
+                    "normalized_result": {
+                        "type": "choice",
+                        "selected": "MOVE",
+                        "probabilities": {"MOVE": 0.55, "HOLD": 0.45},
+                    },
+                },
+            }
+        ]
+        ordered = _prioritize_review_items(low + collision)
+        self.assertEqual([item["sample_id"] for item in ordered], ["collision-a", "collision-b", "low"])
 
     def test_prioritized_pack_keeps_counterfactual_pair_adjacent_without_target(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")

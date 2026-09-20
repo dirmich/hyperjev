@@ -1960,10 +1960,11 @@ uv run hyperjev control review-pack \
 manifest의 `priority_order`는 `uncertain_first`가 되며, item 순서는 다음
 결정적 규칙을 따른다.
 
-1. schema-invalid teacher output
-2. schema repair가 기록된 output
-3. typed confidence가 낮은 output
-4. 같은 confidence면 `sample_id` 오름차순
+1. pair collision: 같은 counterfactual pair의 typed 결과가 동일한 output
+2. schema-invalid teacher output
+3. schema repair가 기록된 output
+4. typed confidence가 낮은 output
+5. 같은 confidence면 `sample_id` 오름차순
 
 choice는 후보 probability의 최댓값, boolean은 선택된 값의 probability, score는
 90% interval의 폭에서 confidence를 계산한다. queue의 synthetic `target`은 읽지
@@ -1982,6 +1983,33 @@ choice는 후보 probability의 최댓값, boolean은 선택된 값의 probabili
 정렬 자체는 label을 생성하지 않으며, 다음 gate는 사람이 state/question을 확인해
 `control review-session`으로 feedback을 기록하고, `apply-feedback` →
 `materialize` → human-only train/evaluate를 수행하는 것이다.
+
+### 14.46 pair-collision active review priority (v1.68.0)
+
+hard-negative Qwen 결과의 confidence 분포를 오류 여부와 분리해 분석했다.
+
+| target skill | wrong count | wrong confidence |
+| --- | ---: | ---: |
+| HOLD | 83 | 1.00 (전체) |
+| APPROACH | 84 | 0.85 (전체) |
+
+따라서 low-confidence-first만으로는 핵심 semantic 오류를 찾을 수 없다. 같은
+counterfactual group에서 두 teacher result의 typed signature가 동일하면 pair
+collision으로 간주하고, target은 읽지 않은 채 해당 pair를 priority 최상단에
+배치했다.
+
+실제 Qwen hard-negative 500 pair의 collision은 `167/500`이었고, 새 pack의
+첫 334 item이 이 167 pair로 구성됐다. 각 pair는 연속 출력되며 target/labels는
+여전히 제외된다.
+
+| 검증 | 결과 |
+| --- | ---: |
+| collision priority unit test | passed |
+| review-pack tests | 10 passed |
+| collision pairs | 167/500 |
+| collision pairs placed first | passed |
+| human labels | 0/1000 |
+| production eligible | false |
 
 ### 14.43 counterfactual pair-aware review ordering (v1.65.0)
 
