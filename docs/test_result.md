@@ -2242,3 +2242,31 @@ argument parse하는 회귀 테스트를 통과시켰다.
 | review-pack parser tests | 9 passed |
 | human labels | 0/1000 |
 | production eligible | false |
+
+### 14.53 integrated runtime replay (v1.75.0)
+
+rule-only 결과가 실제 runtime wiring에서 유지되는지 확인하기 위해 checkpoint를
+같은 evaluator에 연결했다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --checkpoint /tmp/control-combined-token-100ep.pt \
+  --require-full-coverage
+```
+
+| field | result |
+| --- | ---: |
+| checkpoint SHA-256 | `0576e11723e861fc2351c9d9a7c4a5daf29034319817ca47584f0d839f3a391b` |
+| runtime rows | 1,000 |
+| source counts | `control-rule=750`, `safety-rule=250` |
+| synthetic target match | 1,000/1,000 (100.00%) |
+| synthetic STOP recall | 250/250 (100.00%) |
+| runtime latency p50 / p95 / p99 | 13.648 / 15.616 / 17.504µs |
+| human labels | 0/1,000 |
+| human label gate / production | false / false |
+
+이 replay는 model이 호출되지 않은 known phrase queue에서 runtime ordering과
+safety integration을 검증한 것이다. model 호출이 필요한 unresolved/OOD 입력의
+latency와 실제 human-labeled test accuracy는 아직 측정하지 않았으므로, 이
+결과를 parent LLM 대비 일반화 성능으로 해석하지 않는다.

@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — integrated control runtime replay (v1.75.0)
+
+- fast-path evaluator에 `--checkpoint` runtime replay를 추가해 실제
+  `ControlStudentClient`의 rule → Student → safety ordering을 재생한다.
+- hard-negative 1,000행에서 source `control-rule=750`, `safety-rule=250`,
+  synthetic accuracy `100%`, STOP recall `100%`, runtime p50/p95/p99
+  `13.648/15.616/17.504µs`를 확인했다.
+- 이번 queue는 known phrase fast path가 전부 처리했으므로 model fallback latency나
+  OOD generalization 증거가 아니다. human label `0/1000`, production `false`다.
+- 검증: 전체 `133 passed, 1 skipped`, Ruff, diff check, checkpoint-backed replay.
+
 ## 2026-09-21 — reproducible control fast-path evaluator (v1.74.0)
 
 - `scripts/evaluate_control_fast_path.py`를 추가해 queue SHA, resolved coverage,

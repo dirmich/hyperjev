@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.74.0
+현재 버전: 1.75.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -262,6 +262,14 @@ human target을 분리한 report를 재현한다. hard-negative report는 queue 
 coverage `100%`, synthetic match `100%`, p50/p95/p99 `13.488/15.408/17.2µs`를
 기록했다. human label은 `0/1000`이고 `production_ready=false`이며, `--require-full-coverage`
 는 unresolved model row가 생기면 실패한다.
+
+v1.75.0에서는 같은 evaluator에 `--checkpoint` runtime replay를 연결했다. 실제
+`ControlStudentClient`를 초기화해 rule → typed Student → safety policy 순서를
+재생하며, rule-only report와 runtime report를 혼동하지 않는다. hard-negative에서
+runtime synthetic accuracy `100%`, STOP recall `100%`, p50/p95/p99
+`13.648/15.616/17.504µs`를 얻었지만 source는 여전히 rule/safety가 전부였고
+human `0/1000`이므로 production-ready가 아니다. model이 실제로 호출되는
+unresolved/OOD queue와 human-labeled test를 별도 측정해야 한다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적

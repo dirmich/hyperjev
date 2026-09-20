@@ -7,7 +7,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from evaluate_control_fast_path import evaluate_fast_path
+from evaluate_control_fast_path import evaluate_fast_path, evaluate_runtime
+
+from hyperjev.registry import TaskRegistry
+from hyperjev.student import StudentConfig, build_torch_model, student_manifest
 
 
 class ControlFastPathEvaluatorTests(unittest.TestCase):
@@ -46,6 +49,48 @@ class ControlFastPathEvaluatorTests(unittest.TestCase):
         self.assertFalse(report["production_ready"])
         self.assertEqual(report["source_counts"], {"control-rule": 1, "model": 1, "safety-rule": 1})
         self.assertIsNotNone(report["latency_us"]["p95"])
+
+    def test_runtime_report_replays_rules_before_student(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        config = StudentConfig(
+            model_id="fast-path-evaluator-test",
+            backbone="reference-ngram-encoder",
+            precision="fp32",
+        )
+        model = build_torch_model(registry, config)
+        rows = [
+            {
+                "sample_id": "stop",
+                "state": "obstacle is directly ahead",
+                "target": "STOP",
+                "domain": "simulation",
+            },
+            {
+                "sample_id": "approach",
+                "state": "the reachable target is locked directly ahead",
+                "target": "APPROACH",
+                "domain": "simulation",
+            },
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            checkpoint = root / "checkpoint.pt"
+            queue.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
+            torch.save(
+                {"student": student_manifest(registry, config), "model_state_dict": model.state_dict()},
+                checkpoint,
+            )
+            report = evaluate_runtime(queue, checkpoint, ROOT / "registry" / "control_tasks")
+
+        self.assertEqual(report["source_counts"], {"control-rule": 1, "safety-rule": 1})
+        self.assertEqual(report["synthetic_target"]["accuracy"], 1.0)
+        self.assertEqual(report["synthetic_target"]["stop_recall"], 1.0)
+        self.assertFalse(report["production_ready"])
 
 
 if __name__ == "__main__":

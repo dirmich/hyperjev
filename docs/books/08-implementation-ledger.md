@@ -108,6 +108,7 @@
 | 1.72.0 | 진행 중 | compound-phrase control fast path와 synthetic hard-negative 100% 경로 |
 | 1.73.0 | 진행 중 | skill별 contradiction blocker와 fast-path negative regression |
 | 1.74.0 | 진행 중 | reproducible fast-path evaluator와 queue SHA/latency/human gate report |
+| 1.75.0 | 진행 중 | checkpoint-backed integrated runtime replay와 safety/source report |
 
 ## 다음 기록 규칙
 

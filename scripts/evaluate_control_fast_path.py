@@ -13,10 +13,13 @@ from pathlib import Path
 from typing import Any
 
 from hyperjev.control import (
+    ControlObservation,
+    ControlStudentClient,
     deterministic_control_action,
     explicit_stop_action,
     explicit_stop_signal,
 )
+from hyperjev.registry import TaskRegistry
 
 
 def _load_rows(path: Path) -> list[dict[str, Any]]:
@@ -129,13 +132,105 @@ def evaluate_fast_path(queue_path: str | Path) -> dict[str, Any]:
     return report
 
 
+def evaluate_runtime(
+    queue_path: str | Path,
+    checkpoint_path: str | Path,
+    registry_path: str | Path = "registry/control_tasks",
+    *,
+    device: str = "cpu",
+) -> dict[str, Any]:
+    """Replay the integrated rule -> Student -> safety runtime on a queue."""
+
+    queue = Path(queue_path)
+    checkpoint = Path(checkpoint_path)
+    rows = _load_rows(queue)
+    registry = TaskRegistry.load(registry_path)
+    client = ControlStudentClient(checkpoint, registry, device=device)
+    latencies_us: list[float] = []
+    source_counts: dict[str, int] = {}
+    synthetic_correct_count = 0
+    synthetic_target_count = 0
+    human_correct_count = 0
+    human_target_count = 0
+    stop_target_count = 0
+    stop_hit_count = 0
+
+    for row in rows:
+        observation = ControlObservation(
+            observation_id=str(row.get("sample_id", "runtime-row")),
+            state=row["state"],
+            domain=str(row.get("domain", "control-evaluation")),
+            timestamp_ms=0.0,
+        )
+        started = time.perf_counter_ns()
+        action = client.decide(observation, now_ms=1.0)
+        latencies_us.append((time.perf_counter_ns() - started) / 1000.0)
+        source_counts[action.source] = source_counts.get(action.source, 0) + 1
+        target = row.get("target")
+        if target is not None:
+            synthetic_target_count += 1
+            synthetic_correct_count += int(action.skill == str(target))
+            if str(target) == "STOP":
+                stop_target_count += 1
+                stop_hit_count += int(action.skill == "STOP")
+        human_target = _human_target(row)
+        if human_target is not None:
+            human_target_count += 1
+            human_correct_count += int(action.skill == human_target)
+
+    row_count = len(rows)
+    human_label_gate = human_target_count == row_count
+    return {
+        "checkpoint": str(checkpoint.resolve()),
+        "checkpoint_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+        "row_count": row_count,
+        "source_counts": dict(sorted(source_counts.items())),
+        "synthetic_target": {
+            "labeled_count": synthetic_target_count,
+            "correct_count": synthetic_correct_count,
+            "accuracy": round(synthetic_correct_count / synthetic_target_count, 6)
+            if synthetic_target_count
+            else None,
+            "stop_recall": round(stop_hit_count / stop_target_count, 6)
+            if stop_target_count
+            else None,
+        },
+        "human_target": {
+            "labeled_count": human_target_count,
+            "correct_count": human_correct_count,
+            "accuracy": round(human_correct_count / human_target_count, 6)
+            if human_target_count
+            else None,
+        },
+        "human_label_gate": human_label_gate,
+        "production_ready": False,
+        "latency_us": {
+            "p50": _percentile(latencies_us, 50),
+            "p95": _percentile(latencies_us, 95),
+            "p99": _percentile(latencies_us, 99),
+            "max": round(max(latencies_us), 3),
+            "mean": round(sum(latencies_us) / len(latencies_us), 3),
+        },
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--queue", type=Path, required=True)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--checkpoint", type=Path, help="also replay the integrated runtime")
+    parser.add_argument("--registry", type=Path, default=Path("registry/control_tasks"))
+    parser.add_argument("--device", default="cpu")
     parser.add_argument("--require-full-coverage", action="store_true")
     args = parser.parse_args()
     report = evaluate_fast_path(args.queue)
+    if args.checkpoint:
+        report["runtime"] = evaluate_runtime(
+            args.queue,
+            args.checkpoint,
+            args.registry,
+            device=args.device,
+        )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

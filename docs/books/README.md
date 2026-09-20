@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.74.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.75.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -146,6 +146,12 @@ v1.74.0에서는 fast path 전용 evaluator를 저장소에 추가했다. queue 
 source별 coverage, p50/p95/p99 latency, synthetic/human target을 분리해 같은
 명령으로 재현할 수 있다. hard-negative는 100% coverage와 100% synthetic match를
 보였지만 human `0/1000`, production `false`를 유지한다.
+
+v1.75.0에서는 evaluator에 실제 checkpoint runtime replay를 추가했다. 같은
+hard-negative를 `ControlStudentClient`로 재생해 rule/safety source, synthetic
+accuracy, STOP recall, runtime latency를 별도로 확인한다. 이번 queue는
+100%였지만 모든 row가 known fast path였고 human `0/1000`이므로, 실제 일반화
+정확도와 model fallback latency gate는 여전히 남아 있다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
