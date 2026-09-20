@@ -3,6 +3,14 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — Qwen golden draft retry path (v1.24.0)
+
+- `hyperjev golden draft --provider qwen|gemma`로 teacher를 선택할 수 있게
+  했다.
+- Qwen `qwen38fn`을 빠른 human-review 초안 생성 경로로 사용할 수 있다.
+- Qwen 초안도 human label이나 Gemma 교차검증을 대체하지 않으며, provider와
+  provenance를 manifest에 기록한다.
+
 ## 2026-09-20 — baseline 고정 (v1.17.2)
 
 - reference Student checkpoint 생성 완료:

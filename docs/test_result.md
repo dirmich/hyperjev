@@ -813,3 +813,12 @@ correction을 append해야 한다.
 따라서 현재는 pipeline과 실패 기록만 검증됐고, Gemma draft label 품질이나
 human review workload는 측정하지 못했다. generation timeout이 해결되면 20개
 batch부터 실행하고, 사용자가 확인한 결과만 human feedback으로 반영한다.
+
+### 14.3 Qwen `qwen38fn` retry 경로
+
+Gemma generation timeout으로 human-review 초안 생성이 막힌 경우를 위해
+`--provider qwen` 선택 경로를 추가했다. Qwen은 설정상
+`http://127.0.0.1:8081/v1`, model `qwen38fn`, JSON response, thinking disabled
+상태이며, PRD의 labeler/data-generator 역할에 맞는다. Qwen draft 역시
+human label이나 Gemma cross-validation 결과가 아니므로 reviewer의 원문 확인과
+`golden review` correction이 필요하다.

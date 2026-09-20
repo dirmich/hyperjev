@@ -1,4 +1,4 @@
-"""Gemma-assisted draft labels for a human-reviewed golden queue."""
+"""Teacher-assisted draft labels for a human-reviewed golden queue."""
 
 from __future__ import annotations
 
@@ -15,23 +15,24 @@ from .registry import TaskRegistry
 from .samples import load_jsonl
 from .teachers import TeacherClient, parse_json_object, response_hash
 
-GEMMA_DRAFT_VERSION = "gemma-golden-draft-v1"
+GOLDEN_DRAFT_VERSION = "golden-teacher-draft-v1"
 
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def generate_gemma_draft(
+def generate_teacher_draft(
     config: Phase0Config,
     registry: TaskRegistry,
     queue_path: str | Path,
     output_path: str | Path,
     *,
+    provider: str = "gemma",
     limit: int | None = None,
     timeout_s: float | None = None,
 ) -> dict[str, Any]:
-    """Generate non-human Gemma draft labels bound to one queue hash.
+    """Generate non-human teacher draft labels bound to one queue hash.
 
     The output deliberately excludes raw queue state and raw teacher text. A
     reviewer joins records by ``sample_id`` and creates human feedback only
@@ -46,9 +47,9 @@ def generate_gemma_draft(
         samples = samples[:limit]
     if not samples:
         raise ValueError("golden draft queue has no samples")
-    settings = config.teachers.get("gemma")
+    settings = config.teachers.get(provider)
     if settings is None:
-        raise ValueError("Gemma teacher is not configured")
+        raise ValueError(f"teacher is not configured: {provider}")
     client = TeacherClient(settings, timeout_s=timeout_s)
     queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -57,12 +58,12 @@ def generate_gemma_draft(
         task = registry.get(sample.task_id, sample.task_version)
         record: dict[str, Any] = {
             "record_type": "golden_teacher_draft",
-            "draft_version": GEMMA_DRAFT_VERSION,
+            "draft_version": GOLDEN_DRAFT_VERSION,
             "run_id": run_id,
             "sample_id": sample.sample_id,
             "task": f"{task.id}@{task.version}",
             "queue_sha256": queue_sha256,
-            "provider": "gemma",
+            "provider": provider,
             "model": settings.model,
             "prompt_version": PROMPT_VERSION,
             "status": "pending",
@@ -73,7 +74,7 @@ def generate_gemma_draft(
             "error": None,
         }
         try:
-            completion = client.complete(messages_for_sample("gemma", sample, task))
+            completion = client.complete(messages_for_sample(provider, sample, task))
             record.update(
                 {
                     "status": "completed",
@@ -97,12 +98,12 @@ def generate_gemma_draft(
 
     manifest = {
         "record_type": "golden_teacher_draft_manifest",
-        "draft_version": GEMMA_DRAFT_VERSION,
+        "draft_version": GOLDEN_DRAFT_VERSION,
         "created_at": _utc_now(),
         "run_id": run_id,
         "queue_path": str(queue.resolve()),
         "queue_sha256": queue_sha256,
-        "provider": "gemma",
+        "provider": provider,
         "model": settings.model,
         "prompt_version": PROMPT_VERSION,
         "sample_count": len(samples),
@@ -117,3 +118,25 @@ def generate_gemma_draft(
         for record in records:
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
     return {"output": str(output.resolve()), "manifest": manifest, "records": records}
+
+
+def generate_gemma_draft(
+    config: Phase0Config,
+    registry: TaskRegistry,
+    queue_path: str | Path,
+    output_path: str | Path,
+    *,
+    limit: int | None = None,
+    timeout_s: float | None = None,
+) -> dict[str, Any]:
+    """Backward-compatible Gemma-specific wrapper."""
+
+    return generate_teacher_draft(
+        config,
+        registry,
+        queue_path,
+        output_path,
+        provider="gemma",
+        limit=limit,
+        timeout_s=timeout_s,
+    )

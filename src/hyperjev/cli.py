@@ -20,7 +20,7 @@ from .dataset_factory import build_dataset, validate_dataset
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
 from .golden import append_golden_feedback, apply_golden_feedback, generate_review_queue
-from .golden_draft import generate_gemma_draft
+from .golden_draft import generate_teacher_draft
 from .mock_server import serve
 from .model_registry import STATUSES, ModelRegistry, build_model_manifest
 from .registry import RegistryError, TaskRegistry
@@ -160,13 +160,15 @@ def _golden_generate(args: argparse.Namespace) -> int:
 
 def _golden_draft(args: argparse.Namespace) -> int:
     config, registry = _load(args.config)
+    provider = args.provider
     queue = args.queue or config.runs_path / "phase0-review-queue.jsonl"
-    output = args.output or config.runs_path / "gemma-golden-draft.jsonl"
-    report = generate_gemma_draft(
+    output = args.output or config.runs_path / f"{provider}-golden-draft.jsonl"
+    report = generate_teacher_draft(
         config,
         registry,
         queue,
         output,
+        provider=provider,
         limit=args.limit,
         timeout_s=args.timeout,
     )
@@ -455,6 +457,7 @@ def build_parser() -> argparse.ArgumentParser:
     golden_generate.set_defaults(handler=_golden_generate)
     golden_draft = golden_subparsers.add_parser("draft")
     _config_argument(golden_draft)
+    golden_draft.add_argument("--provider", choices=("qwen", "gemma"), default="gemma")
     golden_draft.add_argument("--queue")
     golden_draft.add_argument("--output")
     golden_draft.add_argument("--limit", type=int)

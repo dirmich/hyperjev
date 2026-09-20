@@ -52,6 +52,7 @@
 | 1.22.0 | `9366aa7` | human golden label 기준 정확도 평가 정정 |
 | 1.22.1 | `04ffea7` | 1,000개 재평가와 synthetic source 증거 기록 |
 | 1.23.0 | 진행 중 | Gemma draft label pipeline과 human review 경계 |
+| 1.24.0 | 진행 중 | Qwen/Gemma 선택형 golden draft와 Qwen 재시도 경로 |
 
 ## 다음 기록 규칙
 
