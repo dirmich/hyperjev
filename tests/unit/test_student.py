@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import unittest
@@ -214,6 +215,69 @@ class StudentContractTests(unittest.TestCase):
         payload = json.loads(completion.content)
         self.assertIn(payload["type"], {"boolean", "choice", "score"})
         self.assertEqual(completion.model, "client-test")
+
+    def test_student_client_applies_matching_control_temperature(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        control_registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint_path = Path(directory) / "control.pt"
+            calibration_path = Path(directory) / "calibration.json"
+            config = StudentConfig(
+                model_id="calibrated-control-test",
+                backbone="reference-ngram-encoder",
+                precision="fp32",
+            )
+            model = build_torch_model(control_registry, config)
+            torch.save(
+                {
+                    "student": student_manifest(control_registry, config),
+                    "model_state_dict": model.state_dict(),
+                },
+                checkpoint_path,
+            )
+            calibration_path.write_text(
+                json.dumps(
+                    {
+                        "record_type": "control_calibration_manifest",
+                        "calibration_version": "cal-test",
+                        "checkpoint_sha256": hashlib.sha256(checkpoint_path.read_bytes()).hexdigest(),
+                        "tasks": {"control.skill": {"status": "fitted", "temperature": 4.0}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            plain = StudentClient(checkpoint_path, control_registry, minimum_confidence=0.0)
+            calibrated = StudentClient(
+                checkpoint_path,
+                control_registry,
+                minimum_confidence=0.0,
+                calibration_path=calibration_path,
+            )
+            task = control_registry.get("control.skill")
+            plain_payload = json.loads(
+                plain.complete_decision(
+                    task,
+                    state="the robot is in a stable open area",
+                    question="select next safe high-level control skill",
+                    candidates=list(task.output["candidates"]),
+                ).content
+            )
+            calibrated_payload = json.loads(
+                calibrated.complete_decision(
+                    task,
+                    state="the robot is in a stable open area",
+                    question="select next safe high-level control skill",
+                    candidates=list(task.output["candidates"]),
+                ).content
+            )
+
+        plain_confidence = max(plain_payload["probabilities"].values())
+        calibrated_confidence = max(calibrated_payload["probabilities"].values())
+        self.assertEqual(calibrated.calibration_version, "cal-test")
+        self.assertLessEqual(calibrated_confidence, plain_confidence + 1e-6)
 
     def test_student_evaluation_uses_human_label_over_synthetic_target(self) -> None:
         try:

@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — runtime calibration binding (v1.60.0)
+
+- `StudentClient`가 control calibration manifest를 로드해 task별 temperature를
+  실제 boolean/choice 확률과 abstain 판단에 적용한다.
+- checkpoint SHA-256 mismatch, 잘못된 manifest type, 비정상 temperature는
+  runtime 시작 시 거부한다. 기본 경로는 기존과 동일하게 uncalibrated다.
+- `control decide --calibration`과 `HYPERJEV_STUDENT_CALIBRATION`/Phase 0
+  `model.calibration` 설정을 추가했다.
+- 검증: 전체 `118 passed, 1 skipped`, Ruff 통과, matching calibration unit
+  test에서 calibrated confidence가 원래 confidence보다 과도하게 커지지 않음을 확인했다.
+
 ## 2026-09-21 — held-out control calibration manifest (v1.59.0)
 
 - `scripts/calibrate_control_checkpoint.py`가 held-out Student logits에서

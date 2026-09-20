@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 import time
 from pathlib import Path
 from typing import Any
@@ -35,6 +37,7 @@ class StudentClient:
         *,
         minimum_confidence: float = 0.95,
         allow_score: bool = False,
+        calibration_path: str | Path | None = None,
         device: str = "cpu",
     ) -> None:
         if not 0.0 <= minimum_confidence <= 1.0:
@@ -63,6 +66,42 @@ class StudentClient:
         self.allow_score = allow_score
         self.model_name = config.model_id
         self._torch = torch
+        self.calibration_path = Path(calibration_path).expanduser().resolve() if calibration_path else None
+        self.calibration_version = "none"
+        self._temperatures: dict[str, float] = {}
+        if self.calibration_path is not None:
+            self._load_calibration()
+
+    def _load_calibration(self) -> None:
+        assert self.calibration_path is not None
+        try:
+            raw = json.loads(self.calibration_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"cannot load Student calibration: {self.calibration_path}") from exc
+        if not isinstance(raw, dict) or raw.get("record_type") != "control_calibration_manifest":
+            raise ValueError("Student calibration must be a control_calibration_manifest")
+        expected_checkpoint = raw.get("checkpoint_sha256")
+        actual_checkpoint = hashlib.sha256(self.checkpoint_path.read_bytes()).hexdigest()
+        if expected_checkpoint and expected_checkpoint != actual_checkpoint:
+            raise ValueError("Student calibration checkpoint hash does not match checkpoint")
+        tasks = raw.get("tasks", {})
+        if not isinstance(tasks, dict):
+            raise TypeError("Student calibration tasks must be an object")
+        for task_id, entry in tasks.items():
+            if not isinstance(entry, dict) or entry.get("status") != "fitted":
+                continue
+            try:
+                temperature = float(entry["temperature"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError(f"invalid calibration temperature for {task_id}") from exc
+            if not math.isfinite(temperature) or temperature <= 0:
+                raise ValueError(f"invalid calibration temperature for {task_id}")
+            self._temperatures[str(task_id)] = temperature
+        self.calibration_version = str(raw.get("calibration_version", "unknown"))
+
+    def _softmax(self, logits: Any, task_id: str) -> Any:
+        temperature = self._temperatures.get(task_id, 1.0)
+        return self._torch.softmax(logits / temperature, dim=-1)
 
     def _sample(self, task: TaskDefinition, state: str, question: str) -> CanonicalSample:
         question_text = question if (" " in question or len(question) > 20) else _QUESTION_TEXT.get(
@@ -105,7 +144,7 @@ class StudentClient:
             output = self.model(task.id, input_ids, attention_mask)
         result: dict[str, Any]
         if task.output_type == "boolean":
-            probabilities = self._torch.softmax(output["logits"], dim=-1)[0].detach().cpu().tolist()
+            probabilities = self._softmax(output["logits"], task.id)[0].detach().cpu().tolist()
             index = int(self._torch.argmax(output["logits"], dim=-1)[0].item())
             confidence = float(probabilities[index])
             result = {
@@ -121,7 +160,7 @@ class StudentClient:
                 if candidates and candidates == registered_candidates
                 else registered_candidates
             )
-            probabilities = self._torch.softmax(output["logits"], dim=-1)[0].detach().cpu().tolist()
+            probabilities = self._softmax(output["logits"], task.id)[0].detach().cpu().tolist()
             index = int(self._torch.argmax(output["logits"], dim=-1)[0].item())
             confidence = float(probabilities[index])
             result = {
@@ -163,5 +202,6 @@ def student_client_from_config(config: Phase0Config, registry: TaskRegistry) -> 
         config.student_checkpoint,
         registry,
         minimum_confidence=config.student_minimum_confidence,
+        calibration_path=config.student_calibration_path,
         device=config.student_device,
     )

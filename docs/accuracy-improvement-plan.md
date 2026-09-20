@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.59.0
+현재 버전: 1.60.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -223,6 +223,13 @@ NLL `0.000007 → 0.000000`이 됐지만 human label은 `0/180`이라
 `production_eligible=false`다. temperature가 경계에 붙은 것도 calibration
 set이 너무 쉽거나 모델이 과신한다는 신호일 수 있으므로, 범위를 넓히거나
 숫자를 채택해 정확도를 주장하지 않는다.
+
+calibration manifest는 runtime에서도 명시적으로 연결해야 한다. `StudentClient`는
+manifest의 `checkpoint_sha256`가 현재 checkpoint와 일치하는지 확인한 뒤에만
+task별 temperature를 적용한다. `control decide --calibration` 또는
+`HYPERJEV_STUDENT_CALIBRATION`으로 경로를 지정하며, 기본값은 calibration을
+사용하지 않는다. 따라서 잘못된 checkpoint와 calibration을 조용히 조합하는
+실수를 막고, 기존 Student 경로의 argmax와 latency 계약을 보존한다.
 
 v1.46.0부터 production-style evaluator는 다음 조건을 모두 요구한다.
 

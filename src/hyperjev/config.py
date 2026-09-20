@@ -85,6 +85,7 @@ class Phase0Config:
     cache_max_entries: int
     teachers: Mapping[str, TeacherSettings]
     student_checkpoint: Path | None = None
+    student_calibration_path: Path | None = None
     student_minimum_confidence: float = 0.95
     student_device: str = "cpu"
 
@@ -148,6 +149,13 @@ class Phase0Config:
         if raw_checkpoint:
             candidate = Path(str(raw_checkpoint)).expanduser()
             student_checkpoint = (root / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
+        raw_calibration = os.getenv("HYPERJEV_STUDENT_CALIBRATION", model.get("calibration"))
+        student_calibration_path = None
+        if raw_calibration:
+            candidate = Path(str(raw_calibration)).expanduser()
+            student_calibration_path = (
+                (root / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
+            )
         student_minimum_confidence = float(
             os.getenv("HYPERJEV_STUDENT_MIN_CONFIDENCE", model.get("minimum_confidence", 0.95))
         )
@@ -180,6 +188,7 @@ class Phase0Config:
             cache_max_entries=cache_max_entries,
             teachers=teachers,
             student_checkpoint=student_checkpoint,
+            student_calibration_path=student_calibration_path,
             student_minimum_confidence=student_minimum_confidence,
             student_device=student_device,
         )

@@ -18,6 +18,7 @@ precision = "bf16"
 max_sequence_length = 1024
 # Optional guarded Student activation; environment variables are preferred.
 # checkpoint = "runs/phase3/reference-ngram-student.pt"
+# calibration = "runs/phase3/control-calibration.json"
 # minimum_confidence = 0.95
 # student_device = "cpu"
 

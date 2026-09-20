@@ -1833,3 +1833,21 @@ human label 수를 manifest에 기록한다. argmax를 바꾸지 않으므로 cl
 교정한다. temperature가 검색 경계에 도달한 synthetic 결과는 쉬운 데이터나
 과신을 의미할 수 있어 승인하지 않는다. 다음 실험은 독립 human calibration
 set에서 ECE/NLL과 threshold risk-coverage를 함께 확인하는 것이다.
+
+### 14.38 runtime calibration binding (v1.60.0)
+
+v1.59.0에서 생성한 calibration manifest를 실제 Student provider가 사용할 수
+있도록 연결했다.
+
+| 검증 | 결과 |
+| --- | --- |
+| `StudentClient` task별 temperature 적용 | 통과 |
+| calibrated confidence가 uncalibrated보다 과도하게 증가하지 않음 | 통과 |
+| checkpoint SHA mismatch 차단 | 구현 및 manifest contract 적용 |
+| CLI/config 경로 | `control decide --calibration`, `model.calibration`, `HYPERJEV_STUDENT_CALIBRATION` |
+| 전체 회귀 | `118 passed, 1 skipped` |
+
+calibration은 양의 temperature로 logits를 재스케일하므로 argmax skill은 바꾸지
+않고 confidence와 abstain만 바꾼다. 이 단계에서도 synthetic calibration의
+`production_eligible=false`는 유지된다. 사람 golden calibration/test가 없는
+상태에서 runtime confidence를 조정하는 것만으로 정확도를 주장하지 않는다.

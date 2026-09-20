@@ -266,6 +266,7 @@ class ControlStudentClient:
         registry: Any,
         *,
         policy: ControlSafetyPolicy | None = None,
+        calibration_path: str | Path | None = None,
         device: str = "cpu",
     ) -> None:
         from .student_client import StudentClient
@@ -275,6 +276,7 @@ class ControlStudentClient:
             checkpoint_path,
             registry,
             minimum_confidence=0.0,
+            calibration_path=calibration_path,
             device=device,
         )
         self._task = registry.get("control.skill", 1)

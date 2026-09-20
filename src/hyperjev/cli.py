@@ -482,6 +482,7 @@ def _control_decide(args: argparse.Namespace) -> int:
             max_observation_age_ms=args.max_observation_age_ms,
             max_action_ttl_ms=args.max_action_ttl_ms,
         ),
+        calibration_path=args.calibration,
         device=args.device,
     )
     action = client.decide(observation, now_ms=args.now_ms)
@@ -971,6 +972,7 @@ def build_parser() -> argparse.ArgumentParser:
     control_decide.add_argument("--minimum-confidence", type=float, default=0.90)
     control_decide.add_argument("--max-observation-age-ms", type=float, default=100.0)
     control_decide.add_argument("--max-action-ttl-ms", type=int, default=100)
+    control_decide.add_argument("--calibration")
     control_decide.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     control_decide.set_defaults(handler=_control_decide)
     control_evaluate = control_subparsers.add_parser("evaluate")
