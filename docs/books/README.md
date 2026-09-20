@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.75.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.76.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -152,6 +152,12 @@ hard-negative를 `ControlStudentClient`로 재생해 rule/safety source, synthet
 accuracy, STOP recall, runtime latency를 별도로 확인한다. 이번 queue는
 100%였지만 모든 row가 known fast path였고 human `0/1000`이므로, 실제 일반화
 정확도와 model fallback latency gate는 여전히 남아 있다.
+
+v1.76.0에서는 runtime latency를 source별로 나눴다. seed queue의 local
+reference Student fallback은 p50/p95/p99 `293.486/421.518/2972.318µs`였고,
+control-rule p95는 `14.112µs`였다. 이 차이는 teacher가 아니라 local Student
+fallback 비용이며, human golden과 GPU/e2e gate가 없으므로 production 수치가
+아니다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

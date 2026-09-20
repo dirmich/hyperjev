@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.75.0
+현재 버전: 1.76.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -270,6 +270,14 @@ runtime synthetic accuracy `100%`, STOP recall `100%`, p50/p95/p99
 `13.648/15.616/17.504µs`를 얻었지만 source는 여전히 rule/safety가 전부였고
 human `0/1000`이므로 production-ready가 아니다. model이 실제로 호출되는
 unresolved/OOD queue와 human-labeled test를 별도 측정해야 한다.
+
+v1.76.0에서는 runtime report에 source별 latency를 추가했다. seed 800행에서는
+fast path 750행, Student fallback 50행, safety rule 50행을 분리했고, fallback
+Student의 p50/p95/p99는 `293.486/421.518/2972.318µs`였다. fast path의
+`control-rule` p95는 `14.112µs`, safety-rule p95는 `3.984µs`였다. 이 수치는
+reference Student CPU replay이며, Qwen/Gemma teacher latency나 GPU production
+latency가 아니다. seed synthetic target/STOP recall은 100%였지만 human label은
+0건이므로 production gate는 false다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적

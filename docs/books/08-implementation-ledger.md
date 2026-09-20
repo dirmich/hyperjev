@@ -109,6 +109,7 @@
 | 1.73.0 | 진행 중 | skill별 contradiction blocker와 fast-path negative regression |
 | 1.74.0 | 진행 중 | reproducible fast-path evaluator와 queue SHA/latency/human gate report |
 | 1.75.0 | 진행 중 | checkpoint-backed integrated runtime replay와 safety/source report |
+| 1.76.0 | 진행 중 | runtime source별 fallback latency report와 seed replay |
 
 ## 다음 기록 규칙
 

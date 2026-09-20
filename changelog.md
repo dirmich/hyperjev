@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — source-specific runtime latency (v1.76.0)
+
+- runtime fast-path evaluator에 source별 latency 통계를 추가했다. aggregate만
+  보면 Student fallback이 숨겨지는 문제를 막기 위해 `control-rule`, `safety-rule`,
+  `hyperjev-control`을 각각 p50/p95/p99/max/mean으로 기록한다.
+- seed 800 replay에서 Student fallback 50건의 p50/p95/p99는
+  `293.486/421.518/2972.318µs`, control-rule p95는 `14.112µs`, safety-rule
+  p95는 `3.984µs`였다.
+- synthetic accuracy/STOP recall은 `100%`였지만 human label은 `0/800`이고
+  production gate는 false다. 이 수치는 reference CPU Student replay다.
+- 검증: 전체 suite, source latency unit test, Ruff, seed runtime replay.
+
 ## 2026-09-21 — integrated control runtime replay (v1.75.0)
 
 - fast-path evaluator에 `--checkpoint` runtime replay를 추가해 실제

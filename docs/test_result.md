@@ -2270,3 +2270,25 @@ uv run python scripts/evaluate_control_fast_path.py \
 safety integration을 검증한 것이다. model 호출이 필요한 unresolved/OOD 입력의
 latency와 실제 human-labeled test accuracy는 아직 측정하지 않았으므로, 이
 결과를 parent LLM 대비 일반화 성능으로 해석하지 않는다.
+
+### 14.54 source-specific fallback latency (v1.76.0)
+
+seed queue에서 fast path와 실제 Student fallback 비용을 분리했다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue /tmp/hyperjev-control-seed-800.jsonl \
+  --checkpoint /tmp/control-combined-token-100ep.pt
+```
+
+| source | count | p50 (µs) | p95 (µs) | p99 (µs) | max (µs) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `control-rule` | 700 | 13.296 | 14.112 | 15.152 | 18.736 |
+| `safety-rule` | 50 | 2.000 | 3.984 | 7.040 | 7.040 |
+| `hyperjev-control` Student fallback | 50 | 293.486 | 421.518 | 2,972.318 | 2,972.318 |
+
+runtime 전체 synthetic target match와 STOP recall은 각각 `800/800 (100%)`와
+`100%`였다. 그러나 queue의 human label은 `0/800`이고, fallback은 reference
+Student CPU checkpoint이며, p99 outlier는 실제 DGX GPU/e2e motor loop의 대표값이
+아니다. Qwen teacher의 약 2초대 latency와 비교할 때도 서로 다른 경로이므로
+parent-versus-student 결론으로 합치지 않는다.

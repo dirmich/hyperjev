@@ -90,6 +90,10 @@ class ControlFastPathEvaluatorTests(unittest.TestCase):
         self.assertEqual(report["source_counts"], {"control-rule": 1, "safety-rule": 1})
         self.assertEqual(report["synthetic_target"]["accuracy"], 1.0)
         self.assertEqual(report["synthetic_target"]["stop_recall"], 1.0)
+        self.assertEqual(
+            set(report["latency_by_source_us"]),
+            {"control-rule", "safety-rule"},
+        )
         self.assertFalse(report["production_ready"])
 
 

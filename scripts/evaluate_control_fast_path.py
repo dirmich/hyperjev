@@ -60,6 +60,16 @@ def _percentile(values: list[float], percentile: float) -> float | None:
     return round(ordered[index], 3)
 
 
+def _latency_report(values: list[float]) -> dict[str, float | None]:
+    return {
+        "p50": _percentile(values, 50),
+        "p95": _percentile(values, 95),
+        "p99": _percentile(values, 99),
+        "max": round(max(values), 3) if values else None,
+        "mean": round(sum(values) / len(values), 3) if values else None,
+    }
+
+
 def evaluate_fast_path(queue_path: str | Path) -> dict[str, Any]:
     """Evaluate rule-only decisions without invoking a model or reading targets."""
 
@@ -121,13 +131,7 @@ def evaluate_fast_path(queue_path: str | Path) -> dict[str, Any]:
         },
         "human_label_gate": human_label_gate,
         "production_ready": False,
-        "latency_us": {
-            "p50": _percentile(latencies_us, 50),
-            "p95": _percentile(latencies_us, 95),
-            "p99": _percentile(latencies_us, 99),
-            "max": round(max(latencies_us), 3),
-            "mean": round(sum(latencies_us) / len(latencies_us), 3),
-        },
+        "latency_us": _latency_report(latencies_us),
     }
     return report
 
@@ -148,6 +152,7 @@ def evaluate_runtime(
     client = ControlStudentClient(checkpoint, registry, device=device)
     latencies_us: list[float] = []
     source_counts: dict[str, int] = {}
+    source_latencies_us: dict[str, list[float]] = {}
     synthetic_correct_count = 0
     synthetic_target_count = 0
     human_correct_count = 0
@@ -166,6 +171,7 @@ def evaluate_runtime(
         action = client.decide(observation, now_ms=1.0)
         latencies_us.append((time.perf_counter_ns() - started) / 1000.0)
         source_counts[action.source] = source_counts.get(action.source, 0) + 1
+        source_latencies_us.setdefault(action.source, []).append(latencies_us[-1])
         target = row.get("target")
         if target is not None:
             synthetic_target_count += 1
@@ -204,12 +210,10 @@ def evaluate_runtime(
         },
         "human_label_gate": human_label_gate,
         "production_ready": False,
-        "latency_us": {
-            "p50": _percentile(latencies_us, 50),
-            "p95": _percentile(latencies_us, 95),
-            "p99": _percentile(latencies_us, 99),
-            "max": round(max(latencies_us), 3),
-            "mean": round(sum(latencies_us) / len(latencies_us), 3),
+        "latency_us": _latency_report(latencies_us),
+        "latency_by_source_us": {
+            source: _latency_report(values)
+            for source, values in sorted(source_latencies_us.items())
         },
     }
 
