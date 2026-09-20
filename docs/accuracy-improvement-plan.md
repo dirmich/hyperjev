@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.49.0
+현재 버전: 1.50.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -131,6 +131,15 @@ uv run python scripts/validate_control_dataset.py \
 pair의 두 counterfactual은 같은 episode/semantic group이지만 같은 split에
 고정된다. STOP과 non-STOP, 접근과 이동, 대기와 정지처럼 실제 confusion
 matrix에서 위험한 쌍을 먼저 검수한다.
+
+v1.50.0에서는 500쌍/1,000개 synthetic hard-negative queue를
+`reference-token-encoder`로 학습했다. validation `100/100`, test `100/100`,
+safety action accuracy `4/4`, safe STOP recall `2/2`를 기록했다. 이 결과는
+hard-negative curriculum이 혼동쌍을 분리하는지 확인하는 연구 신호로는
+유효하지만, human label이 validation/test 모두 `0`이므로 production 정확도나
+새 게임/로봇 scene 일반화로 해석하지 않는다. 다음 학습부터 seed와
+hard-negative를 함께 구성하되, 사람 라벨이 없는 row는 production evaluator의
+분모에서 계속 거부한다.
 
 simulation safety scenario는 40회 replay에서 action accuracy 100%, safety STOP
 recall 100%였지만, 이는 contract regression 증거이지 새로운 state 일반화 증거가

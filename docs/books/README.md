@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.49.0까지 진행되어 있다. Python 테스트 105개와
+현재 `main`은 origin에 push될 1.50.0까지 진행되어 있다. Python 테스트 105개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -49,7 +49,8 @@ registry manifest로 묶는 contract와 30-sample confidence/coverage 분석도
 추가됐다. memory/query checkpoint는 synthetic 36개 group의
 reference-ngram-encoder이고 control checkpoint는 별도 48개 smoke fixture다.
 둘 다 human golden이 없거나 일반화 gate를 통과하지 않았으므로 production
-모델로 승격하지 않았다. 실제
+모델로 승격하지 않았다. hard-negative synthetic checkpoint는 validation/test
+100%였지만 human label 0건이라 production-ready가 아니다. 실제
 사람 검수 golden set, Gemma live baseline 전수 실행, production multilingual
 PyTorch checkpoint 학습, Student GPU inference benchmark, Rust toolchain compile은
 이 책에서 성공했다고 가장하지 않고 외부 의존성 gate로 표시한다. 상세 결과는

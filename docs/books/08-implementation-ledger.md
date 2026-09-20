@@ -83,6 +83,7 @@
 | 1.47.0 | 진행 중 | control Qwen/Gemma draft routing과 teacher latency/schema 기록 |
 | 1.48.0 | 진행 중 | reference BOW encoder ablation과 validation 기반 후보 탈락 |
 | 1.49.0 | 진행 중 | control counterfactual hard-negative queue와 same-split pair gate |
+| 1.50.0 | 진행 중 | hard-negative token training의 100% synthetic 결과와 human gate 기록 |
 
 ## 다음 기록 규칙
 

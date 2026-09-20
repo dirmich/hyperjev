@@ -1556,3 +1556,37 @@ INTERACT↔APPROACH, RECOVER↔STOP pair를 만들며, pair 양쪽은 같은
 12 unique semantic group, cross-split exact/episode/group leak 0건으로 validator를
 통과했다. target은 synthetic draft이므로 human review 전에는 training/gate
 근거가 아니다.
+
+### 14.28 hard-negative token training (v1.50.0)
+
+v1.49.0에서 만든 500쌍/1,000개 queue를 `reference-token-encoder`로 100 epoch
+학습해, hard-negative 자체를 별도 연구 checkpoint로 평가했다.
+
+```bash
+uv run hyperjev control train \
+  --backbone reference-token-encoder \
+  --dataset /tmp/hyperjev-control-hard-500.jsonl \
+  --output /tmp/control-hard-token-100ep.pt \
+  --epochs 100 --batch-size 64 --learning-rate 0.01 \
+  --precision fp32 --device cpu
+
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /tmp/control-hard-token-100ep.pt \
+  --dataset /tmp/hyperjev-control-hard-500.jsonl
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| validation | 100/100 (100.00%) |
+| test | 100/100 (100.00%) |
+| validation/test accepted coverage | 100/100 (100.00%) |
+| safety action accuracy | 4/4 (100.00%) |
+| safe STOP recall | 2/2 (100.00%) |
+| human label | 0/200 (0.00%) |
+
+checkpoint SHA-256은 `e90d157ba0cfea03ee914868f66527418ef91b6e526ac6f409f85314651bcd65`,
+dataset SHA-256은 `f88cec23d06b1bae9c688bcc5f3cea4dc3b68912980b43e98c8d72fd986e5f0d`다.
+evaluator의 synthetic gate는 통과했지만 human label gate 때문에
+`production_ready=false`다. pair가 제한된 템플릿에서 생성되었으므로 이
+100%는 새 게임/로봇 scene의 100%가 아니다. 다음 단계는 seed+hard-negative
+혼합 학습과 독립 human test를 분리해 재현하는 것이다.

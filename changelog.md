@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — hard-negative token training evidence (v1.50.0)
+
+- v1.49.0의 500 pair/1,000 sample counterfactual queue를
+  `reference-token-encoder`로 100 epoch 학습했다.
+- validation/test는 각각 `100/100 (100.00%)`, safety action accuracy는
+  `4/4 (100.00%)`, safe STOP recall은 `2/2 (100.00%)`였다.
+- human label은 `0/200`이라 evaluator의 synthetic gate만 통과했고,
+  `production_ready=false`다. 제한된 synthetic pair를 외운 결과와 실제
+  scene 일반화를 혼동하지 않도록 다음 단계는 seed+hard-negative 결합과
+  human independent test다.
+
 ## 2026-09-21 — control counterfactual hard-negative queue (v1.49.0)
 
 - `hyperjev control hard-negative`가 STOP↔RETREAT, MOVE↔APPROACH,
