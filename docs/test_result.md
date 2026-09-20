@@ -1260,3 +1260,25 @@ p95 약 `2.576ms`, 약 `236 requests/s`(6 decisions/request)였다.
 이는 JEv형 빠른 local Student 경로가 실제로 동작한다는 증거다. 다만 현재
 CPU reference benchmark이며, DGX Spark에서의 GPU kernel, concurrent batch,
 HTTP server overhead, Qwen/Gemma fallback latency는 별도 benchmark가 필요하다.
+
+### 14.16 실시간 control safety contract
+
+게임/로봇 적용을 위해 [`src/hyperjev/control.py`](../src/hyperjev/control.py)에
+고수준 action 계약과 deterministic safety shield를 추가했다. 기존 memory/query
+registry와 Student checkpoint를 변경하지 않는 별도 경계다.
+
+입력은 `observation_id`, bounded `state`, `domain`, `timestamp_ms`를 가지며,
+출력은 abstract skill과 `[-1, 1]` 범위의 normalized parameters만 가진다.
+다음 조건에서는 model output을 실행하지 않고 `STOP`을 반환한다.
+
+- observation age가 100ms를 초과
+- emergency stop 활성화
+- confidence가 0.90 미만
+- action TTL이 100ms 초과
+- parameter가 유한하지 않거나 `[-1, 1]` 밖
+
+이 계약은 HyperJev가 저수준 모터/PWM 제어기가 아니라 빠른 skill supervisor가
+되도록 한다. 로봇에서는 PID/MPC/trajectory controller가 최종 actuator를
+담당하고, 게임에서는 실제 입력 rate limiter가 action을 실행해야 한다.
+현재 단계는 계약/안전 테스트까지이며, 다음 단계에서 control-specific typed
+head와 simulator loop를 추가한다.

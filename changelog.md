@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — real-time control safety contract (v1.39.0)
+
+- `ControlObservation`, `ControlAction`, `ControlSafetyPolicy`를 추가했다.
+- HyperJev가 반환하는 action은 `MOVE`, `ROTATE`, `APPROACH`, `RETREAT`,
+  `INTERACT`, `RECOVER`, `HOLD`, `STOP` 같은 고수준 skill만 허용한다.
+- stale observation, emergency stop, 낮은 confidence, 긴 TTL, 범위 밖
+  parameter는 모두 deterministic `STOP`으로 전환한다.
+- 모터 PWM/토크 같은 직접 actuator 값은 contract에서 허용하지 않는다.
+  저수준 PID/MPC/controller가 최종 actuator를 맡도록 경계를 고정했다.
+
 ## 2026-09-20 — low-latency Student inference path (v1.38.0)
 
 - Student inference가 학습용 고정 1,024 token padding을 그대로 사용하지 않고,
