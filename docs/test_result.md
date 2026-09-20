@@ -2891,3 +2891,18 @@ uv run hyperjev control review-pack \
 
 이 pack은 이제 `control review-session --blind --offset 0 --limit 50`으로 두 번
 검수할 수 있다. 실제 human label이 생기기 전에는 정확도 수치를 산출하지 않는다.
+
+### 14.79 Gemma judge timeout boundary (v1.102.0)
+
+검증 결과:
+
+| 실행 | 결과 |
+| --- | ---: |
+| Gemma `/v1/models` probe | 응답, `google/gemma-4-12b` 노출 |
+| control draft 10건, timeout 60s | 4건 기록 시점까지 모두 `TimeoutError`, process 중단 |
+| control draft 1건, timeout 300s | `completed_count=0`, `schema_valid_count=0`, `error_count=1` |
+| 300s draft error | `TimeoutError: timed out` |
+| control human label 영향 | 없음 |
+
+Gemma가 endpoint에 존재한다는 사실과 실제 control 판단을 반환한다는 사실은
+분리한다. 현재 Gemma 출력은 정확도 target이나 human label로 사용하지 않는다.

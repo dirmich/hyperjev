@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — Gemma judge timeout boundary (v1.102.0)
+
+- Gemma endpoint `/v1/models`는 응답했지만 control draft 첫 sample은
+  60초 timeout에서 실패했다.
+- 300초 timeout으로 1건을 재시험해도 `schema_valid_count=0`, `error_count=1`,
+  `TimeoutError`였다.
+- Gemma는 synchronous label/fallback이 아닌 비동기 선택적 judge로 유지하고,
+  Qwen draft와 blind human review를 정확도 승격 경로로 고정했다.
+
 ## 2026-09-21 — held-out split review pack (v1.101.0)
 
 - `control review-pack --split train|validation|test`를 추가했다.

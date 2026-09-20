@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.101.0
+현재 버전: 1.102.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1100,3 +1100,16 @@ uv run hyperjev control review-pack \
 이 pack을 `--blind`로 검수하는 것이며, test 100개가 모두 label되기 전에는
 `--require-human-test`를 통과시키지 않는다. split filter는 정확도를 자동으로
 올리지 않지만, train label과 held-out test label이 섞이는 실수를 차단한다.
+
+### v1.102.0 Gemma judge timeout boundary
+
+Gemma endpoint의 control draft 경계를 실제로 확인했다. `/v1/models`는 응답하며
+`google/gemma-4-12b` 모델이 노출되지만, control hard-negative 첫 sample에 대해
+60초 timeout은 4건 연속 `TimeoutError`를 기록했고, timeout을 300초로 늘린 1건
+재시험도 `schema_valid_count=0`, `error_count=1`로 끝났다.
+
+따라서 Gemma를 human label이나 synchronous control fallback으로 승격하지 않는다.
+현재 운영 경로는 Qwen draft + blind human review이며, Gemma는 별도 비동기 judge로
+재시도할 수 있지만 그 결과가 없거나 늦어도 control loop와 human gate는 진행되어야
+한다. 이 결정은 정확도 하락을 의미하는 것이 아니라, timeout을 정확도나 label로
+오인하지 않도록 하는 경계다.

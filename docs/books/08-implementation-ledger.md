@@ -135,6 +135,7 @@
 | 1.99.0 | 진행 중 | review-status로 전체/분할 human coverage와 held-out test readiness 관측 추가 |
 | 1.100.0 | 진행 중 | 500-case safety matrix의 실제 control simulate latency replay와 5ms p95/p99 gate 검증 |
 | 1.101.0 | 진행 중 | control review pack의 held-out train/validation/test split filter와 test-only pack 검증 |
+| 1.102.0 | 진행 중 | Gemma control draft의 60s/300s timeout boundary 측정과 비동기 judge 격리 결정 |
 
 ## 다음 기록 규칙
 
