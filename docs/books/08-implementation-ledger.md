@@ -60,6 +60,7 @@
 | 1.26.0 | 진행 중 | explicit raw local human review pack과 target leakage guard |
 | 1.26.1 | 진행 중 | 1,000-item Qwen review pack 생성 및 leakage scan |
 | 1.27.0 | 진행 중 | human remember-worthiness rubric과 검수 기준 문서 |
+| 1.28.0 | 진행 중 | next/previous navigable human review session |
 
 ## 다음 기록 규칙
 

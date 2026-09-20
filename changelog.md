@@ -3,6 +3,12 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — navigable human review session (v1.28.0)
+
+- `golden review-session` 한 번으로 1,000건을 순차 검수할 수 있게 했다.
+- `a` 승인, `e` 직접 수정, `n` 다음, `p` 이전, `s` 보류, `q` 종료를 지원한다.
+- 이전 item을 다시 수정하면 append-only feedback의 최신 correction이 적용된다.
+
 ## 2026-09-20 — human remember-worthiness rubric (v1.27.0)
 
 - `memory.remember_worthy`를 판단하는 미래 재사용 가치 기준과 true/false

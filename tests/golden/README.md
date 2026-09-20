@@ -66,3 +66,18 @@ uv run hyperjev golden apply-feedback \
 uv run hyperjev golden validate \
   --samples runs/phase0/phase0-review-queue-reviewed.jsonl
 ```
+
+1,000건을 한 번의 세션에서 검수하려면 다음 명령을 사용한다. 화면에는
+`state`, `question`, Qwen draft와 현재 human label이 표시된다.
+
+```bash
+uv run hyperjev golden review-session \
+  --review-pack runs/phase1/qwen-golden-review-pack.jsonl \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --feedback-output runs/phase0/golden-feedback.jsonl \
+  --reviewer dirmich
+```
+
+키 입력은 `a`(draft 승인), `e`(typed JSON 수정), `n`(다음), `p`(이전),
+`s`(보류), `q`(저장 후 종료)다. 승인·수정은 즉시 feedback에 append되며,
+이전에 저장된 item도 `p`로 돌아가 다시 수정할 수 있다.

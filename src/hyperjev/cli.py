@@ -24,7 +24,7 @@ from .golden_draft import generate_teacher_draft
 from .mock_server import serve
 from .model_registry import STATUSES, ModelRegistry, build_model_manifest
 from .registry import RegistryError, TaskRegistry
-from .review_pack import export_review_pack
+from .review_pack import export_review_pack, run_review_session
 from .routing import DecisionRouter
 from .student import StudentConfig, student_manifest
 from .student_inference import evaluate_student_checkpoint, write_student_evaluation
@@ -210,6 +210,21 @@ def _golden_review_pack(args: argparse.Namespace) -> int:
         include_raw=args.allow_raw,
     )
     print(json.dumps(report["manifest"], ensure_ascii=False))
+    return 0
+
+
+def _golden_review_session(args: argparse.Namespace) -> int:
+    config, registry = _load(args.config)
+    queue = args.queue or config.runs_path / "phase0-review-queue.jsonl"
+    feedback = args.feedback_output or config.runs_path / "golden-feedback.jsonl"
+    report = run_review_session(
+        args.review_pack,
+        queue,
+        feedback,
+        registry,
+        reviewer=args.reviewer,
+    )
+    print(json.dumps(report, ensure_ascii=False))
     return 0
 
 
@@ -502,6 +517,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="explicitly allow raw state/question in this local review artifact",
     )
     golden_pack.set_defaults(handler=_golden_review_pack)
+    golden_session = golden_subparsers.add_parser("review-session")
+    _config_argument(golden_session)
+    golden_session.add_argument("--review-pack", required=True)
+    golden_session.add_argument("--queue")
+    golden_session.add_argument("--feedback-output")
+    golden_session.add_argument("--reviewer", required=True)
+    golden_session.set_defaults(handler=_golden_review_session)
     golden_apply = golden_subparsers.add_parser("apply-feedback")
     _config_argument(golden_apply)
     golden_apply.add_argument("--queue")

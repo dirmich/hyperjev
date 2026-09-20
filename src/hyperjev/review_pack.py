@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .golden import append_golden_feedback
 from .registry import TaskRegistry
 from .samples import load_jsonl
 
@@ -121,4 +122,144 @@ def export_review_pack(
         "output": str(output.resolve()),
         "manifest": pack_manifest,
         "records": len(output_records) - 1,
+    }
+
+
+def _feedback_by_sample(path: Path) -> dict[str, dict[str, Any]]:
+    if not path.exists() or not path.read_text(encoding="utf-8").strip():
+        return {}
+    return {
+        str(record["sample_id"]): record
+        for record in _read_records(path)
+        if record.get("record_type") == "golden_feedback" and record.get("sample_id")
+    }
+
+
+def run_review_session(
+    review_pack_path: str | Path,
+    queue_path: str | Path,
+    feedback_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    reviewer: str,
+    input_fn: Any = input,
+    output_fn: Any = print,
+) -> dict[str, Any]:
+    """Review a pack in one resumable session with next/previous navigation.
+
+    Commands are ``a`` (accept the displayed teacher draft), ``e`` (enter a
+    typed correction), ``n``/``p`` (next/previous), ``s`` (leave pending and
+    move next), and ``q`` (save and quit). Every accepted or edited label is
+    appended immediately; revising an earlier item appends a newer record that
+    wins when feedback is applied.
+    """
+
+    pack_records = _read_records(Path(review_pack_path))
+    manifest = pack_records[0]
+    if manifest.get("record_type") != "golden_review_pack_manifest":
+        raise ValueError("review pack must start with a golden review pack manifest")
+    queue = Path(queue_path)
+    queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
+    if manifest.get("queue_sha256") != queue_sha256:
+        raise ValueError("queue SHA-256 does not match the review pack manifest")
+    items = pack_records[1:]
+    if not items:
+        raise ValueError("review pack has no review items")
+    feedback = Path(feedback_path)
+    latest = _feedback_by_sample(feedback)
+    pending_ids = [str(item.get("sample_id")) for item in items if str(item.get("sample_id")) not in latest]
+    index = next(
+        (position for position, item in enumerate(items) if str(item.get("sample_id")) in pending_ids),
+        0,
+    )
+    saved = 0
+    stopped = False
+
+    while 0 <= index < len(items):
+        item = items[index]
+        sample_id = str(item.get("sample_id", ""))
+        teacher = item.get("teacher", {})
+        output_fn("")
+        output_fn(f"[{index + 1}/{len(items)}] {sample_id}  {item.get('task')}")
+        output_fn(f"state: {item.get('state')}")
+        output_fn(f"question: {item.get('question')}")
+        output_fn(
+            "Qwen draft: "
+            + json.dumps(teacher.get("normalized_result"), ensure_ascii=False, sort_keys=True)
+        )
+        if teacher.get("error"):
+            output_fn(f"Qwen error: {teacher['error']}")
+        if sample_id in latest:
+            output_fn(
+                "Current human label: "
+                + json.dumps(latest[sample_id].get("correction"), ensure_ascii=False, sort_keys=True)
+            )
+        output_fn("Commands: [a]ccept  [e]dit  [n]ext  [p]revious  [s]kip  [q]uit")
+        command = input_fn("> ").strip().lower()
+        if command in {"q", "quit"}:
+            stopped = True
+            break
+        if command in {"n", "next", "s", "skip"}:
+            if index < len(items) - 1:
+                index += 1
+            else:
+                output_fn("Already at the last item.")
+            continue
+        if command in {"p", "previous", "prev"}:
+            if index > 0:
+                index -= 1
+            else:
+                output_fn("Already at the first item.")
+            continue
+        if command not in {"a", "accept", "e", "edit"}:
+            output_fn("Use a, e, n, p, s, or q.")
+            continue
+
+        if command in {"a", "accept"}:
+            correction = teacher.get("normalized_result")
+            if not isinstance(correction, dict):
+                output_fn("Qwen draft is not schema-valid; use e to enter a correction.")
+                continue
+            reason = "interactive review: reviewer accepted teacher draft"
+        else:
+            try:
+                correction = json.loads(input_fn("correction JSON: "))
+            except (json.JSONDecodeError, TypeError) as exc:
+                output_fn(f"Invalid JSON: {exc}")
+                continue
+            if not isinstance(correction, dict):
+                output_fn("Correction must be a JSON object.")
+                continue
+            reason = "interactive review: reviewer entered correction"
+        try:
+            record = append_golden_feedback(
+                queue,
+                feedback,
+                registry,
+                sample_id=sample_id,
+                correction=correction,
+                reviewer=reviewer,
+                reason=reason,
+            )
+        except (TypeError, ValueError) as exc:
+            output_fn(f"Correction rejected: {exc}")
+            continue
+        latest[sample_id] = {
+            "sample_id": sample_id,
+            "correction": correction,
+            "created_at": record.get("created_at"),
+        }
+        saved += 1
+        output_fn("Saved. Moving to the next item.")
+        if index < len(items) - 1:
+            index += 1
+        else:
+            break
+
+    reviewed_count = sum(str(item.get("sample_id")) in latest for item in items)
+    return {
+        "reviewed_count": reviewed_count,
+        "pending_count": len(items) - reviewed_count,
+        "saved_in_session": saved,
+        "stopped": stopped,
     }

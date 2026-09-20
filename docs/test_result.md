@@ -917,3 +917,9 @@ uv run hyperjev golden review-pack \\
 생성된 pack은 `runs/phase1/qwen-golden-review-pack.jsonl`이며, 각 item을
 검수한 뒤 기존 `hyperjev golden review` 명령으로 typed correction을
 `runs/phase0/golden-feedback.jsonl`에 append한다.
+
+1,000건을 별도 shell 명령으로 반복하지 않도록 `golden review-session`을
+추가했다. 한 세션에서 `state`, `question`, Qwen draft, 현재 human label을
+확인하고 `a` 승인, `e` 수정, `n` 다음, `p` 이전, `s` 보류, `q` 종료를
+선택한다. 각 결과는 즉시 append되며 이전 item을 다시 수정하면 feedback의
+최신 correction이 reviewed queue에 적용된다.
