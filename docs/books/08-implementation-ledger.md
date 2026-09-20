@@ -40,6 +40,7 @@
 | 1.15.1 | `72d6a77` | model manifest milestone 원고 기록 |
 | 1.16.0 | `a975d77` | 30-sample confidence/coverage와 성능 차이 분석 |
 | 1.17.0 | `b5073d8` | reference Student checkpoint path, dotted task head, rule accuracy fix |
+| 1.17.1 | `21687f8` | reference Student 정확도, calibration, rule coverage 결과 문서화 |
 
 ## 다음 기록 규칙
 
