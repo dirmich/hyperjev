@@ -41,6 +41,12 @@ connection error를 거쳐 human으로 fail-closed 되었다. 이 결과는 fall
 없는 exploratory dataset에서만 사용한다. report의 `target_source`와
 `golden.human_labeled`를 함께 확인해야 한다.
 
+1.23.0의 `golden draft`는 Gemma를 reviewer assistant로만 사용한다. Gemma
+초안은 schema-valid 여부와 hash를 보존하지만 `labels.human`으로 복사되지
+않는다. 사용자가 원문을 확인하고 correction을 별도로 제출해야 한다. 실제
+Gemma4 1건은 60초 timeout으로 끝나 generation 병목이 재현되었으므로 batch
+초안 생성은 endpoint latency를 먼저 해결한 뒤 실행한다.
+
 Parent LLM과 HyperJev 경계의 실제 성능 측정은 [`docs/test_result.md`](../test_result.md)에
 기록했다. Qwen endpoint는 6개 smoke에서 HTTP 6/6, typed schema 5/6,
 p50 1,127.542ms였고, 30개 synthetic 확장에서는 schema 27/30, p50

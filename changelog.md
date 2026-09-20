@@ -149,3 +149,22 @@
 - production gate: **exit 1**, `human_labels_required`
 - 결론: synthetic regression 수치는 재현됐지만 human golden 정확도는 아직
   측정되지 않았고, production 승격도 계속 금지된다.
+
+## 2026-09-20 — Gemma draft label pipeline (v1.23.0)
+
+- `hyperjev golden draft`를 추가해 Gemma4가 human review 전용 초안 라벨을
+  생성할 수 있게 했다.
+- draft에는 raw state/question이나 raw Gemma 응답을 저장하지 않고,
+  normalized typed result, response hash, latency, schema validity, queue hash만
+  저장한다.
+- draft의 `normalized_result`는 `labels.human`이 아니다. 사용자가 원문
+  `state/question`을 독립적으로 확인하고 `golden review` feedback을 생성해야
+  human golden으로 인정된다.
+- 실제 Gemma4 1건 probe:
+  - model: `google/gemma-4-12b`
+  - timeout: 60초
+  - 결과: `TimeoutError`, schema-valid `0/1`
+  - draft queue SHA-256: `463b00f91257b34a837f8eaa184d5fb4efec49f2028f086dd78aa0e3bdbd873f`
+- 검증: **72 passed, 1 skipped**, Ruff 통과.
+- Gemma generation timeout이 해결되기 전에는 batch draft를 human label로
+  승격하지 않는다.

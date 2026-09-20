@@ -773,3 +773,43 @@ human-source 수정 이후 동일한 1,000개 queue를 재실행했다.
 
 이 결과는 evaluator가 synthetic source를 정확히 표시한다는 회귀 증거이며,
 human golden 정확도 99%의 증거가 아니다.
+
+## 14. Gemma human-review draft probe
+
+### 14.1 목적과 경계
+
+Gemma4는 Qwen과 독립적인 cross-validator/judge이므로 human reviewer가 볼
+초안 라벨을 만드는 데 사용할 수 있다. 그러나 Gemma output을 그대로
+`labels.human`으로 복사하면 teacher agreement일 뿐 human golden이 아니다.
+`hyperjev golden draft`는 이 경계를 코드로 분리한다.
+
+```bash
+uv run hyperjev golden draft \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --output runs/phase1/gemma-golden-draft.jsonl \
+  --limit 20 --timeout 900
+```
+
+draft 파일은 queue SHA-256, sample ID, Gemma model, prompt version, latency,
+response hash, normalized typed result, schema validity와 timeout/error 사유만
+기록한다. raw state/question과 raw Gemma 응답은 저장하지 않는다. reviewer는
+원본 queue의 `state`/`question`을 보고 초안과 비교한 뒤 `golden review`로
+correction을 append해야 한다.
+
+### 14.2 실제 Gemma4 probe
+
+첫 sample에 대해 60초 timeout으로 실행했다.
+
+| 항목 | 결과 |
+| --- | --- |
+| model | `google/gemma-4-12b` |
+| sample count | 1 |
+| timeout | 60초 |
+| completed | 0 |
+| schema-valid | 0 |
+| error | `TimeoutError: timed out` |
+| queue SHA-256 | `463b00f91257b34a837f8eaa184d5fb4efec49f2028f086dd78aa0e3bdbd873f` |
+
+따라서 현재는 pipeline과 실패 기록만 검증됐고, Gemma draft label 품질이나
+human review workload는 측정하지 못했다. generation timeout이 해결되면 20개
+batch부터 실행하고, 사용자가 확인한 결과만 human feedback으로 반영한다.

@@ -20,6 +20,7 @@ from .dataset_factory import build_dataset, validate_dataset
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
 from .golden import append_golden_feedback, apply_golden_feedback, generate_review_queue
+from .golden_draft import generate_gemma_draft
 from .mock_server import serve
 from .model_registry import STATUSES, ModelRegistry, build_model_manifest
 from .registry import RegistryError, TaskRegistry
@@ -155,6 +156,22 @@ def _golden_generate(args: argparse.Namespace) -> int:
     report = generate_review_queue(output, registry, count=args.count, seed=args.seed)
     print(json.dumps(report, ensure_ascii=False))
     return 0
+
+
+def _golden_draft(args: argparse.Namespace) -> int:
+    config, registry = _load(args.config)
+    queue = args.queue or config.runs_path / "phase0-review-queue.jsonl"
+    output = args.output or config.runs_path / "gemma-golden-draft.jsonl"
+    report = generate_gemma_draft(
+        config,
+        registry,
+        queue,
+        output,
+        limit=args.limit,
+        timeout_s=args.timeout,
+    )
+    print(json.dumps(report["manifest"], ensure_ascii=False))
+    return 0 if report["manifest"]["error_count"] == 0 else 1
 
 
 def _golden_review(args: argparse.Namespace) -> int:
@@ -436,6 +453,13 @@ def build_parser() -> argparse.ArgumentParser:
     golden_generate.add_argument("--count", type=int, default=1000)
     golden_generate.add_argument("--seed", type=int, default=0)
     golden_generate.set_defaults(handler=_golden_generate)
+    golden_draft = golden_subparsers.add_parser("draft")
+    _config_argument(golden_draft)
+    golden_draft.add_argument("--queue")
+    golden_draft.add_argument("--output")
+    golden_draft.add_argument("--limit", type=int)
+    golden_draft.add_argument("--timeout", type=float)
+    golden_draft.set_defaults(handler=_golden_draft)
     golden_review = golden_subparsers.add_parser("review")
     _config_argument(golden_review)
     golden_review.add_argument("--queue")
