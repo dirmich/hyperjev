@@ -3309,6 +3309,26 @@ v1.105 baseline보다 English 5건, Korean 8건 낮고 v1.114 state-only보다�
 `3657.003/5894.440/66204.821/66204.821us`로 변동성도 관찰됐다. 전부 synthetic
 target이며 human label `0/1800`이므로 production 승격 대상이 아니다.
 
+### 14.94 human-label evidence gate snapshot (v1.117.0)
+
+v2 source queue를 `control review-status`로 점검했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| queue rows | `800` |
+| reviewed | `0` |
+| pending | `800` |
+| validation human labels | `0/80` |
+| held-out test human labels | `0/80` |
+| test_ready | `false` |
+| ready_for_materialize | `false` |
+
+queue SHA는 `3c1696dccc1c9545e4dc03f96bdc2b6a50010dac7457f84cbd88d2ae01fc8d84`다.
+따라서 현재 checkpoint 비교 수치는 synthetic target 성능이며, human production
+accuracy가 아니다. 두 reviewer가 target-excluded pack을 `control review-session`
+`--blind --offset --limit`으로 독립 검수하고 disagreement를 adjudicate하기 전에는
+`control train --require-human-labels`와 strict promotion을 성공시킬 수 없다.
+
 ### 14.92 malformed quality-gate rejection hardening (v1.115.0)
 
 `_quality_gate_failures`가 malformed safety report를 예외로 중단시키지 않고

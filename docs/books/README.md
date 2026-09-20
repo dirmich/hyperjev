@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.116.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.117.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -128,6 +128,11 @@ v1.116.0에서는 state/question vocabulary를 분리한 segmented BOW를 실험
 English `34/40`, Korean `28/40`으로 기준선에 미달해 폐기했다. 이 결과를 통해
 표현 충돌을 줄이는 것만으로는 99% 목표에 도달하지 못하며, human adjudication을
 통한 혼동쌍 데이터가 우선이라는 결론을 기록한다.
+
+v1.117.0 상태 점검에서 v2 queue는 `0/800` human reviewed, held-out test는
+`0/80`으로 확인됐다. 이 책은 synthetic 점수와 human production accuracy를
+분리하며, 다음 장의 실제 검수·adjudication·human-only training이 완료되기 전에는
+99% 달성을 주장하지 않는다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

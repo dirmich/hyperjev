@@ -1438,6 +1438,41 @@ human label `0/1800` 상태에서 production accuracy를 의미하지 않는다.
 실험은 더 많은 synthetic ablation보다 blind human label과 혼동쌍 adjudication을
 먼저 확보하는 방향으로 우선순위를 낮춘다.
 
+### v1.117.0 human-label evidence gate snapshot
+
+현재 v2 source queue 상태를 다음 명령으로 점검했다.
+
+```bash
+uv run hyperjev control review-status \
+  --registry registry/control_tasks \
+  --queue /tmp/control-review-v2-1000.jsonl \
+  --feedback /tmp/control-review-v2-feedback.jsonl
+```
+
+결과는 queue `800`, reviewed `0`, pending `800`, validation `0/80`, test `0/80`,
+`test_ready=false`, `ready_for_materialize=false`다. 따라서 현재까지의 Qwen draft와
+Student OOD 숫자는 모두 synthetic 비교이고, production accuracy/99% 달성으로
+해석할 수 없다.
+
+실제 다음 입력은 두 reviewer가 target-excluded pack을 독립적으로 검수하는 것이다.
+배치 이동은 다음처럼 `--offset/--limit`으로 재현하고, `--blind`로 teacher output을
+숨긴다.
+
+```bash
+uv run hyperjev control review-session \
+  --registry registry/control_tasks \
+  --review-pack /tmp/control-qwen-review-v2-pack.jsonl \
+  --queue /tmp/control-review-v2-1000.jsonl \
+  --feedback-output /tmp/control-review-v2-reviewer-a.jsonl \
+  --reviewer human-a --blind --offset 0 --limit 100
+```
+
+각 reviewer의 결과를 비교하고 disagreement를 adjudicate한 뒤에만
+`control review-finalize`와 `control train --require-human-labels`를 실행한다.
+이 외부 라벨 없이 더 많은 synthetic ablation을 수행해도 99% production gate를
+통과할 수 없으므로, 현재 계획의 다음 stop condition은 human-only held-out test
+report 생성이다.
+
 ### v1.115.0 malformed quality report rejection hardening
 
 정확도 gate는 모델 후보를 자동 승인하는 장치가 아니라, 기준 미달 후보를 안전하게

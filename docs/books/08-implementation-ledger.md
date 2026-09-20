@@ -150,6 +150,7 @@
 | 1.114.0 | 진행 중 | state-only control BOW ablation으로 질문 노이즈 분리, 기준선 미달 후보 폐기 |
 | 1.115.0 | 진행 중 | malformed quality report를 traceback 없이 명시적 gate failure로 거부 |
 | 1.116.0 | 진행 중 | segmented state/question BOW ablation 측정 및 기준선 미달 후보 폐기 |
+| 1.117.0 | 진행 중 | v2 source queue human-label gate 상태와 다음 검수 stop condition 기록 |
 
 ## 다음 기록 규칙
 

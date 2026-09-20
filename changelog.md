@@ -3,6 +3,14 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — record human-label evidence gate status (v1.117.0)
+
+- v2 source queue를 다시 점검한 결과 `800`건 중 human review가 `0`건이며,
+  held-out test는 `0/80`, 전체 materialize readiness는 `false`였다.
+- review status와 test/materialize strict gate를 재현하는 명령을 책과 test-result에
+  기록했다. 이 단계는 synthetic target을 human target으로 복사하지 않고, 99%+
+  정확도 주장을 막는 현재의 외부 입력 blocker를 명확히 한다.
+
 ## 2026-09-21 — reject segmented state/question BOW candidate (v1.116.0)
 
 - state와 question의 hash collision을 줄이기 위해 vocabulary를 두 구간으로
