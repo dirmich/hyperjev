@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — control counterfactual hard-negative queue (v1.49.0)
+
+- `hyperjev control hard-negative`가 STOP↔RETREAT, MOVE↔APPROACH,
+  HOLD↔STOP 등 혼동쌍을 생성한다.
+- 한 pair의 두 row는 같은 `episode_id`, `semantic_group_id`, split을 공유하고
+  `counterfactual_group_id`와 pair side를 기록한다. validator 결과는
+  24 samples/12 groups에서 cross-split leak 0건이었다.
+- target은 synthetic seed라 human label을 대체하지 않는다. human review와
+  Gemma disagreement 검수를 거친 뒤에만 class-balanced training bucket으로
+  편입한다.
+
 ## 2026-09-21 — reference BOW encoder ablation (v1.48.0)
 
 - token count를 직접 linear projection하는 `reference-bow-encoder`를 추가해

@@ -1538,3 +1538,21 @@ token count를 직접 linear projection하는 `reference-bow-encoder` 후보를
 일반화를 만들지 못한다는 증거다. 따라서 BOW checkpoint는 production 후보로
 승격하지 않고, human semantic group·counterfactual hard-negative·episode
 split이 추가된 뒤 다시 비교한다.
+
+### 14.27 control counterfactual hard-negative queue (v1.49.0)
+
+혼동이 큰 skill pair를 같은 장면의 counterfactual로 묶는 생성기를 추가했다.
+
+```bash
+uv run hyperjev control hard-negative \
+  --output runs/control/control-hard-negative.jsonl \
+  --pair-count 500 \
+  --seed 7
+```
+
+STOP↔RETREAT, MOVE↔APPROACH, HOLD↔STOP, ROTATE↔MOVE,
+INTERACT↔APPROACH, RECOVER↔STOP pair를 만들며, pair 양쪽은 같은
+`episode_id`/`semantic_group_id`/split을 갖는다. 12 pair smoke는 24 sample,
+12 unique semantic group, cross-split exact/episode/group leak 0건으로 validator를
+통과했다. target은 synthetic draft이므로 human review 전에는 training/gate
+근거가 아니다.

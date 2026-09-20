@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.48.0
+현재 버전: 1.49.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -116,6 +116,21 @@ human review queue로 보내며, normalized result가 있어도 `labels.human`�
 reference BOW ablation은 validation `4/8 (50.00%)`로 token/ngram과 동일했다.
 따라서 48개 smoke test를 보고 architecture를 고르지 않고, 다음 후보 비교는
 human-labeled validation에서 class-balanced hard-negative와 함께 수행한다.
+
+v1.49.0부터 hard-negative pair를 별도 생성한다.
+
+```bash
+uv run hyperjev control hard-negative \
+  --output runs/control/control-hard-negative.jsonl \
+  --pair-count 500 \
+  --seed 7
+uv run python scripts/validate_control_dataset.py \
+  runs/control/control-hard-negative.jsonl
+```
+
+pair의 두 counterfactual은 같은 episode/semantic group이지만 같은 split에
+고정된다. STOP과 non-STOP, 접근과 이동, 대기와 정지처럼 실제 confusion
+matrix에서 위험한 쌍을 먼저 검수한다.
 
 simulation safety scenario는 40회 replay에서 action accuracy 100%, safety STOP
 recall 100%였지만, 이는 contract regression 증거이지 새로운 state 일반화 증거가

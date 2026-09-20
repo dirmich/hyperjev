@@ -82,6 +82,7 @@
 | 1.46.0 | 진행 중 | safety action accuracy와 human-label production gate 강화 |
 | 1.47.0 | 진행 중 | control Qwen/Gemma draft routing과 teacher latency/schema 기록 |
 | 1.48.0 | 진행 중 | reference BOW encoder ablation과 validation 기반 후보 탈락 |
+| 1.49.0 | 진행 중 | control counterfactual hard-negative queue와 same-split pair gate |
 
 ## 다음 기록 규칙
 

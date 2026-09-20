@@ -60,6 +60,93 @@ _CONTROL_SEED_TEMPLATES = {
     },
 }
 
+_CONTROL_HARD_NEGATIVE_PAIRS = (
+    (
+        "STOP",
+        "RETREAT",
+        {
+            "en": (
+                ("collision risk is immediate and stopping is mandatory", "STOP"),
+                ("the hazard is approaching but the clear path behind is safe", "RETREAT"),
+            ),
+            "ko": (
+                ("충돌 위험이 즉시 발생해 정지가 필수다", "STOP"),
+                ("위험이 다가오지만 뒤의 빈 경로는 안전하다", "RETREAT"),
+            ),
+        },
+    ),
+    (
+        "MOVE",
+        "APPROACH",
+        {
+            "en": (
+                ("the corridor is clear and continue forward without a target lock", "MOVE"),
+                ("the reachable target is locked directly ahead", "APPROACH"),
+            ),
+            "ko": (
+                ("통로가 비었고 특정 목표 고정 없이 앞으로 계속 간다", "MOVE"),
+                ("접근 가능한 목표가 바로 앞에 고정됐다", "APPROACH"),
+            ),
+        },
+    ),
+    (
+        "HOLD",
+        "STOP",
+        {
+            "en": (
+                ("pause safely while the pose is stable and no hazard is present", "HOLD"),
+                ("emergency hazard is detected inside the collision zone", "STOP"),
+            ),
+            "ko": (
+                ("위험이 없고 자세가 안정적이므로 안전하게 잠시 멈춘다", "HOLD"),
+                ("충돌 구역 안에서 비상 위험이 감지됐다", "STOP"),
+            ),
+        },
+    ),
+    (
+        "ROTATE",
+        "MOVE",
+        {
+            "en": (
+                ("heading is wrong and a clear turn is required at the junction", "ROTATE"),
+                ("heading is aligned and the open route is straight ahead", "MOVE"),
+            ),
+            "ko": (
+                ("방향이 틀려 교차로에서 빈 공간으로 회전해야 한다", "ROTATE"),
+                ("방향이 맞고 열린 경로가 곧장 앞에 있다", "MOVE"),
+            ),
+        },
+    ),
+    (
+        "INTERACT",
+        "APPROACH",
+        {
+            "en": (
+                ("the button is aligned and within hand reach", "INTERACT"),
+                ("the object is still far and must be approached first", "APPROACH"),
+            ),
+            "ko": (
+                ("버튼이 정렬됐고 손이 닿는 거리에 있다", "INTERACT"),
+                ("물체가 아직 멀어 먼저 접근해야 한다", "APPROACH"),
+            ),
+        },
+    ),
+    (
+        "RECOVER",
+        "STOP",
+        {
+            "en": (
+                ("localization is lost but no collision risk is present", "RECOVER"),
+                ("the sensor reports an emergency collision risk", "STOP"),
+            ),
+            "ko": (
+                ("충돌 위험은 없지만 위치 추정이 끊겨 복구가 필요하다", "RECOVER"),
+                ("센서가 비상 충돌 위험을 보고한다", "STOP"),
+            ),
+        },
+    ),
+)
+
 
 def _normalise_text(value: str) -> str:
     return _WHITESPACE.sub(" ", value.casefold()).strip()
@@ -168,6 +255,75 @@ def generate_control_review_queue(
         "sample_count": sample_count,
         "count_per_skill": count_per_skill,
         "skill_counts": {skill: count_per_skill for skill in CONTROL_SKILLS},
+        "seed": seed,
+        "human_labeled": False,
+    }
+
+
+def generate_control_hard_negative_queue(
+    output_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    pair_count: int = 100,
+    seed: int = 7,
+) -> dict[str, Any]:
+    """Create same-split counterfactual pairs for commonly confused skills."""
+
+    if pair_count < 1:
+        raise ValueError("pair_count must be positive")
+    registry.get("control.skill", 1)
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", encoding="utf-8") as handle:
+        for pair_index in range(pair_count):
+            _first_skill, _second_skill, localized = _CONTROL_HARD_NEGATIVE_PAIRS[
+                pair_index % len(_CONTROL_HARD_NEGATIVE_PAIRS)
+            ]
+            language = "ko" if (pair_index + seed) % 2 else "en"
+            split_bucket = (pair_index + seed) % 10
+            split = "train" if split_bucket < 8 else "validation" if split_bucket == 8 else "test"
+            episode_id = f"control-hard-episode-{pair_index:05d}"
+            semantic_group_id = f"control-hard-group-{pair_index:05d}"
+            for side, (state, target) in enumerate(localized[language], start=1):
+                sample_index = pair_index * 2 + side
+                sample = {
+                    "sample_id": f"control-hard-{sample_index:05d}",
+                    "task_id": "control.skill",
+                    "task_version": 1,
+                    "state": f"{state}; counterfactual variant {pair_index:04d}",
+                    "question": (
+                        "select next safe high-level control skill"
+                        if language == "en"
+                        else "다음 안전한 고수준 제어 skill을 선택하라"
+                    ),
+                    "target": target,
+                    "language": language,
+                    "domain": "control-hard-negative",
+                    "source": {
+                        "kind": "synthetic-hard-negative",
+                        "scenario_id": f"control-hard-scenario-{sample_index:05d}",
+                        "episode_id": episode_id,
+                        "semantic_group_id": semantic_group_id,
+                        "counterfactual_group_id": semantic_group_id,
+                        "pair_side": side,
+                        "seed": seed,
+                    },
+                    "labels": {"qwen": None, "gemma": None, "human": None},
+                    "review": {"status": "pending", "reviewer": None},
+                    "provenance": {
+                        "prompt_version": 1,
+                        "generator": "control-hard-negative-v1",
+                        "split": split,
+                        "privacy_raw_inputs_stored": False,
+                        "target_source": "synthetic_seed_only",
+                    },
+                }
+                handle.write(json.dumps(sample, ensure_ascii=False, sort_keys=True) + "\n")
+    return {
+        "record_type": "control_hard_negative_queue",
+        "output_path": str(output.resolve()),
+        "pair_count": pair_count,
+        "sample_count": pair_count * 2,
         "seed": seed,
         "human_labeled": False,
     }

@@ -3,7 +3,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from hyperjev.control_data import generate_control_review_queue, validate_control_dataset
+from hyperjev.control_data import (
+    generate_control_hard_negative_queue,
+    generate_control_review_queue,
+    validate_control_dataset,
+)
 from hyperjev.registry import TaskRegistry
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -140,6 +144,17 @@ class ControlDatasetQualityTests(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertEqual(report["human_labeled_count"], 0)
         self.assertEqual(report["split_counts"], {"test": 2, "train": 13, "validation": 1})
+
+    def test_hard_negative_pairs_stay_in_one_split(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "control-hard.jsonl"
+        generation = generate_control_hard_negative_queue(path, self.registry, pair_count=12, seed=3)
+        self.assertEqual(generation["sample_count"], 24)
+        report = validate_control_dataset(path, self.registry)
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["unique_semantic_group_count"], 12)
+        self.assertEqual(report["leaks"]["semantic_group"], [])
 
 
 if __name__ == "__main__":

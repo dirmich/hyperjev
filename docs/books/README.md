@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.47.0까지 진행되어 있다. Python 테스트 103개와
+현재 `main`은 origin에 push될 1.49.0까지 진행되어 있다. Python 테스트 105개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -97,6 +97,10 @@ human label을 대체하지 않는다.
 v1.48.0에서는 BOW count encoder를 ablation했다. validation 50%로 token/ngram과
 같아 승격하지 않았으며, control accuracy 상승의 우선순위를 human semantic
 group과 hard-negative 데이터로 확정했다.
+
+v1.49.0에서는 혼동쌍 counterfactual hard-negative queue를 추가했다. pair는
+같은 episode/group과 split에 고정해 leakage를 막고, human label 전에는
+synthetic seed로만 취급한다.
 
 각 구현 단계는 다음 순서를 따른다.
 
