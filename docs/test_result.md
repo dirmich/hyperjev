@@ -1902,3 +1902,42 @@ report의 `synthetic_reference_only=true`와 `human_label_gate=false`를 함께
 확인한다. hard-negative queue도 같은 evaluator에 넣어 STOP↔non-STOP 혼동을
 task별로 비교하며, teacher 초안이 맞아도 사람 검수 전에는 human target으로
 materialize하지 않는다.
+
+### 14.41 Qwen hard-negative semantic gate (v1.63.0)
+
+seed queue의 쉬운 문구 패턴을 넘어 counterfactual pair를 검증하기 위해
+Qwen으로 hard-negative 500 pair/1,000 sample을 전수 처리했다.
+
+```bash
+uv run hyperjev control review-pack \
+  --registry registry/control_tasks \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/qwen-control-hard-review-pack.jsonl \
+  --allow-raw
+```
+
+queue SHA는 `f88cec23d06b1bae9c688bcc5f3cea4dc3b68912980b43e98c8d72fd986e5f0d`,
+draft SHA는 `e8d7c15c526169109dbc7e552dde15d9f2a10a609e326b66aec1b2e9b62e17d4`다.
+
+| target | count | correct | accuracy |
+| --- | ---: | ---: | ---: |
+| STOP | 250 | 250 | 100.00% |
+| MOVE | 167 | 167 | 100.00% |
+| INTERACT | 83 | 83 | 100.00% |
+| RECOVER | 83 | 83 | 100.00% |
+| ROTATE | 83 | 83 | 100.00% |
+| RETREAT | 84 | 80 | 95.24% |
+| APPROACH | 167 | 83 | 49.70% |
+| HOLD | 83 | 0 | 0.00% |
+| **전체** | **1000** | **829** | **82.90%** |
+
+500개 pair에서 양쪽 모두 맞은 pair는 `329/500 (65.80%)`였다. schema-valid는
+`1000/1000`, repaired choice는 13건, request error는 0건이다. latency는
+p50/p95/p99/max `2124.485/2300.150/2376.304/2476.982ms`다.
+
+이 결과는 Qwen의 JSON 생성 문제가 아니라 HOLD↔APPROACH/MOVE 경계에 대한
+semantic 판단 실패다. STOP recall 100%만으로 합격시키지 않고, 오류 171건과
+counterfactual pair를 human review priority로 보낸다. human label은 `0/1000`이므로
+이 draft는 `production_ready=false`이고 student training target로 자동 편입하지
+않는다.

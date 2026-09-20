@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.62.0
+현재 버전: 1.63.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -265,6 +265,26 @@ uv run python scripts/evaluate_control_teacher_draft.py \
 100%를 기록해도 human reviewer가 state/question을 확인하기 전에는 training
 target이나 production accuracy로 쓰지 않는다. hard-negative report도 동일한
 경계와 per-skill 계산을 사용한다.
+
+hard-negative 500 pair/1,000 sample의 Qwen 결과는 다음과 같다.
+
+| target skill | count | correct | accuracy |
+| --- | ---: | ---: | ---: |
+| STOP | 250 | 250 | 100.00% |
+| MOVE | 167 | 167 | 100.00% |
+| INTERACT | 83 | 83 | 100.00% |
+| RECOVER | 83 | 83 | 100.00% |
+| ROTATE | 83 | 83 | 100.00% |
+| RETREAT | 84 | 80 | 95.24% |
+| APPROACH | 167 | 83 | 49.70% |
+| HOLD | 83 | 0 | 0.00% |
+
+전체는 `829/1000 (82.90%)`, counterfactual pair 양쪽 정답은 `329/500
+(65.80%)`이다. 따라서 Qwen 초안을 그대로 silver label로 학습하면 HOLD와
+APPROACH 오답을 학습할 위험이 크다. 이 queue는 `control review-pack`으로
+human에게 우선 전달하고, 특히 오류 171건과 해당 pair의 반대편 sample을 함께
+검수한 뒤에만 materialize한다. STOP recall 100%는 안전 신호지만 다른 skill의
+실패를 상쇄하지 못한다.
 
 v1.46.0부터 production-style evaluator는 다음 조건을 모두 요구한다.
 

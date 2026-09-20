@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — Qwen hard-negative semantic gate (v1.63.0)
+
+- qwen38fn hard-negative 500 pair/1,000 sample draft를 완료했다.
+- schema-valid `1000/1000`, synthetic target match `829/1000 (82.90%)`,
+  pair 양쪽 정답 `329/500 (65.80%)`였다.
+- STOP `250/250 (100%)`는 유지됐지만 APPROACH `83/167 (49.70%)`, HOLD
+  `0/83 (0%)`로 semantic confusion이 드러났다. RETREAT은 `80/84 (95.24%)`였다.
+- latency p50/p95/p99/max는 `2124.485/2300.150/2376.304/2476.982ms`이며,
+  human `0/1000`, `production_ready=false`다. 이 결과는 Qwen pseudo-label을
+  그대로 학습하지 말고 HOLD/APPROACH를 human priority로 보내는 gate다.
+- 검증: hard queue review pack 생성, quality evaluator report와 pair confusion 계산.
+
 ## 2026-09-21 — teacher draft quality evaluator (v1.62.0)
 
 - `scripts/evaluate_control_teacher_draft.py`가 queue/draft SHA, completed/schema
