@@ -1644,6 +1644,27 @@ accepted coverage `100%`, safety action `4/4 (100%)`, safe STOP recall
 synthetic research gate만 통과하고 `production_ready=false`다. rule의 phrase
 coverage를 실제 simulator/human test의 일반화로 해석하지 않는다.
 
+### 14.33 per-skill control gate (v1.55.0)
+
+aggregate `validation/test accuracy`가 특정 class의 실패를 숨기지 않도록
+`evaluate_control_quality.py`에 per-skill metrics와 confusion matrix를 추가했다.
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /tmp/control-combined-token-100ep.pt \
+  --dataset /tmp/hyperjev-control-combined-1800.jsonl \
+  --minimum-skill-accuracy 0.99
+```
+
+combined synthetic checkpoint에서 validation/test의 `skill_failures`는 모두
+빈 목록이었고, validation 8개 skill은 모두 100%였다. 각 skill의 validation
+분모는 APPROACH 27, HOLD 10, INTERACT 10, MOVE 43, RECOVER 27, RETREAT 10,
+ROTATE 26, STOP 27이었다.
+
+dataset은 synthetic이고 human label 0이므로 이 gate는 production accuracy를
+증명하지 않는다. 독립 human dataset에서도 같은 per-skill 분모와 confusion
+matrix를 유지해야 한다.
+
 ### 14.32 Qwen/Gemma typed adjudication (v1.54.0)
 
 `control adjudicate`를 추가해 Qwen draft와 Gemma draft를 같은 queue SHA에

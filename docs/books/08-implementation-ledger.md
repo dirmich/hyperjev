@@ -88,6 +88,7 @@
 | 1.52.0 | 진행 중 | seed+hard-negative merge와 explicit STOP safety rule 검증 |
 | 1.53.0 | 진행 중 | control registry 기반 human review pack/session/apply CLI |
 | 1.54.0 | 진행 중 | Qwen/Gemma typed adjudication과 disagreement human gate |
+| 1.55.0 | 진행 중 | per-skill accuracy/recall과 confusion matrix production gate |
 
 ## 다음 기록 규칙
 

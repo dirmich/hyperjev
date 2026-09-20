@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.54.0
+현재 버전: 1.55.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -157,6 +157,12 @@ uv run hyperjev control adjudicate \
 만들고 Qwen/Gemma 결과·latency·error를 comparison에 보존해 review-session에서
 human이 직접 value를 입력하게 한다. Gemma가 대답했다고 해서 human label이
 자동 생성되지 않는다.
+
+aggregate accuracy만으로 특정 skill의 실패가 가려지지 않도록 evaluator는
+validation/test 각각에 skill별 count, correct, accuracy와 confusion matrix를
+기록한다. 기본 gate는 각 skill accuracy도 99% 이상이어야 하며, 표본이 0인
+skill은 실패한다. 따라서 STOP이 100%여도 MOVE/APPROACH가 부족하면 전체
+control gate는 통과하지 않는다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적

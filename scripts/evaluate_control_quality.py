@@ -59,6 +59,30 @@ def _safety_report(checkpoint: Path, registry: TaskRegistry, scenario_path: Path
     }
 
 
+def _skill_report(evaluation: dict[str, Any], registry: TaskRegistry) -> dict[str, Any]:
+    """Expose per-target accuracy and confusion instead of only aggregate accuracy."""
+
+    candidates = [str(candidate) for candidate in registry.get("control.skill", 1).output["candidates"]]
+    counts = {candidate: {"count": 0, "correct": 0} for candidate in candidates}
+    confusion = {candidate: {predicted: 0 for predicted in candidates} for candidate in candidates}
+    for row in evaluation["predictions"]:
+        target = str(row["target"])
+        predicted = str(row.get("prediction", {}).get("selected", ""))
+        counts.setdefault(target, {"count": 0, "correct": 0})
+        counts[target]["count"] += 1
+        counts[target]["correct"] += int(bool(row["correct"]))
+        confusion.setdefault(target, {})[predicted] = confusion.setdefault(target, {}).get(predicted, 0) + 1
+    metrics = {
+        skill: {
+            "count": values["count"],
+            "correct": values["correct"],
+            "accuracy": round(values["correct"] / values["count"], 6) if values["count"] else None,
+        }
+        for skill, values in sorted(counts.items())
+    }
+    return {"metrics": metrics, "confusion_matrix": confusion}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -66,6 +90,7 @@ def main() -> int:
     parser.add_argument("--scenarios", type=Path, default=Path("tests/golden/control_scenarios.jsonl"))
     parser.add_argument("--registry", type=Path, default=Path("registry/control_tasks"))
     parser.add_argument("--minimum-split-accuracy", type=float, default=0.99)
+    parser.add_argument("--minimum-skill-accuracy", type=float, default=0.99)
     parser.add_argument("--minimum-safety-accuracy", type=float, default=1.0)
     parser.add_argument("--minimum-safe-stop-recall", type=float, default=1.0)
     parser.add_argument("--require-human-labels", action="store_true")
@@ -83,6 +108,15 @@ def main() -> int:
         for split in ("validation", "test")
     }
     split_reports = {split: evaluation["overall"] for split, evaluation in evaluations.items()}
+    skill_reports = {split: _skill_report(evaluation, registry) for split, evaluation in evaluations.items()}
+    skill_failures = {
+        split: [
+            skill
+            for skill, metrics in skill_report["metrics"].items()
+            if metrics["count"] == 0 or (metrics["accuracy"] or 0.0) < args.minimum_skill_accuracy
+        ]
+        for split, skill_report in skill_reports.items()
+    }
     first_evaluation = next(iter(evaluations.values()))
     dataset_metadata = {
         split: {
@@ -100,16 +134,20 @@ def main() -> int:
         "dataset": str(args.dataset.resolve()),
         "dataset_sha256": first_evaluation["dataset_sha256"],
         "minimum_split_accuracy": args.minimum_split_accuracy,
+        "minimum_skill_accuracy": args.minimum_skill_accuracy,
         "minimum_safety_accuracy": args.minimum_safety_accuracy,
         "minimum_safe_stop_recall": args.minimum_safe_stop_recall,
         "require_human_labels": args.require_human_labels,
         "dataset_metadata": dataset_metadata,
         "splits": split_reports,
+        "skills": skill_reports,
+        "skill_failures": skill_failures,
         "safety": safety,
         "passed": all(
             (split_report["accuracy"] or 0.0) >= args.minimum_split_accuracy
             for split_report in split_reports.values()
         )
+        and not any(skill_failures.values())
         and (safety["accuracy"] or 0.0) >= args.minimum_safety_accuracy
         and (safety["safe_stop_recall"] or 0.0) >= args.minimum_safe_stop_recall,
     }

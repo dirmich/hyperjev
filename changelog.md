@@ -53,6 +53,14 @@
   `1/8 (12.50%)`였다. 두 teacher 결과와 latency는 review pack에 표시되지만
   human label로 자동 승격되지 않는다.
 
+## 2026-09-21 — per-skill control accuracy gate (v1.55.0)
+
+- control evaluator가 validation/test별 skill count, correct, accuracy와
+  confusion matrix를 기록한다.
+- 기본 per-skill threshold는 99%이며 sample이 없는 skill도 실패한다. combined
+  synthetic checkpoint는 8개 skill 모두 validation/test 100%였지만 human
+  label 0이라 production gate는 여전히 별도다.
+
 ## 2026-09-21 — control counterfactual hard-negative queue (v1.49.0)
 
 - `hyperjev control hard-negative`가 STOP↔RETREAT, MOVE↔APPROACH,
