@@ -3202,3 +3202,34 @@ target을 review item에 복사하지 않은 `uncertain_first` pack도 생성했
 이 수치는 Qwen draft와 synthetic target의 비교이지 human accuracy가 아니다.
 `human_label_gate=false`, `production_ready=false`이므로 이 draft를 학습 target
 또는 model promotion 증거로 자동 사용하지 않는다.
+
+### 14.90 v2 diversity BOW candidate rejection (v1.113.0)
+
+v2 review seed 800행과 기존 hard-negative 1,000행을 merge한 1,800-row dataset으로
+`reference-bow-encoder`, class-balanced, 100 epoch 후보를 학습했다.
+
+| 항목 | 결과 |
+| --- | --- |
+| dataset SHA-256 | `59a41083b3550ef340a9288f75ea6c1d3daf561fde424af80717632e55c1bc2d` |
+| checkpoint SHA-256 | `8a162029f64b098224666e06e36e74788a1a778029634a7758301afe05f93680` |
+| train/validation/test | `1440/180/180` |
+| English model-only + safety | `31/40 (77.5%)`, STOP `5/5` |
+| Korean model-only + safety | `27/40 (67.5%)`, STOP `5/5` |
+| safety replay | `500/500`, STOP `500/500` |
+| safety p95/p99/max | `0.000976/0.001424/0.009169ms` |
+
+실행 명령:
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue tests/golden/control_ood_synthetic.jsonl \
+  --checkpoint /tmp/control-combined-review-v2-hard-bow-100ep.pt --model-only
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue tests/golden/control_ood_korean.jsonl \
+  --checkpoint /tmp/control-combined-review-v2-hard-bow-100ep.pt --model-only
+```
+
+기존 v1.105 BOW보다 English `8건`, Korean `9건` 낮아 accuracy gate에서 폐기했다.
+이는 prompt 다양화를 human review에 적용하는 것과 Student training feature로
+채택하는 것을 분리해야 한다는 실험 증거다. 전부 synthetic target이며 human
+label `0/1800`이므로 production accuracy는 아니다.

@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.112.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.113.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -109,6 +109,10 @@ v1.112.0에서는 이 800개를 Qwen `qwen38fn`으로 전수 draft했다. valid 
 synthetic 일치율은 96.95%였지만 human label은 0건이다. APPROACH/MOVE,
 RETREAT/MOVE, INTERACT/APPROACH 혼동을 포함한 target-excluded blind review
 pack을 만들었고, 이후 두 사람의 검수와 adjudication을 거쳐야 한다.
+
+v1.113.0에서는 v2 queue를 Student에 바로 학습시키는 실험을 수행했지만
+English/Korean OOD가 77.5%/67.5%로 회귀해 폐기했다. safety 500-case는 통과했으므로
+안전 경로와 semantic accuracy를 별도 gate로 기록하는 원칙을 다시 확인했다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

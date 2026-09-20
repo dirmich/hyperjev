@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — reject v2 diversity BOW candidate (v1.113.0)
+
+- prompt v2 review seed 800개와 기존 hard-negative 1,000개를 합친 1,800-row
+  synthetic dataset으로 BOW class-balanced Student를 100 epoch 학습했다.
+- checkpoint SHA-256은 `8a162029f64b098224666e06e36e74788a1a778029634a7758301afe05f93680`이며,
+  English/Korean model-only-with-safety OOD는 각각 `31/40 (77.5%)`와
+  `27/40 (67.5%)`로 기존 v1.105 BOW `39/40`, `36/40`보다 악화됐다.
+- safety 500-case는 `500/500`, STOP recall `500/500`, p95/p99
+  `0.000976/0.001424ms`로 통과했지만 accuracy gate 실패로 후보를 폐기했다.
+- 질문 다양화 queue는 human review 입력으로 유지하되, 이 reference BOW 결과를
+  production checkpoint로 승격하지 않는다. typed encoder의 질문/state 분리와
+  human-labeled 재학습이 다음 개선 방향이다.
+
 ## 2026-09-21 — Qwen v2 draft and confusion-focused review pack (v1.112.0)
 
 - prompt v2 800-row queue를 Qwen `qwen38fn`으로 전수 draft했다. 800/800

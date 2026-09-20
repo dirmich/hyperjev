@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.112.0
+현재 버전: 1.113.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1366,3 +1366,23 @@ SHA는 `558aaa7b668c5762f844e9fc6b7692c2448a01b300201f924a9a994d900da0d4`,
 pack SHA는 `625f1766682e5c67022fdfabb8ecda75655a6ae6f3f5323b13798ad675de677`다.
 다음은 이 pack을 `--blind`로 두 사람이 검수하고, disagreement를 adjudicate한
 뒤에만 human-only materialize와 재학습을 수행하는 것이다.
+
+### v1.113.0 v2 diversity BOW ablation rejection
+
+질문 변형이 Student 입력에 주는 영향을 확인하기 위해 v2 review seed 800개와
+기존 500-pair hard-negative 1,000개를 합쳐 1,800-row synthetic dataset을
+학습했다. merged dataset SHA는
+`59a41083b3550ef340a9288f75ea6c1d3daf561fde424af80717632e55c1bc2d`이고,
+checkpoint SHA는
+`8a162029f64b098224666e06e36e74788a1a778029634a7758301afe05f93680`이다.
+
+| checkpoint | English OOD | Korean OOD | safety 500 | 판정 |
+| --- | ---: | ---: | ---: | --- |
+| v1.105 BOW baseline | 39/40 (97.5%) | 36/40 (90.0%) | 500/500 | 유지 |
+| v2 diversity + hard-negative BOW | 31/40 (77.5%) | 27/40 (67.5%) | 500/500 | 폐기 |
+
+새 후보는 safety interlock과 latency는 통과했지만 semantic accuracy가 크게
+회귀했다. 따라서 review queue의 질문 다양화 자체는 유지하되, human label 전
+synthetic target로 이 후보를 재학습하거나 promotion하지 않는다. 다음 학습은
+human-only target을 사용하고, typed encoder가 state와 question을 분리해 다룰
+수 있는지 확인해야 한다.

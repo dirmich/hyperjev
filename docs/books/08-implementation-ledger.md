@@ -146,6 +146,7 @@
 | 1.110.0 | 진행 중 | model promotion의 human/quality report와 checkpoint·dataset hash binding |
 | 1.111.0 | 진행 중 | control review seed prompt 다양화와 800-row unique prompt 재생성 |
 | 1.112.0 | 진행 중 | Qwen v2 800-row draft, per-skill 오류 분석, target-excluded review pack |
+| 1.113.0 | 진행 중 | v2 diversity + hard-negative BOW ablation 측정 및 accuracy 회귀 후보 폐기 |
 
 ## 다음 기록 규칙
 
