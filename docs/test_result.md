@@ -886,3 +886,19 @@ Task별 synthetic target match는 `memory.remember_worthy` 167/167,
 보여주는 탐색 결과이며, synthetic target은 human label이 아니므로 상용
 정확도나 99% gate를 의미하지 않는다. 다음 단계는 draft를 참고해 사람이
 원문을 확인하고 `golden review` feedback을 append하는 것이다.
+
+### 14.5 Human review pack
+
+1,000건을 사람이 실제로 검수할 수 있도록 `golden review-pack` 명령을
+추가했다. 이 명령은 명시적 `--allow-raw`가 있을 때만 원문의 `state`와
+`question`을 local artifact에 포함하며, synthetic `target`과 queue `labels`는
+항상 제외한다. 따라서 reviewer는 Qwen draft에 끌려가거나 synthetic 정답을
+보고 승인할 수 없다.
+
+```bash
+uv run hyperjev golden review-pack \\
+  --queue runs/phase0/phase0-review-queue.jsonl \\
+  --draft runs/phase1/qwen-golden-draft-1000-prompt-v2.jsonl \\
+  --output runs/phase1/qwen-golden-review-pack.jsonl \\
+  --allow-raw
+```

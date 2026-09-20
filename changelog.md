@@ -3,6 +3,13 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — local human review pack (v1.26.0)
+
+- `hyperjev golden review-pack`으로 teacher draft와 원문의 state/question을
+  local review artifact로 묶을 수 있게 했다.
+- raw 입력 포함은 `--allow-raw`를 명시해야 하며, synthetic target과 queue
+  labels는 pack에서 제외해 reviewer anchoring과 target leakage를 막는다.
+
 ## 2026-09-20 — Qwen 1,000-sample golden draft (v1.25.2)
 
 - `localhost:8081/v1`, `qwen38fn`, prompt v2로 1,000건을 실행했다.

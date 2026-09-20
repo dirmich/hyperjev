@@ -28,6 +28,18 @@ Gemma 초안은 `--provider gemma`로 실행한다. 두 provider 모두 draft를
 `labels.human`으로 자동 승격하지 않는다. teacher가 timeout/error를 낸
 sample은 자동으로 human label이 되지 않는다.
 
+사람이 원문과 Qwen 초안을 한 화면/파일에서 검수하려면 raw 입력 저장을
+명시적으로 허용해 review pack을 만든다. pack에는 synthetic `target`과 queue
+`labels`를 넣지 않는다.
+
+```bash
+uv run hyperjev golden review-pack \\
+  --queue runs/phase0/phase0-review-queue.jsonl \\
+  --draft runs/phase1/qwen-golden-draft-1000-prompt-v2.jsonl \\
+  --output runs/phase1/qwen-golden-review-pack.jsonl \\
+  --allow-raw
+```
+
 Reviewers append typed corrections without modifying the source queue:
 
 ```bash
