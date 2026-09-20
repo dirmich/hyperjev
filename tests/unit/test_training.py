@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from dataclasses import replace
 from io import StringIO
 from pathlib import Path
 
@@ -127,6 +128,49 @@ class TrainingTests(unittest.TestCase):
         )
         self.assertTrue(any(token_id < 16384 for token_id in token_ids))
         self.assertTrue(any(token_id >= 16384 for token_id in token_ids))
+
+    def test_control_bow_reference_encoder_excludes_question_text(self) -> None:
+        first = CanonicalSample(
+            sample_id="control-bow-1",
+            task_id="memory.remember_worthy",
+            task_version=1,
+            state="stable deployment decision",
+            question="is this worth long-term memory?",
+            target=True,
+            language="en",
+            domain="test",
+            source={},
+            labels={},
+            provenance={"prompt_version": 2, "split": "train"},
+        )
+        second = replace(first, sample_id="control-bow-2", question="should this be retained?")
+        first_ids, first_attention = _encode_reference_sample(
+            first,
+            vocab_size=32768,
+            max_length=64,
+            backbone="reference-control-bow-encoder",
+        )
+        second_ids, second_attention = _encode_reference_sample(
+            second,
+            vocab_size=32768,
+            max_length=64,
+            backbone="reference-control-bow-encoder",
+        )
+        self.assertEqual((first_ids, first_attention), (second_ids, second_attention))
+
+        question_aware_first, _ = _encode_reference_sample(
+            first,
+            vocab_size=32768,
+            max_length=64,
+            backbone="reference-bow-encoder",
+        )
+        question_aware_second, _ = _encode_reference_sample(
+            second,
+            vocab_size=32768,
+            max_length=64,
+            backbone="reference-bow-encoder",
+        )
+        self.assertNotEqual(question_aware_first, question_aware_second)
 
     def test_sample_loss_weight_only_targets_counterfactual_provenance(self) -> None:
         training = TrainingConfig(hard_negative_weight=3.0)

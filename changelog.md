@@ -3,6 +3,24 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — reject state-only control BOW candidate (v1.114.0)
+
+- v2 질문 다양화가 BOW 입력에 노이즈를 넣는지 분리하기 위해 `state`만 읽는
+  `reference-control-bow-encoder`를 추가하고, 같은 1,800-row synthetic dataset으로
+  100 epoch 학습했다. 질문을 바꿔도 encoded feature가 같다는 회귀 테스트를 함께
+  추가했다.
+- dataset SHA-256은 기존과 같은
+  `59a41083b3550ef340a9288f75ea6c1d3daf561fde424af80717632e55c1bc2d`, checkpoint
+  SHA-256은 `5d380fa5199591490a13c3e578172b71ebb8a9fa00f48bbbff5e3bc9f63f8477`이다.
+- raw model-only-with-safety runtime 결과는 English `35/40 (87.5%)`, Korean
+  `29/40 (72.5%)`, 두 언어 STOP recall `5/5`였다. v1.113 질문 포함 BOW의
+  `31/40`, `27/40`보다는 올랐지만, 보존 기준선 v1.105의 `39/40`, `36/40`에는
+  못 미치므로 정확도 후보로 폐기했다.
+- safety 500-case는 `500/500`, safe STOP recall `500/500`, p95/p99 latency는
+  `0.000960/0.001488ms`로 통과했다. 이는 safety replay 증거일 뿐 semantic
+  accuracy나 human production label을 대체하지 않는다. human label은 여전히
+  `0/1800`이다.
+
 ## 2026-09-21 — reject v2 diversity BOW candidate (v1.113.0)
 
 - prompt v2 review seed 800개와 기존 hard-negative 1,000개를 합친 1,800-row

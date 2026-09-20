@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.113.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.114.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -113,6 +113,12 @@ pack을 만들었고, 이후 두 사람의 검수와 adjudication을 거쳐야 �
 v1.113.0에서는 v2 queue를 Student에 바로 학습시키는 실험을 수행했지만
 English/Korean OOD가 77.5%/67.5%로 회귀해 폐기했다. safety 500-case는 통과했으므로
 안전 경로와 semantic accuracy를 별도 gate로 기록하는 원칙을 다시 확인했다.
+
+v1.114.0에서는 질문을 제거한 `reference-control-bow-encoder`로 동일한 synthetic
+dataset을 다시 학습해 BOW 질문 노이즈 가설을 분리했다. v1.113.0보다 English
+`31/40 → 35/40`, Korean `27/40 → 29/40`으로 회복했지만 v1.105 기준선
+`39/40`, `36/40`에는 못 미쳐 후보를 폐기했다. state-only가 질문 표현을 제거해도
+human label `0/1800` 상태에서는 production 정확도나 promotion을 주장할 수 없다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

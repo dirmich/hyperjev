@@ -165,6 +165,23 @@ class StudentContractTests(unittest.TestCase):
         self.assertTrue(model.use_bow_encoder)
         self.assertEqual(output["type"], "choice")
 
+    def test_reference_control_bow_encoder_is_a_compatible_backbone(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        model = build_torch_model(
+            self.registry,
+            StudentConfig(backbone="reference-control-bow-encoder", precision="fp32"),
+        )
+        output = model(
+            "memory.type",
+            torch.tensor([[2, 17, 0, 0]], dtype=torch.long),
+            torch.tensor([[1, 1, 0, 0]], dtype=torch.long),
+        )
+        self.assertTrue(model.use_bow_encoder)
+        self.assertEqual(output["type"], "choice")
+
     def test_student_evaluation_reports_accuracy_and_guarded_coverage(self) -> None:
         try:
             import torch

@@ -1386,3 +1386,34 @@ checkpoint SHA는
 synthetic target로 이 후보를 재학습하거나 promotion하지 않는다. 다음 학습은
 human-only target을 사용하고, typed encoder가 state와 question을 분리해 다룰
 수 있는지 확인해야 한다.
+
+### v1.114.0 state-only BOW ablation rejection
+
+v1.113.0의 회귀가 질문 표현 자체에서 발생했는지 확인하기 위해 질문을 완전히
+제거한 `reference-control-bow-encoder`를 추가했다. 이 백본은 학습/추론에서
+`sample.state`만 word-hash BOW로 변환한다. 기존 `reference-bow-encoder`의
+state+question 경로는 변경하지 않았고, 동일 state에서 question만 바꾼 두 샘플의
+encoded ids가 같다는 단위 테스트를 추가했다.
+
+동일한 merged dataset(`1,800` rows, train/validation/test `1,440/180/180`)과
+100 epoch, class-balanced, seed 7 조건으로 측정한 결과는 다음과 같다.
+
+| candidate | English raw runtime | Korean raw runtime | STOP recall | 판정 |
+| --- | ---: | ---: | ---: | --- |
+| v1.105 BOW baseline | 39/40 (97.5%) | 36/40 (90.0%) | 5/5 | 유지 기준 |
+| v1.113 state+question BOW | 31/40 (77.5%) | 27/40 (67.5%) | 5/5 | 폐기 |
+| v1.114 state-only BOW | 35/40 (87.5%) | 29/40 (72.5%) | 5/5 | 폐기 |
+
+state-only는 v1.113보다 English 4건, Korean 2건을 회복했지만 보존 기준선보다
+각각 4건, 7건 낮다. 따라서 질문 다양화의 일부가 BOW 혼동을 키운다는 가설은
+부분적으로 지지되지만, state-only만으로 production 정확도를 확보할 수 없다는
+결론이다. safety 500-case는 `500/500`, p95/p99는
+`0.000960/0.001488ms`로 통과했으며, raw runtime latency는 English
+`p95 6,130.089us`, Korean `p95 6,665.674us`로 별도 기록한다.
+
+checkpoint SHA는
+`5d380fa5199591490a13c3e578172b71ebb8a9fa00f48bbbff5e3bc9f63f8477`, human
+label은 `0/1800`이므로 이 결과는 synthetic ablation이며 production promotion
+근거가 아니다. 다음 우선순위는 blind dual human label을 확보한 뒤 state encoder와
+question encoder를 별도 projection으로 학습하고, 혼동쌍별 calibration/abstain을
+검증하는 것이다.

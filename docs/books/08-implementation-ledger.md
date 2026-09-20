@@ -147,6 +147,7 @@
 | 1.111.0 | 진행 중 | control review seed prompt 다양화와 800-row unique prompt 재생성 |
 | 1.112.0 | 진행 중 | Qwen v2 800-row draft, per-skill 오류 분석, target-excluded review pack |
 | 1.113.0 | 진행 중 | v2 diversity + hard-negative BOW ablation 측정 및 accuracy 회귀 후보 폐기 |
+| 1.114.0 | 진행 중 | state-only control BOW ablation으로 질문 노이즈 분리, 기준선 미달 후보 폐기 |
 
 ## 다음 기록 규칙
 

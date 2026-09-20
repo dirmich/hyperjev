@@ -255,7 +255,9 @@ def _encode_reference_sample(
 
     if vocab_size <= 2:
         raise TrainingDataError("vocab_size must be greater than 2")
-    text = f"{sample.state}\n{sample.question}"
+    # The control ablation intentionally excludes the question so that we can
+    # measure whether prompt diversity is helping or merely adding BOW noise.
+    text = sample.state if backbone == "reference-control-bow-encoder" else f"{sample.state}\n{sample.question}"
     if backbone == "reference-hybrid-bow-encoder":
         words = re.findall(r"\w+", text.casefold(), flags=re.UNICODE)
         char_words = re.findall(r"\S+", text.casefold(), flags=re.UNICODE)
@@ -306,7 +308,7 @@ def _encode_reference_sample(
             )
             for feature in features
         ]
-    elif backbone in {"reference-token-encoder", "reference-bow-encoder"}:
+    elif backbone in {"reference-token-encoder", "reference-bow-encoder", "reference-control-bow-encoder"}:
         words = re.findall(r"\w+", text.casefold(), flags=re.UNICODE)[:max_length]
         token_ids = [
             2

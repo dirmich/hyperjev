@@ -3233,3 +3233,56 @@ uv run python scripts/evaluate_control_fast_path.py \
 이는 prompt 다양화를 human review에 적용하는 것과 Student training feature로
 채택하는 것을 분리해야 한다는 실험 증거다. 전부 synthetic target이며 human
 label `0/1800`이므로 production accuracy는 아니다.
+
+### 14.91 state-only BOW ablation candidate rejection (v1.114.0)
+
+질문 다양화가 BOW에 주는 영향을 분리하기 위해 `reference-control-bow-encoder`를
+추가했다. 이 백본은 `state`만 사용하고 question은 무시한다. 동일 state/서로 다른
+question의 encoded ids가 동일하고 기존 BOW는 달라지는 단위 테스트로 입력 계약을
+고정했다.
+
+#### 학습 조건과 artifact
+
+| 항목 | 결과 |
+| --- | --- |
+| dataset | v2 diversity + hard-negative, 1,800 rows |
+| dataset SHA-256 | `59a41083b3550ef340a9288f75ea6c1d3daf561fde424af80717632e55c1bc2d` |
+| checkpoint SHA-256 | `5d380fa5199591490a13c3e578172b71ebb8a9fa00f48bbbff5e3bc9f63f8477` |
+| backbone | `reference-control-bow-encoder` |
+| train/validation/test | `1440/180/180` |
+| epochs / seed | `100 / 7` |
+| labels | synthetic `1800`, human `0` |
+
+#### OOD 결과
+
+아래 수치는 evaluator의 `runtime.synthetic_target`인 raw
+model-only-with-safety-policy 결과다. 위의 fast path가 safety/control rule로
+보정한 통합 결과와 혼동하지 않는다.
+
+| checkpoint | English | Korean | STOP recall |
+| --- | ---: | ---: | ---: |
+| v1.105 BOW baseline | 39/40 (97.5%) | 36/40 (90.0%) | 5/5 |
+| v1.113 state+question BOW | 31/40 (77.5%) | 27/40 (67.5%) | 5/5 |
+| v1.114 state-only BOW | 35/40 (87.5%) | 29/40 (72.5%) | 5/5 |
+
+v1.114는 v1.113보다 개선됐지만 v1.105보다 English 4건, Korean 7건 낮아
+accuracy gate에서 폐기했다. raw runtime latency는 English p50/p95/p99/max
+`4924.689/6130.089/6699.276/6699.276us`, Korean
+`5150.249/6665.674/8815.409/8815.409us`였다.
+
+#### safety replay
+
+```text
+count=500
+unique_scenario_count=500
+correct=500
+safe_stop_recall=1.0
+p95=0.000960ms
+p99=0.001488ms
+max=0.009312ms
+latency_gate=true
+```
+
+안전 경로는 통과했지만 semantic OOD가 기준선에 못 미치므로 checkpoint를
+promotion하지 않는다. synthetic label은 human label이 아니며, 이 실험만으로
+실시간 게임/로봇 actuator 연결을 승인하지 않는다.
