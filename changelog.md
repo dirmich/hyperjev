@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — action agreement CLI 요약 (v1.89.0)
+
+- `control review-agreement --show-action-summary`를 추가해 action별 agreement
+  rate와 disagreement 수를 낮은 agreement 순서로 터미널에 출력한다.
+- 기존 manifest JSON 출력은 그대로 유지해 자동화 호환성을 보존한다.
+- 요약에는 synthetic target과 teacher output을 포함하지 않으며 accuracy가 아닌
+  human review 우선순위 진단으로 명시한다.
+- targeted review-pack 테스트 `17 passed`; 전체 suite와 Ruff를 version bump 후
+  다시 실행한다.
+
 ## 2026-09-21 — action별 dual-review agreement 진단 (v1.88.0)
 
 - `control review-agreement` manifest에 `label_agreement_by_action`을 추가해

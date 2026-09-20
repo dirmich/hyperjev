@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.88.0
+현재 버전: 1.89.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -858,3 +858,7 @@ adjudication할지 정하는 active-review 지표이지 정확도·정답률·pr
 
 다음 실제 human review에서는 이 표의 낮은 agreement action을 우선 표본화하고,
 adjudication이 끝난 뒤에만 materialized target과 held-out human test를 갱신한다.
+
+`control review-agreement --show-action-summary`는 같은 진단을 사람이 읽기 쉬운
+표로 먼저 출력한 뒤 기존 manifest JSON을 출력한다. 기본 출력은 바꾸지 않았기
+때문에 CI나 후속 스크립트는 기존 JSON 경로를 계속 사용할 수 있다.

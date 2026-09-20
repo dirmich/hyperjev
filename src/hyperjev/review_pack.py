@@ -527,6 +527,35 @@ def compare_control_reviews(
     return {"manifest": manifest, "output": str(output.resolve()), "records": len(items)}
 
 
+def format_control_review_action_summary(manifest: dict[str, Any]) -> str:
+    """Format a concise human-facing summary without exposing synthetic targets."""
+
+    action_stats = manifest.get("label_agreement_by_action", {})
+    if not isinstance(action_stats, dict) or not action_stats:
+        return "dual-review action summary: no comparable action labels"
+    ordered = sorted(
+        action_stats.items(),
+        key=lambda entry: (
+            entry[1].get("agreement_rate") is None,
+            entry[1].get("agreement_rate", 1.0),
+            -entry[1].get("disagreement_count", 0),
+            entry[0],
+        ),
+    )
+    lines = [
+        "dual-review action summary (diagnostic only; not accuracy):",
+        "  action  agreement_rate  disagreement  comparable",
+    ]
+    for action, stats in ordered:
+        rate = stats.get("agreement_rate")
+        rate_text = "n/a" if rate is None else f"{float(rate):.3f}"
+        lines.append(
+            f"  {action:<7} {rate_text:>15} {stats.get('disagreement_count', 0):>13}"
+            f" {stats.get('comparable_count', 0):>11}"
+        )
+    return "\n".join(lines)
+
+
 def finalize_control_reviews(
     queue_path: str | Path,
     agreement_path: str | Path,

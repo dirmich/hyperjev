@@ -39,6 +39,7 @@ from .review_pack import (
     compare_control_reviews,
     export_review_pack,
     finalize_control_reviews,
+    format_control_review_action_summary,
     run_adjudication_session,
     run_review_session,
 )
@@ -492,6 +493,8 @@ def _control_review_agreement(args: argparse.Namespace) -> int:
         registry,
         minimum_agreement=args.minimum_agreement,
     )
+    if args.show_action_summary:
+        print(format_control_review_action_summary(report["manifest"]))
     print(json.dumps(report["manifest"], ensure_ascii=False))
     return 0 if report["manifest"]["agreement_gate"] else 1
 
@@ -1052,6 +1055,11 @@ def build_parser() -> argparse.ArgumentParser:
     control_review_agreement.add_argument("--reviewer-b-feedback", required=True)
     control_review_agreement.add_argument("--output", required=True)
     control_review_agreement.add_argument("--minimum-agreement", type=float, default=0.98)
+    control_review_agreement.add_argument(
+        "--show-action-summary",
+        action="store_true",
+        help="print a human-readable action agreement summary before the manifest",
+    )
     control_review_agreement.set_defaults(handler=_control_review_agreement)
     control_review_adjudicate = control_subparsers.add_parser("review-adjudicate")
     control_review_adjudicate.add_argument("--registry", default="registry/control_tasks")

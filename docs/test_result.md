@@ -2619,3 +2619,8 @@ accuracy가 아니며 disagreement 양쪽 action에 중복 반영된다.
 | teacher output 사용 | 없음 |
 | targeted review-pack test | `15 passed` |
 | human label / production gate | `0` / `false` |
+
+`control review-agreement --show-action-summary`를 추가해 이 통계를 manifest를
+직접 열지 않고 확인할 수 있게 했다. 요약은 낮은 action agreement부터 보여주며,
+마지막에 기존 JSON manifest를 그대로 출력한다. targeted review-pack 테스트는
+`17 passed`로 확인했다.

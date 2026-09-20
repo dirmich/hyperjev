@@ -14,6 +14,7 @@ from hyperjev.review_pack import (
     compare_control_reviews,
     export_review_pack,
     finalize_control_reviews,
+    format_control_review_action_summary,
     run_adjudication_session,
     run_review_session,
 )
@@ -38,6 +39,44 @@ class ReviewPackTests(unittest.TestCase):
             ]
         )
         self.assertTrue(args.prioritize)
+
+    def test_control_review_agreement_exposes_action_summary_flag(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-agreement",
+                "--queue",
+                "queue.jsonl",
+                "--reviewer-a-feedback",
+                "a.jsonl",
+                "--reviewer-b-feedback",
+                "b.jsonl",
+                "--output",
+                "agreement.jsonl",
+                "--show-action-summary",
+            ]
+        )
+        self.assertTrue(args.show_action_summary)
+
+    def test_control_review_action_summary_orders_low_agreement_first(self) -> None:
+        summary = format_control_review_action_summary(
+            {
+                "label_agreement_by_action": {
+                    "STOP": {
+                        "agreement_rate": 1.0,
+                        "disagreement_count": 0,
+                        "comparable_count": 2,
+                    },
+                    "APPROACH": {
+                        "agreement_rate": 0.0,
+                        "disagreement_count": 3,
+                        "comparable_count": 3,
+                    },
+                }
+            }
+        )
+        self.assertLess(summary.index("APPROACH"), summary.index("STOP"))
+        self.assertIn("diagnostic only; not accuracy", summary)
 
     def test_control_review_pack_exposes_student_priority_flags(self) -> None:
         args = build_parser().parse_args(
