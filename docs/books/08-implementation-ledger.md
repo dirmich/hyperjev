@@ -53,6 +53,7 @@
 | 1.22.1 | `04ffea7` | 1,000개 재평가와 synthetic source 증거 기록 |
 | 1.23.0 | 진행 중 | Gemma draft label pipeline과 human review 경계 |
 | 1.24.0 | 진행 중 | Qwen/Gemma 선택형 golden draft와 Qwen 재시도 경로 |
+| 1.24.1 | 진행 중 | qwen38fn 실제 20-sample draft probe와 schema/latency 결과 |
 
 ## 다음 기록 규칙
 

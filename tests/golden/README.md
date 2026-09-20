@@ -19,7 +19,7 @@ uv run hyperjev golden draft \
   --provider qwen \
   --queue runs/phase0/phase0-review-queue.jsonl \
   --output runs/phase1/qwen-golden-draft.jsonl \
-  --limit 20 --timeout 900
+  --limit 20 --timeout 300
 ```
 
 draft record는 `sample_id`, `task`, `normalized_result`, `schema_valid`와

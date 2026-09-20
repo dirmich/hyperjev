@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — Qwen golden draft live probe (v1.24.1)
+
+- `localhost:8081/v1`의 실제 `qwen38fn`으로 20개 draft를 실행했다.
+- 응답 완료는 `20/20`, schema-valid는 `17/20 (85%)`였다.
+- synthetic target과의 탐색적 일치는 valid subset `14/17 (82.35%)`, invalid를
+  오답으로 포함하면 `14/20 (70%)`였다. 이 수치는 human golden 정확도가 아니다.
+- 평균 latency `1,449.496ms`, p50 `1,075.946ms`, p95 `2,357.904ms`였고,
+  `memory.type` 3건은 확률합 검증 실패였다.
+
 ## 2026-09-20 — Qwen golden draft retry path (v1.24.0)
 
 - `hyperjev golden draft --provider qwen|gemma`로 teacher를 선택할 수 있게

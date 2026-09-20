@@ -822,3 +822,21 @@ Gemma generation timeout으로 human-review 초안 생성이 막힌 경우를 �
 상태이며, PRD의 labeler/data-generator 역할에 맞는다. Qwen draft 역시
 human label이나 Gemma cross-validation 결과가 아니므로 reviewer의 원문 확인과
 `golden review` correction이 필요하다.
+
+실제 `localhost:8081/v1` endpoint의 20-sample 실행 결과는 다음과 같다.
+
+| 항목 | 결과 |
+| --- | --- |
+| model | `qwen38fn` |
+| sample count | 20 |
+| completed | 20/20 |
+| schema-valid | 17/20 (85%) |
+| synthetic target match, valid only | 14/17 (82.35%) |
+| synthetic target match, invalid 포함 | 14/20 (70%) |
+| mean latency | 1,449.496ms |
+| p50 / p95 | 1,075.946ms / 2,357.904ms |
+| main failure | `memory.type` 3건 probability sum validation |
+
+이 결과는 Qwen draft가 Gemma timeout을 우회할 수 있음을 보여주지만,
+synthetic target은 human label이 아니므로 상용 정확도나 99% gate의 증거가
+아니다. schema-invalid draft는 reviewer에게 표시하되 자동 승인하지 않는다.
