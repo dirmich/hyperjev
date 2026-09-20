@@ -1,7 +1,12 @@
+import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
+from hyperjev.cli import main
 from hyperjev.control import (
     CONTROL_SKILLS,
     ControlAction,
@@ -11,6 +16,7 @@ from hyperjev.control import (
     ControlSafetyPolicy,
     ControlStudentClient,
     apply_safety_policy,
+    safe_stop,
 )
 from hyperjev.registry import TaskRegistry
 from hyperjev.student import StudentConfig, build_torch_model, student_manifest
@@ -107,6 +113,80 @@ class ControlContractTests(unittest.TestCase):
     def test_boolean_parameters_are_rejected(self) -> None:
         with self.assertRaises(ControlContractError):
             ControlAction(skill="MOVE", parameters={"enabled": True}, confidence=0.99)
+
+    def test_control_simulation_cli_reports_action_and_safety_metrics(self) -> None:
+        class _FakeClient:
+            def __init__(self, *_args, **_kwargs) -> None:
+                pass
+
+            def decide(self, observation, *, now_ms):
+                if observation.emergency_stop:
+                    return safe_stop(reason="emergency_stop")
+                if now_ms - observation.timestamp_ms > 100:
+                    return safe_stop(reason="stale_observation")
+                return ControlAction(skill="APPROACH", confidence=1.0)
+
+        with tempfile.TemporaryDirectory() as directory:
+            scenarios = Path(directory) / "scenarios.jsonl"
+            output = Path(directory) / "simulation.json"
+            scenarios.write_text(
+                "\n".join(
+                    [
+                        json.dumps(
+                            {
+                                "scenario_id": "normal",
+                                "observation": {
+                                    "observation_id": "normal",
+                                    "state": "target ahead",
+                                    "domain": "simulation",
+                                    "timestamp_ms": 1000,
+                                },
+                                "now_ms": 1001,
+                                "expected_skill": "APPROACH",
+                                "expected_safe_stop": False,
+                            }
+                        ),
+                        json.dumps(
+                            {
+                                "scenario_id": "stale",
+                                "observation": {
+                                    "observation_id": "stale",
+                                    "state": "target ahead",
+                                    "domain": "simulation",
+                                    "timestamp_ms": 1000,
+                                },
+                                "now_ms": 1101,
+                                "expected_skill": "STOP",
+                                "expected_reason": "stale_observation",
+                                "expected_safe_stop": True,
+                            }
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            stdout = StringIO()
+            with patch("hyperjev.cli.ControlStudentClient", _FakeClient), redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "control",
+                        "simulate",
+                        "--checkpoint",
+                        "unused.pt",
+                        "--scenarios",
+                        str(scenarios),
+                        "--output",
+                        str(output),
+                        "--fail-on-mismatch",
+                    ]
+                )
+            report = json.loads(output.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(report["accuracy"], 1.0)
+        self.assertEqual(report["safe_stop_recall"], 1.0)
+        self.assertEqual(json.loads(stdout.getvalue())["count"], 2)
 
     def test_control_student_maps_typed_head_to_registered_skill(self) -> None:
         try:

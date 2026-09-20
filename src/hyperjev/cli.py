@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import platform
 import shutil
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -383,6 +385,85 @@ def _control_evaluate(args: argparse.Namespace) -> int:
     return 1 if args.production_gate and not report["quality_gate"]["ready"] else 0
 
 
+def _control_simulate(args: argparse.Namespace) -> int:
+    if args.repeat < 1:
+        raise ValueError("control simulation repeat must be positive")
+    registry = TaskRegistry.load(args.registry)
+    client = ControlStudentClient(
+        args.checkpoint,
+        registry,
+        policy=ControlSafetyPolicy(
+            minimum_confidence=args.minimum_confidence,
+            max_observation_age_ms=args.max_observation_age_ms,
+            max_action_ttl_ms=args.max_action_ttl_ms,
+        ),
+        device=args.device,
+    )
+    rows = []
+    for line_number, line in enumerate(Path(args.scenarios).read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        raw = json.loads(line)
+        if not isinstance(raw, dict):
+            raise TypeError(f"{args.scenarios}:{line_number}: scenario must be an object")
+        scenario_id = str(raw.get("scenario_id", ""))
+        if not scenario_id:
+            raise ValueError(f"{args.scenarios}:{line_number}: scenario_id is required")
+        observation = ControlObservation.from_dict(raw.get("observation", {}))
+        now_ms = float(raw["now_ms"])
+        expected_skill = str(raw["expected_skill"])
+        expected_reason = raw.get("expected_reason")
+        expected_safe_stop = bool(raw.get("expected_safe_stop", expected_skill == "STOP"))
+        for _ in range(args.repeat):
+            started = time.perf_counter()
+            action = client.decide(observation, now_ms=now_ms)
+            elapsed_ms = (time.perf_counter() - started) * 1000
+            rows.append(
+                {
+                    "scenario_id": scenario_id,
+                    "expected_skill": expected_skill,
+                    "skill": action.skill,
+                    "expected_reason": expected_reason,
+                    "reason": action.reason,
+                    "expected_safe_stop": expected_safe_stop,
+                    "safe_stop": action.skill == "STOP" and action.abstained,
+                    "confidence": round(action.confidence, 6),
+                    "correct": action.skill == expected_skill
+                    and (expected_reason is None or action.reason == expected_reason),
+                    "elapsed_ms": elapsed_ms,
+                }
+            )
+    if not rows:
+        raise ValueError("control scenario file is empty")
+    latencies = sorted(row["elapsed_ms"] for row in rows)
+    correct = sum(row["correct"] for row in rows)
+    expected_stops = [row for row in rows if row["expected_safe_stop"]]
+    observed_stops = sum(row["safe_stop"] for row in expected_stops)
+    report = {
+        "record_type": "control_simulation",
+        "checkpoint": str(Path(args.checkpoint).resolve()),
+        "scenarios": str(Path(args.scenarios).resolve()),
+        "repeat": args.repeat,
+        "count": len(rows),
+        "correct": correct,
+        "accuracy": round(correct / len(rows), 6),
+        "expected_safe_stop_count": len(expected_stops),
+        "safe_stop_recall": round(observed_stops / len(expected_stops), 6) if expected_stops else None,
+        "latency_ms": {
+            "p50": round(latencies[len(latencies) // 2], 6),
+            "p95": round(latencies[max(0, math.ceil(len(latencies) * 0.95) - 1)], 6),
+            "mean": round(sum(latencies) / len(latencies), 6),
+        },
+        "results": rows,
+    }
+    if args.output:
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(report, ensure_ascii=False))
+    return 1 if args.fail_on_mismatch and correct != len(rows) else 0
+
+
 def _training_plan(args: argparse.Namespace) -> int:
     _, registry = _load(args.config)
     plan = write_training_plan(
@@ -719,6 +800,18 @@ def build_parser() -> argparse.ArgumentParser:
     control_evaluate.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     control_evaluate.add_argument("--output")
     control_evaluate.set_defaults(handler=_control_evaluate)
+    control_simulate = control_subparsers.add_parser("simulate")
+    control_simulate.add_argument("--registry", default="registry/control_tasks")
+    control_simulate.add_argument("--checkpoint", required=True)
+    control_simulate.add_argument("--scenarios", required=True)
+    control_simulate.add_argument("--repeat", type=int, default=1)
+    control_simulate.add_argument("--minimum-confidence", type=float, default=0.90)
+    control_simulate.add_argument("--max-observation-age-ms", type=float, default=100.0)
+    control_simulate.add_argument("--max-action-ttl-ms", type=int, default=100)
+    control_simulate.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    control_simulate.add_argument("--output")
+    control_simulate.add_argument("--fail-on-mismatch", action="store_true")
+    control_simulate.set_defaults(handler=_control_simulate)
 
     training = subparsers.add_parser("train")
     training_subparsers = training.add_subparsers(dest="training_command", required=True)

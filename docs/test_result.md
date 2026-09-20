@@ -1379,3 +1379,32 @@ context는 deterministic하게 잘라낸다. 이 adapter 자체의 mock contract
 100Hz motor loop가 아니라 더 느린 skill-decision tick에서 prefetch하고,
 timeout/error이면 이전 context를 재사용하거나 `STOP`/controller hold로
 전환해야 한다.
+
+### 14.20 deterministic control simulation harness
+
+scenario JSONL은 observation, simulation clock, 기대 skill, 기대 safety reason을
+함께 가진다. 다음 명령은 model decision과 safety shield를 같은 경로로 재생한다.
+
+```bash
+uv run hyperjev control simulate \
+  --checkpoint runs/control/control-student-48-300.pt \
+  --scenarios tests/golden/control_scenarios.jsonl \
+  --repeat 10 --output runs/control/simulation-result.json \
+  --fail-on-mismatch
+```
+
+| 지표 | 결과 |
+| --- | ---: |
+| scenario/repeat | 4 / 10 = 40 |
+| action accuracy | 40/40 = 100.00% |
+| expected safety STOP recall | 20/20 = 100.00% |
+| 전체 재생 p50 | 0.283825 ms |
+| 전체 재생 p95 | 1.663319 ms |
+| 전체 재생 mean | 0.366064 ms |
+
+정상 `STOP` skill은 model이 선택한 유효 action으로, stale/emergency `STOP`은
+`abstained=true` safety action으로 별도 구분한다. 이 harness는 contract와
+회귀를 자동화하지만, train fixture의 동일 문장 재생에 가깝다. 새로운 게임
+상태/로봇 sensor distribution의 정확도나 collision-free 주행을 증명하지
+않으므로, 다음 단계에서는 simulator episode와 실제 controller telemetry를
+같은 report에 추가해야 한다.

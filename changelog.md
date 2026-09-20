@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — deterministic control simulation harness (v1.42.0)
+
+- `control simulate`가 scenario JSONL을 재생해 skill 정확도, expected safety
+  STOP recall, p50/p95/mean action latency를 JSON report로 만든다.
+- 정상 skill, normal STOP, stale frame, emergency stop 4개 시나리오를 10회씩
+  실행한 결과 `40/40`, accuracy `100%`, safety STOP recall `100%`였다.
+- 전체 재생 latency는 p50 `0.283825ms`, p95 `1.663319ms`였다. 이 수치는
+  in-process CPU checkpoint 경로이며 HTTP, HyperMemory, controller, actuator는
+  포함하지 않는다.
+
 ## 2026-09-20 — HyperMemory bounded context adapter (v1.41.0)
 
 - HyperMemory `POST /v1/context`를 호출하는 `compile_context`와

@@ -75,6 +75,7 @@
 | 1.39.0 | 진행 중 | 실시간 control observation/action 계약과 deterministic safety shield |
 | 1.40.0 | 진행 중 | control typed head CLI, smoke checkpoint, split별 일반화 gate |
 | 1.41.0 | 진행 중 | HyperMemory `/v1/context` bounded control context adapter |
+| 1.42.0 | 진행 중 | deterministic control scenario replay와 latency/safety report |
 
 ## 다음 기록 규칙
 

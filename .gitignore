@@ -16,5 +16,6 @@ runs/phase3/*.json
 runs/phase3/*.jsonl
 runs/phase3/*.pt
 runs/control/*.pt
+runs/control/*.json
 runs/phase6/*.json
 !runs/phase0/.gitkeep
