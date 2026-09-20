@@ -926,3 +926,77 @@ uv run hyperjev golden review-pack \\
 item을 다시 수정하면 feedback의 최신 correction이 reviewed queue에 적용된다.
 EOF나 `Ctrl-C`로 세션을 종료해도 traceback 없이 저장된 결과를 보존하고
 종료한다.
+
+### 14.6 실제 human feedback 적용 결과
+
+사용자가 검수 세션을 종료한 뒤 저장된 artifact를 기준으로 적용 결과를
+검증했다. 저장 파일은 `runs/phase0/golden-feedback.jsonl`이며, 임시 smoke
+feedback은 포함하지 않는다.
+
+```bash
+uv run hyperjev golden apply-feedback \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --feedback runs/phase0/golden-feedback.jsonl \
+  --output runs/phase0/phase0-review-queue-reviewed.jsonl
+
+uv run hyperjev golden validate \
+  --samples runs/phase0/phase0-review-queue-reviewed.jsonl \
+  --minimum-count 1000
+```
+
+실행 결과:
+
+| 항목 | 결과 |
+| --- | --- |
+| feedback records | 31 |
+| unique sample IDs | 31 |
+| reviewer | `dirmich` |
+| correction types | choice 15, boolean 11, score 5 |
+| reviewed queue total | 1,000 |
+| human labels | 31/1,000 |
+| pending | 969 |
+| `golden validate --minimum-count 1000` | `ready=false`, exit 1 |
+
+따라서 이번 결과는 **부분 검수 적용 성공**이지, HyperJev의 사람 기준
+정확도 99% 또는 production release 승인 결과가 아니다. 969건은 사람이
+원문 `state`와 `question`을 확인해 feedback을 남길 때까지 pending으로
+유지한다. 검수를 재개할 때는 동일한 pack과 feedback 파일을 사용한다.
+
+```bash
+uv run hyperjev golden review-session \
+  --review-pack runs/phase1/qwen-golden-review-pack.jsonl \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --feedback-output runs/phase0/golden-feedback.jsonl \
+  --reviewer dirmich
+```
+
+### 14.7 31건 human subset의 Student 평가
+
+사람 label이 존재하는 31건만 normalized dataset으로 만들어 기존
+`reference-ngram-student.pt`에 넣었다. 평가 target은 synthetic `target`이
+아니라 `labels.human`이며, score task는 `--allow-score` 없이 보수적으로
+자동 수락하지 않았다. 입력과 결과 artifact의 hash는 다음과 같다.
+
+| artifact | SHA-256 |
+| --- | --- |
+| `runs/phase3/human-reviewed-31-dataset.jsonl` | `fb9445459ce6b9571422ebe8418a4bde290b87f2c3c92bbc18f25dff015a3c56` |
+| `runs/phase3/human-reviewed-31-ngram-evaluation.json` | `400f271a3d8e51aed8d0edd526f0e53c75cfa78fb83b43c732bf50eae903fb86` |
+
+결과:
+
+| 경로 | correct | total | accuracy | accepted | accepted accuracy | coverage |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| rule + Student 전체 | 25 | 31 | 80.65% | 26 | 96.15% | 83.87% |
+
+rule은 6/6 정확했고, Student가 처리한 `memory.relation`, `query.route`,
+`memory.remember_worthy`, `wiki.semantic_change`는 이 subset에서 각각
+5/5, 5/5, 6/6, 5/5였다. `memory.type`은 4/5(80%)였고,
+`memory.importance`는 5건 모두 confidence 기준을 통과하지 못해 fallback이었다.
+따라서 quality gate는 `overall_accuracy_below_threshold`,
+`accepted_accuracy_below_threshold`, `task_accuracy_below_threshold`로
+실패했다. 이 결과는 31건 partial human measurement이지 1,000건 golden
+accuracy나 상용 release 승인 결과가 아니다.
+
+같은 31건에서 Qwen draft와 human correction의 의미상 일치율은 28/31
+(90.32%)였다. boolean은 11/11, choice는 15/15, score는 ±0.20 기준
+2/5였으므로 Qwen draft를 human label로 자동 승격하지 않는 정책이 타당하다.

@@ -3,6 +3,20 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — partial human golden feedback applied (v1.30.0)
+
+- `golden-feedback.jsonl`에 저장된 실제 사람 검수 31건을 reviewed queue에
+  적용했다. 31건은 모두 고유 sample이며 reviewer는 `dirmich`다.
+- 전체 1,000건 중 human label은 `31/1000`, pending은 `969`건이다.
+- `golden validate --minimum-count 1000`은 `ready=false`, exit 1로 남았다.
+  사람 검수가 끝나지 않은 상태를 production 정확도로 승격하지 않기 위한
+  의도된 gate 결과다.
+- 사용자가 “전체 검수 완료”라고 판단했더라도 저장된 artifact에 없는 969건은
+  자동 생성하거나 Qwen draft로 대체하지 않는다.
+- 저장된 31건만 별도 평가한 reference n-gram Student 결과는 전체 `25/31
+  (80.65%)`, accepted `25/26 (96.15%)`, coverage `26/31 (83.87%)`였다.
+  이는 부분 표본 결과이며 production 정확도 주장이 아니다.
+
 ## 2026-09-20 — safe review-session EOF handling (v1.29.1)
 
 - `Ctrl-D`, piped input 종료, `Ctrl-C`를 traceback 없이 저장 후 종료로

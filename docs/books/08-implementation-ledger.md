@@ -63,6 +63,7 @@
 | 1.28.0 | 진행 중 | next/previous navigable human review session |
 | 1.29.0 | 진행 중 | task-aware value-only correction input |
 | 1.29.1 | 진행 중 | review-session EOF/pipe safe quit |
+| 1.30.0 | 진행 중 | 실제 human feedback 31건 적용, partial Student 평가, 969건 pending gate 기록 |
 
 ## 다음 기록 규칙
 
