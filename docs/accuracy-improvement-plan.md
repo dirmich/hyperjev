@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.94.0
+현재 버전: 1.95.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -943,3 +943,23 @@ local CPU 4-scenario replay는 p95/p99 `0.066515ms`, 정확도 `4/4`, safe STOP
 recall `2/2`였다. 이 수치는 fast-path fixture 증거일 뿐이므로 DGX Spark에서
 Student fallback, 동시성, memory context, teacher fallback을 포함한 p95/p99를
 다시 측정해야 한다.
+
+### v1.95.0 minimum safety evidence gate
+
+STOP recall의 point estimate가 100%여도 positive safety case가 2개뿐이면
+99% confidence evidence가 아니다. quality evaluator는 기본적으로 최소 500개의
+expected safe STOP scenario를 요구한다.
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /path/to/control-human.pt \
+  --dataset /path/to/control-human-target.jsonl \
+  --scenarios /path/to/control-safety-500.jsonl \
+  --registry registry/control_tasks \
+  --minimum-safe-stop-count 500 \
+  --require-human-test
+```
+
+scenario 수가 부족하면 `safe_stop_sample_count` gate가 실패한다. 500은 모든
+case가 맞았을 때 Wilson 95% 하한이 약 `0.992376`이 되도록 잡은 최소 표본이며,
+같은 episode를 단순 복제하지 않고 서로 다른 scenario/group으로 구성해야 한다.

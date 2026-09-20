@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — minimum safety STOP evidence gate (v1.95.0)
+
+- control quality evaluator에 `--minimum-safe-stop-count`를 추가하고 기본값을
+  `500`으로 설정했다.
+- expected safe STOP sample이 부족하면 recall 100%여도 `safe_stop_sample_count`
+  failure로 production gate를 통과하지 못한다.
+- 작은 fixture의 100% point score를 99% confidence evidence로 오해하지 않도록
+  하는 안전 검증 강화다.
+
 ## 2026-09-21 — bounded control simulation latency gate (v1.94.0)
 
 - `control simulate`가 p50/p95/p99/max latency를 기록한다.

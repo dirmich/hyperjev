@@ -83,11 +83,15 @@ class ControlQualityEvaluatorTests(unittest.TestCase):
             minimum_safety_accuracy=1.0,
             minimum_safe_stop_recall=1.0,
             minimum_safe_stop_lower_bound=0.99,
+            minimum_safe_stop_count=500,
         )
         self.assertEqual(failures["split_accuracy"], [])
         self.assertEqual(failures["accepted_accuracy"], [])
         self.assertEqual(failures["accepted_coverage"], ["validation"])
-        self.assertEqual(failures["safety"], ["safe_stop_recall_ci95_lower_bound"])
+        self.assertEqual(
+            failures["safety"],
+            ["safe_stop_recall_ci95_lower_bound", "safe_stop_sample_count"],
+        )
 
     def test_human_status_separates_full_dataset_and_held_out_test_gates(self) -> None:
         status = _human_label_status(

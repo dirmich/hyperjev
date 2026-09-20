@@ -128,6 +128,7 @@
 | 1.92.0 | 진행 중 | automatic focus 입력에 target-exclusion contract guard 추가 |
 | 1.93.0 | 진행 중 | control train human-only target/source gate와 checkpoint 미생성 검증 |
 | 1.94.0 | 진행 중 | control simulation p95/p99/max latency report와 threshold gate 추가 |
+| 1.95.0 | 진행 중 | 최소 500 expected safe STOP evidence gate와 Wilson 표본 기준 추가 |
 
 ## 다음 기록 규칙
 

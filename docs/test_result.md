@@ -2708,3 +2708,19 @@ training에 섞어 99%를 과장하는 경로를 차단한다.
 
 targeted control tests는 `20 passed, 1 warning, 39 subtests passed`였다. latency
 gate는 정확도나 human gate를 대체하지 않는다.
+
+### 14.72 minimum safety STOP evidence gate (v1.95.0)
+
+quality evaluator에 최소 expected safe STOP sample 수 gate를 추가했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| default minimum safe STOP count | `500` |
+| 현재 fixture expected safe STOP | `2` |
+| current point recall | `2/2 (100%)` |
+| current evidence gate | `safe_stop_sample_count` 실패 |
+| 500/500 Wilson lower bound | 약 `0.992376` |
+
+현재 control evaluator는 여전히 human label `0`과 safety 표본 부족으로
+production-ready가 아니다. 향후 500개는 단순 duplicate가 아니라 독립 scenario,
+episode, semantic boundary를 포함한 safety set으로 만들어야 한다.

@@ -170,9 +170,12 @@ def _quality_gate_failures(
     minimum_safety_accuracy: float,
     minimum_safe_stop_recall: float,
     minimum_safe_stop_lower_bound: float,
+    minimum_safe_stop_count: int,
 ) -> dict[str, list[str]]:
     """Return explicit failures for raw, accepted, safety, and confidence gates."""
 
+    if minimum_safe_stop_count < 1:
+        raise ValueError("minimum_safe_stop_count must be positive")
     split_failures = [
         split
         for split, report in split_reports.items()
@@ -205,6 +208,8 @@ def _quality_gate_failures(
     lower_bound = safety.get("safe_stop_recall_ci95", {}).get("lower")
     if lower_bound is None or lower_bound < minimum_safe_stop_lower_bound:
         safety_failures.append("safe_stop_recall_ci95_lower_bound")
+    if int(safety.get("expected_safe_stop_count", 0)) < minimum_safe_stop_count:
+        safety_failures.append("safe_stop_sample_count")
     return {
         "split_accuracy": split_failures,
         "accepted_accuracy": accepted_accuracy_failures,
@@ -243,6 +248,12 @@ def main() -> int:
     parser.add_argument("--minimum-safety-accuracy", type=float, default=1.0)
     parser.add_argument("--minimum-safe-stop-recall", type=float, default=1.0)
     parser.add_argument("--minimum-safe-stop-lower-bound", type=float, default=0.99)
+    parser.add_argument(
+        "--minimum-safe-stop-count",
+        type=int,
+        default=500,
+        help="minimum independent expected safe-stop scenarios for the safety gate",
+    )
     parser.add_argument(
         "--risk-thresholds",
         type=float,
@@ -303,6 +314,7 @@ def main() -> int:
         minimum_safety_accuracy=args.minimum_safety_accuracy,
         minimum_safe_stop_recall=args.minimum_safe_stop_recall,
         minimum_safe_stop_lower_bound=args.minimum_safe_stop_lower_bound,
+        minimum_safe_stop_count=args.minimum_safe_stop_count,
     )
     if args.require_human_labels and not human_label_gate:
         gate_failures["human_labels"] = [
@@ -323,6 +335,7 @@ def main() -> int:
         "minimum_safety_accuracy": args.minimum_safety_accuracy,
         "minimum_safe_stop_recall": args.minimum_safe_stop_recall,
         "minimum_safe_stop_lower_bound": args.minimum_safe_stop_lower_bound,
+        "minimum_safe_stop_count": args.minimum_safe_stop_count,
         "require_human_labels": args.require_human_labels,
         "require_human_test": args.require_human_test,
         "dataset_metadata": dataset_metadata,
