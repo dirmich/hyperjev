@@ -138,3 +138,14 @@
 - 검증: **71 passed, 1 skipped**, Ruff 통과.
 - 이 수정은 숫자를 인위적으로 높이지 않는다. 오히려 production gate가 실제
   human 판정에 종속되도록 정확도를 정직하게 만든다.
+
+## 2026-09-20 — human-source evaluator 1,000개 재검증 (v1.22.1)
+
+- checkpoint SHA-256: `030cdc2e270a3cfb4a28756dd36f5a3991dfbce28ae178243f88a089cdf5c0ba`
+- dataset SHA-256: `139e5c2f63de52811eab3845f19a4b42e4c7c0d6d7b61f1d979af292e08438ff`
+- `target_sources`: `sample.target`만 존재 (`human 0/1000`)
+- 전체: **1000/1000 = 100%**
+- accepted: **787/787 = 100%**, coverage **78.70%**, fallback 213개
+- production gate: **exit 1**, `human_labels_required`
+- 결론: synthetic regression 수치는 재현됐지만 human golden 정확도는 아직
+  측정되지 않았고, production 승격도 계속 금지된다.

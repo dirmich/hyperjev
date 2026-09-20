@@ -49,7 +49,8 @@
 | 1.20.1 | `99169d2` | 1,000개 synthetic stress 결과 기록 |
 | 1.21.0 | `ca49048` | optional Student router 연결과 abstain fallback guard |
 | 1.21.1 | `55c640a` | Student router 장부와 version 정합성 기록 |
-| 1.22.0 | 진행 중 | human golden label 기준 정확도 평가 정정 |
+| 1.22.0 | `9366aa7` | human golden label 기준 정확도 평가 정정 |
+| 1.22.1 | 진행 중 | 1,000개 재평가와 synthetic source 증거 기록 |
 
 ## 다음 기록 규칙
 

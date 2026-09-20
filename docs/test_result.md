@@ -754,3 +754,22 @@ uv run pytest -q
 작업이 아니라 99% 주장의 분모와 정답 출처를 올바르게 만드는 품질 gate
 수정이다. 실제 1,000개 human golden 라벨이 채워지기 전에는 production
 승격을 주장하지 않는다.
+
+### 13.4 1,000개 재평가 결과
+
+human-source 수정 이후 동일한 1,000개 queue를 재실행했다.
+
+| 항목 | 결과 |
+| --- | --- |
+| checkpoint SHA-256 | `030cdc2e270a3cfb4a28756dd36f5a3991dfbce28ae178243f88a089cdf5c0ba` |
+| dataset SHA-256 | `139e5c2f63de52811eab3845f19a4b42e4c7c0d6d7b61f1d979af292e08438ff` |
+| target source | `sample.target` only |
+| overall | 1000/1000 = 100% |
+| accepted | 787/787 = 100% |
+| coverage | 78.70% |
+| fallback | 213 |
+| human labels | 0/1000 |
+| production gate | exit 1: `human_labels_required` |
+
+이 결과는 evaluator가 synthetic source를 정확히 표시한다는 회귀 증거이며,
+human golden 정확도 99%의 증거가 아니다.
