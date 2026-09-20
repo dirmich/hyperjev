@@ -125,6 +125,8 @@ class StudentContractTests(unittest.TestCase):
         self.assertIn("accuracy", report["overall"])
         self.assertIn("coverage", report["overall"])
         self.assertEqual(report["overall"]["accepted_count"], 0)
+        self.assertFalse(report["quality_gate"]["ready"])
+        self.assertIn("human_labels_required", report["quality_gate"]["reasons"])
 
 
 class CalibrationTests(unittest.TestCase):

@@ -69,3 +69,19 @@
   coverage **80.56%**, fallback 7/36
 - 판정: synthetic contract gate는 99%를 넘겼다. 사람 검수 golden 1,000개와
   production multilingual encoder가 없으므로 production 승격은 하지 않는다.
+
+## 2026-09-20 — production quality gate (v1.20.0)
+
+- `student evaluate --production-gate` 추가
+- gate 조건:
+  - human label 전체 존재
+  - overall accuracy >= 99%
+  - accepted accuracy >= 99.5%
+  - task별 accuracy >= 98%
+- 현재 synthetic 실행 결과:
+  - overall accuracy: 100%
+  - accepted accuracy: 100%
+  - human labeled: 0/36
+  - exit code: 1 (`human_labels_required`)
+- 결론: 숫자만 높은 synthetic checkpoint를 production 승격하지 않는 보호
+  장치가 정상 동작한다.

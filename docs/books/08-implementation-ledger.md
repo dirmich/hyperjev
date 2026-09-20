@@ -45,6 +45,7 @@
 | 1.17.3 | `52db7f0` | 99% accuracy gate와 baseline changelog 고정 |
 | 1.18.0 | `f4d4319` | guarded Student evaluator와 accepted accuracy/coverage 분리 |
 | 1.19.0 | 진행 중 | n-gram Student와 rule+Student guarded 100% synthetic path |
+| 1.20.0 | 진행 중 | human label을 요구하는 production quality gate |
 
 ## 다음 기록 규칙
 

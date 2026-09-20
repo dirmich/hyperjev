@@ -253,12 +253,15 @@ def _student_evaluate(args: argparse.Namespace) -> int:
         allow_score=args.allow_score,
         with_rules=args.with_rules,
         score_tolerance=args.score_tolerance,
+        minimum_accuracy=args.minimum_accuracy,
+        minimum_accepted_accuracy=args.minimum_accepted_accuracy,
+        minimum_task_accuracy=args.minimum_task_accuracy,
         device=args.device,
     )
     if args.output:
         write_student_evaluation(report, args.output)
     print(json.dumps(report, ensure_ascii=False))
-    return 0
+    return 1 if args.production_gate and not report["quality_gate"]["ready"] else 0
 
 
 def _training_plan(args: argparse.Namespace) -> int:
@@ -497,6 +500,14 @@ def build_parser() -> argparse.ArgumentParser:
     student_evaluate_parser.add_argument("--allow-score", action="store_true")
     student_evaluate_parser.add_argument("--with-rules", action="store_true")
     student_evaluate_parser.add_argument("--score-tolerance", type=float, default=0.10)
+    student_evaluate_parser.add_argument("--minimum-accuracy", type=float, default=0.99)
+    student_evaluate_parser.add_argument("--minimum-accepted-accuracy", type=float, default=0.995)
+    student_evaluate_parser.add_argument("--minimum-task-accuracy", type=float, default=0.98)
+    student_evaluate_parser.add_argument(
+        "--production-gate",
+        action="store_true",
+        help="return exit code 1 when human labels or quality thresholds are missing",
+    )
     student_evaluate_parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     student_evaluate_parser.add_argument("--output")
     student_evaluate_parser.set_defaults(handler=_student_evaluate)

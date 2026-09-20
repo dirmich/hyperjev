@@ -612,3 +612,8 @@ uv run hyperjev student evaluate \
 
 overall accuracy >= 99%, task별 >= 98%, accepted accuracy >= 99.5%를 모두
 충족하기 전에는 registry를 `candidate` 이상으로 승격하지 않는다.
+
+`--production-gate`를 synthetic dataset에 실행한 결과는 overall 100%,
+accepted 100%였지만 human label 0/36이라 exit code 1과
+`human_labels_required`를 반환했다. 이는 99% 숫자와 production 승인을
+분리하는 의도된 실패다.

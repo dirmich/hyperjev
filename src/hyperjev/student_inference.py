@@ -128,6 +128,9 @@ def evaluate_student_checkpoint(
     allow_score: bool = False,
     with_rules: bool = False,
     score_tolerance: float = 0.10,
+    minimum_accuracy: float = 0.99,
+    minimum_accepted_accuracy: float = 0.995,
+    minimum_task_accuracy: float = 0.98,
     device: str = "cpu",
 ) -> dict[str, Any]:
     """Evaluate a checkpoint and report accuracy separately from safe coverage."""
@@ -138,6 +141,13 @@ def evaluate_student_checkpoint(
         raise StudentInferenceError("minimum_confidence must be between 0 and 1")
     if score_tolerance < 0:
         raise StudentInferenceError("score_tolerance must not be negative")
+    for name, value in (
+        ("minimum_accuracy", minimum_accuracy),
+        ("minimum_accepted_accuracy", minimum_accepted_accuracy),
+        ("minimum_task_accuracy", minimum_task_accuracy),
+    ):
+        if not 0.0 <= value <= 1.0:
+            raise StudentInferenceError(f"{name} must be between 0 and 1")
     checkpoint = Path(checkpoint_path)
     if not checkpoint.is_file():
         raise StudentInferenceError(f"checkpoint not found: {checkpoint}")
@@ -235,6 +245,34 @@ def evaluate_student_checkpoint(
         "overall": _summary(predictions),
         "tasks": {task_id: _summary(rows) for task_id, rows in sorted(by_task.items())},
         "predictions": predictions,
+    }
+    human_labeled_count = sum(sample.labels.get("human") is not None for sample in samples)
+    task_failures = [
+        task_id
+        for task_id, task_report in report["tasks"].items()
+        if (task_report["accuracy"] or 0.0) < minimum_task_accuracy
+    ]
+    gate_reasons: list[str] = []
+    if human_labeled_count != len(samples):
+        gate_reasons.append("human_labels_required")
+    if (report["overall"]["accuracy"] or 0.0) < minimum_accuracy:
+        gate_reasons.append("overall_accuracy_below_threshold")
+    accepted_accuracy = report["overall"]["accepted_accuracy"]
+    if accepted_accuracy is None or accepted_accuracy < minimum_accepted_accuracy:
+        gate_reasons.append("accepted_accuracy_below_threshold")
+    if task_failures:
+        gate_reasons.append("task_accuracy_below_threshold")
+    report["golden"] = {
+        "human_labeled_count": human_labeled_count,
+        "human_labeled": human_labeled_count == len(samples),
+    }
+    report["quality_gate"] = {
+        "ready": not gate_reasons,
+        "minimum_accuracy": minimum_accuracy,
+        "minimum_accepted_accuracy": minimum_accepted_accuracy,
+        "minimum_task_accuracy": minimum_task_accuracy,
+        "task_failures": task_failures,
+        "reasons": gate_reasons,
     }
     return report
 
