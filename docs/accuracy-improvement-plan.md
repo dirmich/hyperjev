@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.57.0
+현재 버전: 1.58.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -181,6 +181,28 @@ only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적
 보수적 rule을 추가한 뒤 safety는 `4/4 (100%)`, STOP recall `2/2 (100%)`로
 회복됐다. 이는 안전 계약의 방어층 증거이며, rule이 일반 scene 의미를 이해한다는
 정확도 증거가 아니다.
+
+v1.58.0에는 고정 confidence threshold별 risk-coverage 측정을 추가했다.
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /tmp/control-combined-token-100ep.pt \
+  --dataset /tmp/hyperjev-control-combined-1800.jsonl \
+  --risk-thresholds 0.50 0.90 0.95 0.99
+```
+
+report의 `risk_coverage`는 전체 accuracy와 별도로 각 threshold에서 실제로
+수락할 표본 수, coverage, accepted accuracy, accepted risk를 기록한다. combined
+token checkpoint는 validation/test 모두 네 threshold에서 `180/180`을 수락하고
+accepted accuracy `100%`, risk `0%`를 보였지만, 이는 synthetic target과 같은
+분포의 confidence 결과다. class-balanced 후보도 같은 risk-coverage 숫자를
+냈지만 safety action accuracy는 `3/4 (75%)`였다. 즉 confidence가 높다는
+사실만으로 safety correctness나 실제 scene 일반화를 보장하지 않는다.
+
+다음 gate는 risk-coverage가 좋은 영역을 고르는 것이 아니라, 독립 human-labeled
+test에서 `accepted risk <= 1%`, 모든 고위험 skill의 STOP recall `100%`,
+calibration set의 ECE/NLL 및 시간 예산을 함께 통과시키는 것이다. threshold를
+낮춰 coverage를 억지로 높이거나 confidence를 재표현해 통과시키지 않는다.
 
 v1.46.0부터 production-style evaluator는 다음 조건을 모두 요구한다.
 

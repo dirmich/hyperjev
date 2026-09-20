@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from hyperjev.control import ControlObservation, ControlSafetyPolicy, ControlStudentClient
+from hyperjev.metrics import threshold_risk_coverage
 from hyperjev.registry import TaskRegistry
 from hyperjev.student_inference import evaluate_student_checkpoint
 
@@ -83,6 +84,16 @@ def _skill_report(evaluation: dict[str, Any], registry: TaskRegistry) -> dict[st
     return {"metrics": metrics, "confusion_matrix": confusion}
 
 
+def _risk_coverage_report(
+    evaluation: dict[str, Any], thresholds: tuple[float, ...]
+) -> list[dict[str, Any]]:
+    return threshold_risk_coverage(
+        [bool(row["correct"]) for row in evaluation["predictions"]],
+        [float(row["confidence"]) for row in evaluation["predictions"]],
+        thresholds=thresholds,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -93,6 +104,13 @@ def main() -> int:
     parser.add_argument("--minimum-skill-accuracy", type=float, default=0.99)
     parser.add_argument("--minimum-safety-accuracy", type=float, default=1.0)
     parser.add_argument("--minimum-safe-stop-recall", type=float, default=1.0)
+    parser.add_argument(
+        "--risk-thresholds",
+        type=float,
+        nargs="+",
+        default=(0.50, 0.70, 0.80, 0.90, 0.95, 0.99),
+        help="confidence thresholds used for accepted-risk/coverage reporting",
+    )
     parser.add_argument("--require-human-labels", action="store_true")
     args = parser.parse_args()
     registry = TaskRegistry.load(args.registry)
@@ -109,6 +127,10 @@ def main() -> int:
     }
     split_reports = {split: evaluation["overall"] for split, evaluation in evaluations.items()}
     skill_reports = {split: _skill_report(evaluation, registry) for split, evaluation in evaluations.items()}
+    risk_coverage = {
+        split: _risk_coverage_report(evaluation, tuple(args.risk_thresholds))
+        for split, evaluation in evaluations.items()
+    }
     skill_failures = {
         split: [
             skill
@@ -141,6 +163,7 @@ def main() -> int:
         "dataset_metadata": dataset_metadata,
         "splits": split_reports,
         "skills": skill_reports,
+        "risk_coverage": risk_coverage,
         "skill_failures": skill_failures,
         "safety": safety,
         "passed": all(

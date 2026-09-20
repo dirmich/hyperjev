@@ -91,6 +91,7 @@
 | 1.55.0 | 진행 중 | per-skill accuracy/recall과 confusion matrix production gate |
 | 1.56.0 | 진행 중 | long-running Qwen/Gemma draft resume와 shared-slot 기록 |
 | 1.57.0 | 진행 중 | class-balanced training ablation과 calibration 실패 gate |
+| 1.58.0 | 진행 중 | control threshold별 risk-coverage report와 safety 분리 gate |
 
 ## 다음 기록 규칙
 

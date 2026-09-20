@@ -1770,3 +1770,35 @@ STOP으로 보수적 전환됐다. threshold를 낮춰 이 실패를 숨기지 �
 balance 후보는 production 승격에서 탈락시켰다. 이 결과는 accuracy와
 calibration/safety를 함께 gate해야 한다는 증거이며, 다음 단계는 validation
 기반 temperature scaling과 risk-coverage 비교다.
+
+### 14.36 control threshold risk-coverage (v1.58.0)
+
+정확도 100%와 confidence 100%를 같은 의미로 취급하지 않기 위해 evaluator가
+고정 confidence threshold별 수락 coverage와 accepted risk를 함께 출력하도록
+했다.
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /tmp/control-combined-token-100ep.pt \
+  --dataset /tmp/hyperjev-control-combined-1800.jsonl \
+  --scenarios tests/golden/control_scenarios.jsonl \
+  --risk-thresholds 0.50 0.90 0.95 0.99
+```
+
+| checkpoint | split | threshold | accepted | coverage | accepted accuracy | accepted risk |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| combined token | validation | 0.50/0.90/0.95/0.99 | 180/180/180/180 | 100% | 100%/100%/100%/100% | 0%/0%/0%/0% |
+| combined token | test | 0.50/0.90/0.95/0.99 | 180/180/180/180 | 100% | 100%/100%/100%/100% | 0%/0%/0%/0% |
+| class-balanced | validation | 0.50/0.90/0.95/0.99 | 180/180/180/180 | 100% | 100%/100%/100%/100% | 0%/0%/0%/0% |
+| class-balanced | test | 0.50/0.90/0.95/0.99 | 180/180/180/180 | 100% | 100%/100%/100%/100% | 0%/0%/0%/0% |
+
+그러나 safety scenario는 combined token이 `4/4 (100%)`인 반면 class-balanced
+후보는 `3/4 (75%)`였다. 따라서 risk-coverage는 “confidence가 높은 응답을
+얼마나 수락할지”를 측정하는 도구이지, safety correctness나 실제 환경의
+일반화 정확도를 대신하지 않는다. 특히 두 checkpoint 모두 `human_labeled_count`
+가 validation/test 각각 `0/180`이어서 production gate는 `production_ready=false`다.
+
+이번 단계의 결론은 threshold를 낮추거나 confidence를 조작해 99%를 만드는 것이
+아니다. 다음 calibration 단계에서는 독립 human calibration set에서 ECE/NLL을
+측정하고, `accepted risk <= 1%`, per-skill `>= 99%`, safety STOP recall `100%`,
+latency p95를 동시에 확인한다.

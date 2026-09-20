@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — control risk-coverage gate (v1.58.0)
+
+- `threshold_risk_coverage`와 `evaluate_control_quality --risk-thresholds`를
+  추가해 confidence threshold별 accepted count, coverage, accepted accuracy,
+  accepted risk를 report에 고정했다.
+- combined token checkpoint는 validation/test의 `0.50/0.90/0.95/0.99` 모든
+  threshold에서 `180/180`, accepted accuracy `100%`, risk `0%`였다.
+- class-balanced 후보도 같은 synthetic risk-coverage를 보였지만 safety action
+  accuracy는 `3/4 (75%)`였다. 따라서 confidence 숫자만으로 production 정확도를
+  주장할 수 없고, 독립 human test와 safety gate가 계속 필수다.
+- 검증: 새 risk-coverage unit 2개, targeted metric 5개, evaluator 실 checkpoint
+  실행이 통과했다.
+
 ## 2026-09-21 — hard-negative token training evidence (v1.50.0)
 
 - v1.49.0의 500 pair/1,000 sample counterfactual queue를

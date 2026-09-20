@@ -91,6 +91,53 @@ def _selective_curve(correct: Sequence[bool], confidence: Sequence[float]) -> li
     return curve
 
 
+def threshold_risk_coverage(
+    correct: Sequence[bool],
+    confidence: Sequence[float],
+    *,
+    thresholds: Sequence[float] = (0.50, 0.70, 0.80, 0.90, 0.95, 0.99),
+) -> list[dict[str, Any]]:
+    """Summarize accepted accuracy and risk at fixed confidence thresholds.
+
+    This is intentionally separate from a model's raw accuracy: a controller may
+    abstain below a threshold, so each row reports the quality and coverage of
+    only the decisions that would be accepted at that threshold.
+    """
+
+    count = _validate_lengths(correct, confidence)
+    if not thresholds:
+        raise MetricError("risk-coverage thresholds must not be empty")
+    normalized_correct = [bool(value) for value in correct]
+    normalized_confidence = [_probability(value) for value in confidence]
+    normalized_thresholds = [_probability(value) for value in thresholds]
+    report: list[dict[str, Any]] = []
+    for threshold in normalized_thresholds:
+        accepted = [
+            position
+            for position, value in enumerate(normalized_confidence)
+            if value >= threshold
+        ]
+        accepted_count = len(accepted)
+        accepted_correct = sum(normalized_correct[position] for position in accepted)
+        accepted_accuracy = accepted_correct / accepted_count if accepted_count else None
+        report.append(
+            {
+                "threshold": _rounded(threshold),
+                "count": count,
+                "accepted_count": accepted_count,
+                "coverage": _rounded(accepted_count / count),
+                "accepted_correct": accepted_correct,
+                "accepted_accuracy": _rounded(accepted_accuracy)
+                if accepted_accuracy is not None
+                else None,
+                "accepted_risk": _rounded(1.0 - accepted_accuracy)
+                if accepted_accuracy is not None
+                else None,
+            }
+        )
+    return report
+
+
 def _binary_auroc(labels: Sequence[bool], probabilities: Sequence[float]) -> float | None:
     positives = [probability for label, probability in zip(labels, probabilities) if label]
     negatives = [probability for label, probability in zip(labels, probabilities) if not label]
