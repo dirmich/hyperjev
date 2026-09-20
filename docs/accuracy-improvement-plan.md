@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.63.0
+현재 버전: 1.64.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -120,7 +120,8 @@ uv run hyperjev control review-pack \
   --queue runs/control/control-review-queue.jsonl \
   --draft runs/control/qwen-control-draft.jsonl \
   --output runs/control/control-review-pack.jsonl \
-  --allow-raw
+  --allow-raw \
+  --prioritize
 uv run hyperjev control review-session \
   --review-pack runs/control/control-review-pack.jsonl \
   --queue runs/control/control-review-queue.jsonl \
@@ -141,6 +142,14 @@ session은 state와 question을 표시하고 `a`(draft 수락), `e`(typed value�
 control 후보 밖의 값은 거부된다. reviewer가 teacher draft를 그대로 수락해도
 그 기록은 human feedback으로 남지만, 실제 운영에서는 위험 pair와
 teacher-disagreement를 우선 독립 확인한다.
+
+v1.64.0의 `--prioritize`는 이 원칙을 review pack 순서에 반영한다. invalid
+schema를 먼저 두고, 그 다음 schema repair가 필요한 teacher 결과, 마지막으로
+typed confidence가 낮은 결과를 배치한다. 같은 등급에서는 sample ID를 tie-break로
+사용하므로 resume해도 순서가 결정적이다. 정렬은 queue target을 읽지 않으며,
+manifest의 `priority_order=uncertain_first`로 사용된 정렬을 추적할 수 있다.
+이는 사람의 제한된 검수 시간을 오류 가능성이 높은 row에 먼저 쓰기 위한 운영
+개선이지, human label을 대신하는 자동 판정은 아니다.
 
 Qwen/Gemma를 모두 실행한 뒤에는 합의 결과만 silver 후보로 표시한다.
 

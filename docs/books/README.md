@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.63.0까지 진행되어 있다. Python 테스트 121개와
+현재 `main`은 origin에 push될 1.64.0까지 진행되어 있다. Python 테스트 122개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -85,6 +85,13 @@ v1.63.0 hard-negative 실험에서 Qwen은 STOP에는 100%였지만 HOLD 0%,
 APPROACH 49.70%였다. 이 결과를 통해 teacher가 만든 counterfactual label도
 사람 검수 전에는 학습 target이 될 수 없고, 오류 pair를 우선 검수해야 한다는
 운영 규칙을 책에 추가했다.
+
+v1.64.0에서는 `control review-pack --prioritize`를 추가했다. review pack은
+invalid schema, repair가 필요한 teacher 결과, 낮은 typed confidence 순으로
+정렬하고 manifest에 `uncertain_first`를 기록한다. 이 정렬은 synthetic target을
+보지 않으므로 target leakage가 없으며, 사람이 먼저 확인할 위험 row를 줄여준다.
+다만 아직 human label은 0건이어서 이 기능은 검수 throughput 개선이지 정확도
+증거가 아니다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

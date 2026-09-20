@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — uncertainty-first human review queue (v1.64.0)
+
+- `control review-pack --prioritize`를 추가해 invalid schema, repaired teacher
+  output, low-confidence typed result을 queue 앞쪽으로 정렬한다.
+- choice는 최대 probability, boolean은 선택값의 probability, score는 interval
+  폭으로 confidence를 계산하며 synthetic target은 정렬에 사용하지 않는다.
+- 기본값은 기존 queue order를 유지하고, manifest에 `priority_order`를 남긴다.
+- 목적은 1,000건을 무작정 순서대로 검수하지 않고 semantic confusion과 teacher
+  repair가 발생한 row를 먼저 human label하는 것이다. 이 기능만으로 accuracy가
+  상승하거나 human gate가 통과하는 것은 아니며, 현재 human label은 여전히 0이다.
+- 검증: review-pack priority 단위 테스트 6개, Ruff, diff check 통과.
+
 ## 2026-09-21 — Qwen hard-negative semantic gate (v1.63.0)
 
 - qwen38fn hard-negative 500 pair/1,000 sample draft를 완료했다.

@@ -97,6 +97,7 @@
 | 1.61.0 | 진행 중 | Qwen 800 control draft와 bounded probability repair |
 | 1.62.0 | 진행 중 | teacher draft quality evaluator와 synthetic/human gate 분리 |
 | 1.63.0 | 진행 중 | Qwen hard-negative semantic gate와 human priority pack |
+| 1.64.0 | 진행 중 | uncertainty-first review pack 정렬과 target leakage 없는 priority manifest |
 
 ## 다음 기록 규칙
 

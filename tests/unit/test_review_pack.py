@@ -6,12 +6,41 @@ from pathlib import Path
 from hyperjev.config import load_config
 from hyperjev.golden import generate_review_queue
 from hyperjev.registry import TaskRegistry
-from hyperjev.review_pack import export_review_pack, run_review_session
+from hyperjev.review_pack import _teacher_priority, export_review_pack, run_review_session
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class ReviewPackTests(unittest.TestCase):
+    def test_teacher_priority_puts_invalid_repaired_and_low_confidence_first(self) -> None:
+        invalid = {"sample_id": "invalid", "teacher": {"schema_valid": False}}
+        repaired = {
+            "sample_id": "repaired",
+            "teacher": {"schema_valid": True, "schema_repaired": True},
+        }
+        low = {
+            "sample_id": "low",
+            "teacher": {
+                "schema_valid": True,
+                "normalized_result": {
+                    "type": "choice",
+                    "probabilities": {"a": 0.55, "b": 0.45},
+                },
+            },
+        }
+        high = {
+            "sample_id": "high",
+            "teacher": {
+                "schema_valid": True,
+                "normalized_result": {
+                    "type": "choice",
+                    "probabilities": {"a": 0.99, "b": 0.01},
+                },
+            },
+        }
+        ordered = sorted([high, low, repaired, invalid], key=_teacher_priority)
+        self.assertEqual([item["sample_id"] for item in ordered], ["invalid", "repaired", "low", "high"])
+
     def test_pack_includes_context_but_excludes_target(self) -> None:
         config = load_config(ROOT / "configs" / "phase0.toml")
         registry = TaskRegistry.load(config.registry_path)

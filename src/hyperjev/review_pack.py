@@ -34,6 +34,30 @@ def _read_records(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _teacher_priority(item: dict[str, Any]) -> tuple[int, float, str]:
+    """Sort uncertain teacher items before confident items without target leakage."""
+
+    teacher = item.get("teacher", {})
+    if teacher.get("schema_valid") is not True:
+        return (0, 0.0, str(item.get("sample_id", "")))
+    if teacher.get("schema_repaired") is True:
+        return (1, 0.0, str(item.get("sample_id", "")))
+    result = teacher.get("normalized_result") or {}
+    confidence = 0.0
+    if result.get("type") == "boolean":
+        probability = float(result.get("probability", 0.0))
+        confidence = probability if result.get("value") else 1.0 - probability
+    elif result.get("type") == "choice":
+        probabilities = result.get("probabilities", {})
+        if isinstance(probabilities, dict) and probabilities:
+            confidence = max(float(value) for value in probabilities.values())
+    elif result.get("type") == "score":
+        interval = result.get("interval_90", [])
+        if isinstance(interval, list) and len(interval) == 2:
+            confidence = max(0.0, 1.0 - float(interval[1]) + float(interval[0]))
+    return (2, confidence, str(item.get("sample_id", "")))
+
+
 def export_review_pack(
     queue_path: str | Path,
     draft_path: str | Path,
@@ -41,6 +65,7 @@ def export_review_pack(
     registry: TaskRegistry,
     *,
     include_raw: bool = False,
+    prioritize: bool = False,
 ) -> dict[str, Any]:
     """Join queue text and a teacher draft for explicit local human review.
 
@@ -89,6 +114,7 @@ def export_review_pack(
         "sample_count": len(samples),
         "raw_inputs_included": True,
         "target_excluded": True,
+        "priority_order": "uncertain_first" if prioritize else "queue_order",
     }
     output_records: list[dict[str, Any]] = [pack_manifest]
     for sample in samples:
@@ -109,6 +135,7 @@ def export_review_pack(
                     "model": draft_record.get("model"),
                     "normalized_result": draft_record.get("normalized_result"),
                     "schema_valid": draft_record.get("schema_valid"),
+                    "schema_repaired": draft_record.get("schema_repaired", False),
                     "status": draft_record.get("status"),
                     "error": draft_record.get("error"),
                     "response_sha256": draft_record.get("response_sha256"),
@@ -118,6 +145,8 @@ def export_review_pack(
                 "review_status": "pending",
             }
         )
+    if prioritize:
+        output_records[1:] = sorted(output_records[1:], key=_teacher_priority)
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8") as handle:

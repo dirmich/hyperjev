@@ -1941,3 +1941,44 @@ semantic 판단 실패다. STOP recall 100%만으로 합격시키지 않고, 오
 counterfactual pair를 human review priority로 보낸다. human label은 `0/1000`이므로
 이 draft는 `production_ready=false`이고 student training target로 자동 편입하지
 않는다.
+
+### 14.42 uncertainty-first human review pack (v1.64.0)
+
+1,000건 hard-negative를 queue 순서대로 검수하면 semantic confusion이 뒤로
+밀릴 수 있으므로, review pack에 선택적 priority 정렬을 추가했다.
+
+```bash
+uv run hyperjev control review-pack \
+  --registry registry/control_tasks \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/qwen-control-hard-review-pack-prioritized.jsonl \
+  --allow-raw \
+  --prioritize
+```
+
+manifest의 `priority_order`는 `uncertain_first`가 되며, item 순서는 다음
+결정적 규칙을 따른다.
+
+1. schema-invalid teacher output
+2. schema repair가 기록된 output
+3. typed confidence가 낮은 output
+4. 같은 confidence면 `sample_id` 오름차순
+
+choice는 후보 probability의 최댓값, boolean은 선택된 값의 probability, score는
+90% interval의 폭에서 confidence를 계산한다. queue의 synthetic `target`은 읽지
+않으므로 priority 정렬로 target leakage가 생기지 않는다. 기존 기본 동작은
+`queue_order`로 보존된다.
+
+| 검증 | 결과 |
+| --- | ---: |
+| priority unit test | 6 passed |
+| Ruff | passed |
+| diff check | passed |
+| human labels after this step | 0/1000 |
+| production eligible | false |
+
+이 단계는 검수자의 시간을 오류 가능성이 높은 항목에 먼저 배분하는 운영 개선이다.
+정렬 자체는 label을 생성하지 않으며, 다음 gate는 사람이 state/question을 확인해
+`control review-session`으로 feedback을 기록하고, `apply-feedback` →
+`materialize` → human-only train/evaluate를 수행하는 것이다.

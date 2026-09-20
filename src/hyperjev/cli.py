@@ -218,6 +218,7 @@ def _golden_review_pack(args: argparse.Namespace) -> int:
         output,
         registry,
         include_raw=args.allow_raw,
+        prioritize=args.prioritize,
     )
     print(json.dumps(report["manifest"], ensure_ascii=False))
     return 0
@@ -922,6 +923,9 @@ def build_parser() -> argparse.ArgumentParser:
     control_review_pack.add_argument("--output", required=True)
     control_review_pack.add_argument(
         "--allow-raw", action="store_true", required=True, help="include state/question for local review"
+    )
+    control_review_pack.add_argument(
+        "--prioritize", action="store_true", help="place invalid/repaired/low-confidence items first"
     )
     control_review_pack.set_defaults(handler=_control_review_pack)
     control_review_session = control_subparsers.add_parser("review-session")
