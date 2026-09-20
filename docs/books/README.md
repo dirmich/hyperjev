@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.58.0까지 진행되어 있다. Python 테스트 116개와
+현재 `main`은 origin에 push될 1.59.0까지 진행되어 있다. Python 테스트 117개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -61,6 +61,11 @@ synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두
 100% accepted accuracy를 보였어도 class-balanced 후보의 safety action은
 75%였으므로, confidence와 정확도·안전성을 같은 숫자로 취급하지 않는 원칙을
 책의 검증 장에 반영했다.
+
+v1.59.0에서는 held-out logits에서 task별 temperature를 계산하는 control
+calibration manifest를 추가했다. 실제 synthetic validation 180건에서 NLL은
+줄었지만 temperature가 검색 하한에 붙고 human label이 0건이어서 calibration
+artifact를 production 품질 증거로 승격하지 않았다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

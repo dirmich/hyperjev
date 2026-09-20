@@ -1802,3 +1802,34 @@ uv run python scripts/evaluate_control_quality.py \
 아니다. 다음 calibration 단계에서는 독립 human calibration set에서 ECE/NLL을
 측정하고, `accepted risk <= 1%`, per-skill `>= 99%`, safety STOP recall `100%`,
 latency p95를 동시에 확인한다.
+
+### 14.37 held-out control calibration manifest (v1.59.0)
+
+confidence threshold를 정하기 전에 Student의 held-out logits에서 task별
+temperature를 계산하는 별도 manifest 생성기를 추가했다.
+
+```bash
+uv run python scripts/calibrate_control_checkpoint.py \
+  --checkpoint /tmp/control-combined-token-100ep.pt \
+  --dataset /tmp/hyperjev-control-combined-1800.jsonl \
+  --split validation \
+  --output /tmp/control-calibration.json
+```
+
+실행 결과:
+
+| 항목 | 결과 |
+| --- | --- |
+| split/sample | validation / 180 |
+| task | `control.skill` |
+| temperature | `0.25` (검색 하한) |
+| NLL | `0.000007 → 0.000000` |
+| human label | `0/180` |
+| production eligible | `false` |
+
+이 calibration은 task별 held-out logits를 사용하고 checkpoint/dataset SHA와
+human label 수를 manifest에 기록한다. argmax를 바꾸지 않으므로 classification
+정확도를 올리는 장치가 아니며, confidence와 fallback threshold의 해석만
+교정한다. temperature가 검색 경계에 도달한 synthetic 결과는 쉬운 데이터나
+과신을 의미할 수 있어 승인하지 않는다. 다음 실험은 독립 human calibration
+set에서 ECE/NLL과 threshold risk-coverage를 함께 확인하는 것이다.

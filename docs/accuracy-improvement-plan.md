@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.58.0
+현재 버전: 1.59.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -203,6 +203,26 @@ accepted accuracy `100%`, risk `0%`를 보였지만, 이는 synthetic target과 
 test에서 `accepted risk <= 1%`, 모든 고위험 skill의 STOP recall `100%`,
 calibration set의 ECE/NLL 및 시간 예산을 함께 통과시키는 것이다. threshold를
 낮춰 coverage를 억지로 높이거나 confidence를 재표현해 통과시키지 않는다.
+
+v1.59.0에는 held-out Student logits에서 task별 temperature를 계산하는
+`scripts/calibrate_control_checkpoint.py`를 추가했다.
+
+```bash
+uv run python scripts/calibrate_control_checkpoint.py \
+  --checkpoint /tmp/control-combined-token-100ep.pt \
+  --dataset /tmp/hyperjev-control-combined-1800.jsonl \
+  --split validation \
+  --output /tmp/control-calibration.json
+```
+
+calibration은 `include_logits=True`인 평가 경로에서 task별로만 fit하고,
+checkpoint/dataset SHA와 sample 수를 manifest에 기록한다. `argmax` label을
+바꾸지 않으며 confidence와 abstention 해석만 위한 artifact다. combined
+validation 180건의 synthetic run은 temperature `0.25`가 검색 하한에 도달하고
+NLL `0.000007 → 0.000000`이 됐지만 human label은 `0/180`이라
+`production_eligible=false`다. temperature가 경계에 붙은 것도 calibration
+set이 너무 쉽거나 모델이 과신한다는 신호일 수 있으므로, 범위를 넓히거나
+숫자를 채택해 정확도를 주장하지 않는다.
 
 v1.46.0부터 production-style evaluator는 다음 조건을 모두 요구한다.
 

@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — held-out control calibration manifest (v1.59.0)
+
+- `scripts/calibrate_control_checkpoint.py`가 held-out Student logits에서
+  task별 temperature를 fit하고 checkpoint/dataset SHA, split, human count를
+  manifest로 저장한다.
+- combined validation 180건은 temperature `0.25`(검색 하한), NLL
+  `0.000007 → 0.000000`을 기록했지만 synthetic target이며 human label `0/180`이다.
+- calibration은 argmax를 바꾸지 않고 confidence/abstain 해석만 교정한다.
+  경계 temperature와 human gate 실패 때문에 `production_eligible=false`로
+  유지한다.
+- 검증: 전체 `117 passed, 1 skipped`, Ruff 통과, 실제 checkpoint calibration
+  실행에서 비생산 상태를 의도대로 exit 1로 확인했다.
+
 ## 2026-09-21 — control risk-coverage gate (v1.58.0)
 
 - `threshold_risk_coverage`와 `evaluate_control_quality --risk-thresholds`를

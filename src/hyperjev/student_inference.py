@@ -81,6 +81,7 @@ def _predict_sample(
     torch: Any,
     device: str,
     score_tolerance: float,
+    include_logits: bool = False,
 ) -> dict[str, Any]:
     config = model._hyperjev_student_config
     token_ids, attention = _encode_reference_sample(
@@ -95,7 +96,10 @@ def _predict_sample(
     with torch.inference_mode():
         output = model(sample.task_id, input_ids, attention_mask)
 
+    raw_logits: list[float] | None = None
     if task.output_type == "boolean":
+        if include_logits:
+            raw_logits = [float(value) for value in output["logits"][0].detach().cpu().tolist()]
         probabilities = torch.softmax(output["logits"], dim=-1)[0].detach().cpu().tolist()
         index = int(torch.argmax(output["logits"], dim=-1)[0].item())
         predicted: Any = bool(index)
@@ -104,6 +108,8 @@ def _predict_sample(
         rendered = {"type": "boolean", "value": predicted, "probability": confidence}
     elif task.output_type == "choice":
         candidates = [str(candidate) for candidate in task.output.get("candidates", [])]
+        if include_logits:
+            raw_logits = [float(value) for value in output["logits"][0].detach().cpu().tolist()]
         probabilities = torch.softmax(output["logits"], dim=-1)[0].detach().cpu().tolist()
         index = int(torch.argmax(output["logits"], dim=-1)[0].item())
         predicted = candidates[index]
@@ -126,7 +132,7 @@ def _predict_sample(
         correct = abs(predicted - float(target)) <= score_tolerance
         rendered = {"type": "score", "value": predicted, "interval_90": interval}
 
-    return {
+    result = {
         "sample_id": sample.sample_id,
         "task_id": sample.task_id,
         "split": sample.provenance.get("split"),
@@ -135,6 +141,9 @@ def _predict_sample(
         "confidence": round(confidence, 6),
         "correct": correct,
     }
+    if raw_logits is not None:
+        result["logits"] = raw_logits
+    return result
 
 
 def _evaluation_target(
@@ -195,6 +204,7 @@ def evaluate_student_checkpoint(
     minimum_accepted_accuracy: float = 0.995,
     minimum_task_accuracy: float = 0.98,
     deduplicate_exact: bool = False,
+    include_logits: bool = False,
     device: str = "cpu",
 ) -> dict[str, Any]:
     """Evaluate a checkpoint and report accuracy separately from safe coverage."""
@@ -255,6 +265,7 @@ def evaluate_student_checkpoint(
             torch=torch,
             device=device,
             score_tolerance=score_tolerance,
+            include_logits=include_logits,
         )
         prediction["target_source"] = target_source
         predictions.append(prediction)
