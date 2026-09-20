@@ -58,8 +58,11 @@ def export_review_pack(
     draft_sha256 = hashlib.sha256(draft.read_bytes()).hexdigest()
     draft_records = _read_records(draft)
     manifest = draft_records[0]
-    if manifest.get("record_type") != "golden_teacher_draft_manifest":
-        raise ValueError("draft must start with a golden teacher draft manifest")
+    if manifest.get("record_type") not in {
+        "golden_teacher_draft_manifest",
+        "golden_teacher_adjudication_manifest",
+    }:
+        raise ValueError("draft must start with a supported teacher draft manifest")
     if manifest.get("queue_sha256") != queue_sha256:
         raise ValueError("queue SHA-256 does not match the draft manifest")
     by_sample: dict[str, dict[str, Any]] = {}
@@ -109,6 +112,7 @@ def export_review_pack(
                     "status": draft_record.get("status"),
                     "error": draft_record.get("error"),
                     "response_sha256": draft_record.get("response_sha256"),
+                    "comparison": draft_record.get("teacher_comparison"),
                 },
                 "human_correction": None,
                 "review_status": "pending",
@@ -303,6 +307,11 @@ def run_review_session(
             "Qwen draft: "
             + json.dumps(teacher.get("normalized_result"), ensure_ascii=False, sort_keys=True)
         )
+        if teacher.get("comparison"):
+            output_fn(
+                "Qwen/Gemma comparison: "
+                + json.dumps(teacher["comparison"], ensure_ascii=False, sort_keys=True)
+            )
         if teacher.get("error"):
             output_fn(f"Qwen error: {teacher['error']}")
         if sample_id in latest:

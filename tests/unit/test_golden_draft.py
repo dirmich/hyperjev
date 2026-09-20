@@ -5,8 +5,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 from hyperjev.config import load_config
+from hyperjev.control_data import generate_control_review_queue
 from hyperjev.golden import generate_review_queue
-from hyperjev.golden_draft import generate_gemma_draft, generate_teacher_draft
+from hyperjev.golden_draft import (
+    adjudicate_teacher_drafts,
+    generate_gemma_draft,
+    generate_teacher_draft,
+)
 from hyperjev.registry import TaskRegistry
 from hyperjev.teachers import TeacherCompletion
 
@@ -79,6 +84,63 @@ class GoldenDraftTests(unittest.TestCase):
         self.assertEqual(report["manifest"]["model"], "qwen38fn")
         self.assertEqual(record["provider"], "qwen")
         self.assertEqual(record["model"], "fake-qwen38fn")
+
+    def test_adjudication_keeps_disagreement_for_human_review(self) -> None:
+        config = load_config(ROOT / "configs" / "phase0.toml")
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            qwen = root / "qwen.jsonl"
+            gemma = root / "gemma.jsonl"
+            output = root / "adjudicated.jsonl"
+            generate_control_review_queue(queue, registry, count_per_skill=1, seed=7)
+            samples = [json.loads(line) for line in queue.read_text(encoding="utf-8").splitlines()]
+            queue_hash = __import__("hashlib").sha256(queue.read_bytes()).hexdigest()
+            candidates = ["STOP", "HOLD", "MOVE", "ROTATE", "APPROACH", "RETREAT", "INTERACT", "RECOVER"]
+
+            def draft(path: Path, *, disagree: bool) -> None:
+                records = [
+                    {
+                        "record_type": "golden_teacher_draft_manifest",
+                        "queue_sha256": queue_hash,
+                        "provider": path.stem,
+                        "model": path.stem,
+                    }
+                ]
+                for index, sample in enumerate(samples):
+                    selected = sample["target"]
+                    if disagree and index == 0:
+                        selected = next(candidate for candidate in candidates if candidate != selected)
+                    records.append(
+                        {
+                            "record_type": "golden_teacher_draft",
+                            "sample_id": sample["sample_id"],
+                            "model": path.stem,
+                            "schema_valid": True,
+                            "status": "completed",
+                            "normalized_result": {
+                                "type": "choice",
+                                "selected": selected,
+                                "probabilities": {
+                                    candidate: float(candidate == selected) for candidate in candidates
+                                },
+                                "abstained": False,
+                            },
+                        }
+                    )
+                path.write_text("".join(json.dumps(record) + "\n" for record in records), encoding="utf-8")
+
+            draft(qwen, disagree=False)
+            draft(gemma, disagree=True)
+            report = adjudicate_teacher_drafts(config, registry, queue, qwen, gemma, output)
+            records = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+
+        self.assertEqual(report["manifest"]["agreement_count"], 7)
+        self.assertEqual(report["manifest"]["disagreement_count"], 1)
+        self.assertEqual(records[1]["status"], "disagreement")
+        self.assertIsNone(records[1]["normalized_result"])
+        self.assertIn("qwen", records[1]["teacher_comparison"])
 
 
 if __name__ == "__main__":

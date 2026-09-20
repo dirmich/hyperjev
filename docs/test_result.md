@@ -1644,6 +1644,29 @@ accepted coverage `100%`, safety action `4/4 (100%)`, safe STOP recall
 synthetic research gate만 통과하고 `production_ready=false`다. rule의 phrase
 coverage를 실제 simulator/human test의 일반화로 해석하지 않는다.
 
+### 14.32 Qwen/Gemma typed adjudication (v1.54.0)
+
+`control adjudicate`를 추가해 Qwen draft와 Gemma draft를 같은 queue SHA에
+묶고, registry schema로 다시 파싱한 뒤 typed value를 비교한다.
+
+```bash
+uv run hyperjev control adjudicate \
+  --queue runs/control/control-review-queue.jsonl \
+  --qwen-draft runs/control/qwen-control-draft.jsonl \
+  --gemma-draft runs/control/gemma-control-draft.jsonl \
+  --output runs/control/control-adjudicated.jsonl
+```
+
+8개 synthetic control row unit smoke에서 Qwen/Gemma 합의는 `7/8 (87.50%)`,
+disagreement는 `1/8 (12.50%)`였다. disagreement row는
+`normalized_result=null`이고 두 teacher의 typed result/status/latency가
+`teacher_comparison`에 남았다. review pack은 이 adjudication manifest를
+읽고 두 결과를 reviewer 화면에 표시한다.
+
+이 숫자는 synthetic template의 teacher agreement일 뿐 human 정확도가 아니다.
+특히 합의 결과도 human label을 채우지 않으며, 모든 production validation/test
+row는 human review와 `control materialize`를 거쳐야 한다.
+
 ### 14.31 control human review CLI (v1.53.0)
 
 control registry를 사용하는 review pack/session/apply 경로를 추가했다. 기존

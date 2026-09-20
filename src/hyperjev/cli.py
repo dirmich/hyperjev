@@ -29,7 +29,7 @@ from .dataset_factory import build_dataset, validate_dataset
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
 from .golden import append_golden_feedback, apply_golden_feedback, generate_review_queue
-from .golden_draft import generate_teacher_draft
+from .golden_draft import adjudicate_teacher_drafts, generate_teacher_draft
 from .mock_server import serve
 from .model_registry import STATUSES, ModelRegistry, build_model_manifest
 from .registry import RegistryError, TaskRegistry
@@ -450,6 +450,21 @@ def _control_apply_feedback(args: argparse.Namespace) -> int:
     registry = TaskRegistry.load(args.registry)
     report = apply_golden_feedback(args.queue, args.feedback, args.output, registry)
     print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _control_adjudicate(args: argparse.Namespace) -> int:
+    config = load_config(args.config)
+    registry = TaskRegistry.load(args.registry)
+    report = adjudicate_teacher_drafts(
+        config,
+        registry,
+        args.queue,
+        args.qwen_draft,
+        args.gemma_draft,
+        args.output,
+    )
+    print(json.dumps(report["manifest"], ensure_ascii=False))
     return 0
 
 
@@ -917,6 +932,14 @@ def build_parser() -> argparse.ArgumentParser:
     control_apply_feedback.add_argument("--feedback", required=True)
     control_apply_feedback.add_argument("--output", required=True)
     control_apply_feedback.set_defaults(handler=_control_apply_feedback)
+    control_adjudicate = control_subparsers.add_parser("adjudicate")
+    _config_argument(control_adjudicate)
+    control_adjudicate.add_argument("--registry", default="registry/control_tasks")
+    control_adjudicate.add_argument("--queue", required=True)
+    control_adjudicate.add_argument("--qwen-draft", required=True)
+    control_adjudicate.add_argument("--gemma-draft", required=True)
+    control_adjudicate.add_argument("--output", required=True)
+    control_adjudicate.set_defaults(handler=_control_adjudicate)
     control_train = control_subparsers.add_parser("train")
     control_train.add_argument("--registry", default="registry/control_tasks")
     control_train.add_argument("--dataset", required=True)

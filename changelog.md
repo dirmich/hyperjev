@@ -44,6 +44,15 @@
 - 8개 temporary row smoke에서 pack 8 items, reviewed 8/8, feedback 8건,
   apply `ready=true`를 확인했다. 실제 golden accuracy는 아직 산정하지 않았다.
 
+## 2026-09-21 — Qwen/Gemma typed adjudication (v1.54.0)
+
+- `control adjudicate`가 동일 queue의 Qwen/Gemma draft를 schema와 typed value로
+  비교한다. 합의만 silver 후보가 되고, disagreement/invalid/abstain은
+  normalized result를 비워 human review로 보낸다.
+- 8개 synthetic row smoke에서 agreement `7/8 (87.50%)`, disagreement
+  `1/8 (12.50%)`였다. 두 teacher 결과와 latency는 review pack에 표시되지만
+  human label로 자동 승격되지 않는다.
+
 ## 2026-09-21 — control counterfactual hard-negative queue (v1.49.0)
 
 - `hyperjev control hard-negative`가 STOP↔RETREAT, MOVE↔APPROACH,

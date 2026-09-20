@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.53.0
+현재 버전: 1.54.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -141,6 +141,22 @@ session은 state와 question을 표시하고 `a`(draft 수락), `e`(typed value�
 control 후보 밖의 값은 거부된다. reviewer가 teacher draft를 그대로 수락해도
 그 기록은 human feedback으로 남지만, 실제 운영에서는 위험 pair와
 teacher-disagreement를 우선 독립 확인한다.
+
+Qwen/Gemma를 모두 실행한 뒤에는 합의 결과만 silver 후보로 표시한다.
+
+```bash
+uv run hyperjev control adjudicate \
+  --queue runs/control/control-review-queue.jsonl \
+  --qwen-draft runs/control/qwen-control-draft.jsonl \
+  --gemma-draft runs/control/gemma-control-draft.jsonl \
+  --output runs/control/control-adjudicated.jsonl
+```
+
+두 teacher가 typed value까지 일치하면 `status=agreed`와 normalized result를
+남긴다. disagreement, schema invalid, abstain은 `normalized_result=null`로
+만들고 Qwen/Gemma 결과·latency·error를 comparison에 보존해 review-session에서
+human이 직접 value를 입력하게 한다. Gemma가 대답했다고 해서 human label이
+자동 생성되지 않는다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적
