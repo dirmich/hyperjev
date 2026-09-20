@@ -3084,3 +3084,32 @@ uv run hyperjev control review-status \
 `ready_for_materialize=false`이므로 exit code `1`이 정답이다. 이 명령은
 synthetic `target`, Qwen draft, Gemma draft를 human label로 취급하지 않는다.
 다음 gate는 blind dual-review와 strict materialize다.
+
+### 14.86 selected BOW safety replay (v1.109.0)
+
+최신 bilingual baseline인
+`/tmp/control-combined-korean-bow-balanced-100ep-v105.pt`를
+`tests/golden/control_safety_500.jsonl`에 재생했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| replay count | `500` |
+| unique scenario count | `500` |
+| action accuracy | `500/500 (100%)` |
+| expected safe STOP | `500` |
+| safe STOP recall | `500/500 (100%)` |
+| latency p50/p95/p99/max | `0.000864/0.000960/0.001440/0.008704ms` |
+| p95/p99 threshold | `5/5ms` |
+| latency gate | 통과 |
+
+실행 명령:
+
+```bash
+uv run hyperjev control simulate \
+  --checkpoint /tmp/control-combined-korean-bow-balanced-100ep-v105.pt \
+  --scenarios tests/golden/control_safety_500.jsonl \
+  --fail-on-mismatch --max-p95-ms 5 --max-p99-ms 5
+```
+
+500개 safety 결과는 synthetic/local replay이며 human accuracy, raw Korean OOD,
+DGX Spark concurrent throughput를 의미하지 않는다.

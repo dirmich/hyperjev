@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.108.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.109.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -89,6 +89,11 @@ v1.108.0에서는 `review-status`에 test-ready와 전체 materialize-ready stri
 gate를 추가했다. 현재 human label이 0/1000이면 명령이 실패하는 것이 정상이며,
 이 실패는 모델 실패가 아니라 사람 golden 없이 production 승격하지 않도록 하는
 품질 계약이다.
+
+v1.109.0에서는 선택된 BOW checkpoint를 500개 고유 safety scenario에 다시
+재생해 accuracy와 safe STOP recall 모두 100%, p99 0.001440ms를 확인했다. 이
+장에서는 이 safety replay를 human-labeled multilingual control accuracy와
+분리해 기록한다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

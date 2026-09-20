@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.108.0
+현재 버전: 1.109.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1255,3 +1255,23 @@ dual-review provenance는 이후 `control materialize --require-dual-review`가
 다음 정확도 상승 단계는 이 gate를 통과할 수 있도록 두 독립 reviewer의 blind
 label을 수집하고, disagreement를 adjudicate한 뒤 human-only checkpoint를
 재학습하는 것이다.
+
+### v1.109.0 selected BOW safety replay
+
+현재 bilingual baseline인 v1.105 BOW checkpoint를 500개 고유 safety scenario에
+재생했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| scenario count | `500` |
+| unique scenario count | `500` |
+| action accuracy | `500/500 (100%)` |
+| expected safe STOP | `500` |
+| safe STOP recall | `500/500 (100%)` |
+| latency p50/p95/p99/max | `0.000864/0.000960/0.001440/0.008704ms` |
+| p95/p99 5ms gate | 통과 |
+
+이 결과는 deterministic safety rule/interlock과 local CPU sequential latency를
+검증한다. raw Student multilingual OOD와 human test accuracy는 별도 gate이며,
+human label은 여전히 `0/1000`이다. DGX Spark concurrent GPU load test와 실제
+robot/game closed-loop test는 아직 수행하지 않았다.

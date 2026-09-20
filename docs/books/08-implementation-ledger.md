@@ -142,6 +142,7 @@
 | 1.106.0 | 진행 중 | Korean HOLD/vocabulary ablation 비교, latency·정확도 gate로 후보 폐기 |
 | 1.107.0 | 진행 중 | raw/integrated 측정 경계 정정, char/hybrid BOW ablation 및 후보 폐기 |
 | 1.108.0 | 진행 중 | review-status test/materialize readiness strict exit-code gate |
+| 1.109.0 | 진행 중 | 선택 BOW checkpoint의 500-case 고유 safety replay와 latency gate |
 
 ## 다음 기록 규칙
 

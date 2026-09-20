@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — selected BOW safety replay (v1.109.0)
+
+- 선택된 v1.105 BOW checkpoint를 `control simulate`로 500개 고유 safety
+  scenario에 재생했다.
+- 결과는 accuracy `500/500`, expected safe STOP `500`, safe STOP recall
+  `500/500`, unique scenario `500`이었다.
+- local CPU sequential latency는 p95 `0.000960ms`, p99 `0.001440ms`, max
+  `0.008704ms`였고 5ms p95/p99 gate를 통과했다.
+- 이는 safety interlock과 local replay 증거다. Korean raw OOD `36/40`과
+  human-labeled production accuracy `0/1000`을 대체하지 않는다.
+
 ## 2026-09-21 — enforce human review readiness from CLI (v1.108.0)
 
 - `control review-status --require-test-ready`를 추가해 held-out test 전체가
