@@ -36,6 +36,11 @@ _EXPLICIT_STOP_SIGNALS = (
     "emergency collision risk",
     "emergency hazard is detected inside the collision zone",
     "sensor reports an emergency collision risk",
+    "collision may occur",
+    "imminent impact",
+    "stopping distance",
+    "wall blocks the vehicle",
+    "brake before contact",
     "충돌 위험이 즉시 발생해 정지가 필수다",
     "충돌 구역 안에서 비상 위험이 감지됐다",
     "장애물이 바로 앞",
@@ -54,6 +59,11 @@ _CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
             ("reachable target", "getting closer"),
             ("reachable target", "locked directly ahead"),
             ("object is still far", "approached first"),
+            ("close the gap", "visible marker"),
+            ("move nearer", "selected object"),
+            ("destination is visible", "still distant"),
+            ("reduce distance", "goal"),
+            ("go toward", "locked target"),
             ("목표가 앞에 있고", "접근"),
             ("접근 가능한 목표", "가까워지고"),
             ("물체가 아직 멀어", "먼저 접근"),
@@ -66,6 +76,11 @@ _CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
             ("pose is stable", "no hazard is present"),
             ("wait safely", "next sensor update"),
             ("stable pose", "maintained"),
+            ("remain stationary", "scene is stable"),
+            ("keep the current pose", "another command"),
+            ("wait in place", "sensors refresh"),
+            ("no motion is needed", "stable waypoint"),
+            ("stay still", "no immediate hazard"),
             ("자세가 안정적이고", "새 명령이 없다"),
             ("센서 업데이트까지", "안전하게 기다린다"),
             ("안정된 자세", "유지"),
@@ -79,6 +94,11 @@ _CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
             ("corridor is clear", "continue forward"),
             ("free space is available", "route"),
             ("heading is aligned", "open route", "straight ahead"),
+            ("advance through", "unobstructed hallway"),
+            ("continue forward", "open route"),
+            ("clear path",),
+            ("forward navigation", "free space"),
+            ("proceed straight", "corridor"),
             ("통로가 비어 있어", "앞으로 움직일"),
             ("경로에 자유 공간",),
         ),
@@ -89,6 +109,11 @@ _CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
             ("heading is wrong", "turn space is clear"),
             ("turn toward", "next waypoint"),
             ("heading is wrong", "clear turn"),
+            ("reorient toward", "corridor"),
+            ("turn left", "waypoint"),
+            ("change heading", "junction"),
+            ("route requires", "turn"),
+            ("rotate in place", "face the goal"),
             ("방향이 틀렸고", "회전 공간"),
             ("웨이포인트 방향으로", "회전"),
         ),
@@ -99,6 +124,11 @@ _CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
             ("hazard is approaching", "move away"),
             ("safe space behind",),
             ("reverse away", "blocked area"),
+            ("back up", "moving obstacle"),
+            ("increase distance", "approaching hazard"),
+            ("reverse into", "safe rear"),
+            ("withdraw from", "blocked front"),
+            ("move backward", "escape the danger"),
             ("위험이 다가오므로", "멀어져야"),
             ("뒤쪽에 안전한 공간",),
             ("위험이 다가오지만", "뒤의 빈 경로는 안전하다"),
@@ -110,6 +140,11 @@ _CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
             ("aligned object", "within reach"),
             ("nearby switch", "ready to activate"),
             ("button is aligned", "within hand reach"),
+            ("press", "button"),
+            ("grasp", "handle"),
+            ("activate", "switch"),
+            ("touch", "reachable object"),
+            ("pick up", "selected item"),
             ("정렬된 물체", "손이 닿는 거리"),
             ("근처 스위치", "작동할 준비"),
             ("버튼이 정렬됐고", "손이 닿는 거리에 있다"),
@@ -121,6 +156,11 @@ _CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
             ("localization is lost", "recovery is needed"),
             ("localization is lost", "no collision risk is present"),
             ("controller reports", "balance fault"),
+            ("reinitialize", "pose estimation failure"),
+            ("restore balance", "fall"),
+            ("lost localization",),
+            ("reset", "navigation fault"),
+            ("recover from", "unstable state"),
             ("robot needs to regain balance",),
             ("위치를 잃어", "복구가 필요"),
             ("제어기가 균형 오류",),
@@ -442,11 +482,15 @@ class ControlStudentClient:
         *,
         policy: ControlSafetyPolicy | None = None,
         calibration_path: str | Path | None = None,
+        enable_fast_path: bool = True,
         device: str = "cpu",
     ) -> None:
         from .student_client import StudentClient
 
         self.policy = policy or ControlSafetyPolicy()
+        if not isinstance(enable_fast_path, bool):
+            raise ControlContractError("enable_fast_path must be a boolean")
+        self.enable_fast_path = enable_fast_path
         self._client = StudentClient(
             checkpoint_path,
             registry,
@@ -465,16 +509,17 @@ class ControlStudentClient:
             return safe_stop(reason="invalid_clock")
         if now_ms - observation.timestamp_ms > self.policy.max_observation_age_ms:
             return safe_stop(reason="stale_observation")
-        if explicit_stop_signal(observation.state):
-            return explicit_stop_action()
-        fast_path_action = deterministic_control_action(observation.state)
-        if fast_path_action is not None:
-            return apply_safety_policy(
-                observation,
-                fast_path_action,
-                now_ms=now_ms,
-                policy=self.policy,
-            )
+        if self.enable_fast_path:
+            if explicit_stop_signal(observation.state):
+                return explicit_stop_action()
+            fast_path_action = deterministic_control_action(observation.state)
+            if fast_path_action is not None:
+                return apply_safety_policy(
+                    observation,
+                    fast_path_action,
+                    now_ms=now_ms,
+                    policy=self.policy,
+                )
         try:
             completion = self._client.complete_decision(
                 self._task,

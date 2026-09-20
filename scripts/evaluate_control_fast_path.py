@@ -142,6 +142,7 @@ def evaluate_runtime(
     registry_path: str | Path = "registry/control_tasks",
     *,
     device: str = "cpu",
+    enable_fast_path: bool = True,
 ) -> dict[str, Any]:
     """Replay the integrated rule -> Student -> safety runtime on a queue."""
 
@@ -149,7 +150,12 @@ def evaluate_runtime(
     checkpoint = Path(checkpoint_path)
     rows = _load_rows(queue)
     registry = TaskRegistry.load(registry_path)
-    client = ControlStudentClient(checkpoint, registry, device=device)
+    client = ControlStudentClient(
+        checkpoint,
+        registry,
+        enable_fast_path=enable_fast_path,
+        device=device,
+    )
     latencies_us: list[float] = []
     source_counts: dict[str, int] = {}
     source_latencies_us: dict[str, list[float]] = {}
@@ -189,6 +195,7 @@ def evaluate_runtime(
     return {
         "checkpoint": str(checkpoint.resolve()),
         "checkpoint_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+        "runtime_mode": "integrated" if enable_fast_path else "model_only_with_safety_policy",
         "row_count": row_count,
         "source_counts": dict(sorted(source_counts.items())),
         "synthetic_target": {
@@ -225,6 +232,11 @@ def main() -> int:
     parser.add_argument("--checkpoint", type=Path, help="also replay the integrated runtime")
     parser.add_argument("--registry", type=Path, default=Path("registry/control_tasks"))
     parser.add_argument("--device", default="cpu")
+    parser.add_argument(
+        "--model-only",
+        action="store_true",
+        help="disable deterministic control rules while keeping safety policy",
+    )
     parser.add_argument("--require-full-coverage", action="store_true")
     args = parser.parse_args()
     report = evaluate_fast_path(args.queue)
@@ -234,6 +246,7 @@ def main() -> int:
             args.checkpoint,
             args.registry,
             device=args.device,
+            enable_fast_path=not args.model_only,
         )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — compositional OOD model-only gate (v1.77.0)
+
+- 40개 unique group의 hand-authored compositional OOD fixture를 추가했다.
+  validator는 cross-split leakage `0`과 human labels `0/40`을 확인했다.
+- reference Student model-only replay는 정확도 `4/40 (10%)`, STOP recall `0/5`였다.
+  deterministic fast path를 포함한 integrated runtime은 정확도 `40/40 (100%)`,
+  STOP recall `5/5 (100%)`, runtime p95 `22.480µs`였다.
+- integrated 100%를 model accuracy로 승격하지 않는다. 이는 규칙/모델/safety
+  경계를 분리해 측정하는 synthetic gate이며, 다음 단계는 human golden review다.
+- 검증: 전체 suite, OOD validator, model-only/integrated replay, Ruff, diff check.
+
 ## 2026-09-21 — source-specific runtime latency (v1.76.0)
 
 - runtime fast-path evaluator에 source별 latency 통계를 추가했다. aggregate만

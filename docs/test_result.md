@@ -2292,3 +2292,29 @@ runtime 전체 synthetic target match와 STOP recall은 각각 `800/800 (100%)`�
 Student CPU checkpoint이며, p99 outlier는 실제 DGX GPU/e2e motor loop의 대표값이
 아니다. Qwen teacher의 약 2초대 latency와 비교할 때도 서로 다른 경로이므로
 parent-versus-student 결론으로 합치지 않는다.
+
+### 14.55 compositional OOD model-only vs integrated (v1.77.0)
+
+known template queue가 아닌 40개 compositional OOD 문장을 별도 fixture로 고정했다.
+fixture SHA는 `1d67466d89d265fdbcafd7ceb0c73edd1dc800d987df1178cffcb51dea0d7919`이고,
+40개 unique episode/semantic group, cross-split leakage `0`, human label `0/40`이다.
+
+model-only 재현:
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue tests/golden/control_ood_synthetic.jsonl \
+  --checkpoint /tmp/control-combined-token-100ep.pt \
+  --model-only
+```
+
+| mode | accuracy | STOP recall | p95 | human gate |
+| --- | ---: | ---: | ---: | ---: |
+| model-only + safety policy | 4/40 (10.00%) | 0/5 (0.00%) | 2,506.615µs | false |
+| integrated fast path + Student + safety | 40/40 (100.00%) | 5/5 (100.00%) | 22.480µs | false |
+
+model-only source는 `hyperjev-control=22`, `safety=18`이었다. integrated source는
+`control-rule=35`, `safety-rule=5`이며 Student fallback은 없었다. 이 결과는
+현재 encoder + typed head checkpoint가 새로운 표현을 일반화하지 못한다는 직접
+증거이며, fast path가 100%를 만들었다고 해서 모델 정확도가 100%가 아니다.
+40개 target은 synthetic hand-authored label이므로 상용 99% gate는 여전히 미통과다.

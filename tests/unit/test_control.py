@@ -94,6 +94,75 @@ class ControlContractTests(unittest.TestCase):
             )
         )
 
+    def test_control_fast_path_covers_compositional_ood_phrases(self) -> None:
+        cases = {
+            "STOP": (
+                "a collision may occur within one meter",
+                "the front lidar reports an imminent impact",
+                "danger is inside the stopping distance",
+                "a sudden wall blocks the vehicle",
+            ),
+            "HOLD": (
+                "remain stationary because the scene is stable",
+                "keep the current pose until another command arrives",
+                "wait in place while sensors refresh",
+                "no motion is needed at this stable waypoint",
+                "stay still with no immediate hazard",
+            ),
+            "MOVE": (
+                "advance through the unobstructed hallway",
+                "continue forward along the open route",
+                "travel toward the next waypoint on the clear path",
+                "forward navigation is safe in free space",
+                "proceed straight through the corridor",
+            ),
+            "ROTATE": (
+                "reorient toward the east corridor",
+                "turn left to align with the waypoint",
+                "change heading at the junction",
+                "the next route requires a ninety degree turn",
+                "rotate in place to face the goal",
+            ),
+            "APPROACH": (
+                "close the gap to the visible marker",
+                "move nearer to the selected object",
+                "the destination is visible but still distant",
+                "reduce distance to the goal safely",
+                "go toward the locked target",
+            ),
+            "RETREAT": (
+                "back up from the moving obstacle",
+                "increase distance from the approaching hazard",
+                "reverse into the safe rear area",
+                "withdraw from the blocked front",
+                "move backward to escape the danger",
+            ),
+            "INTERACT": (
+                "press the illuminated button",
+                "grasp the aligned handle",
+                "activate the switch beside the robot",
+                "touch the reachable object",
+                "pick up the selected item",
+            ),
+            "RECOVER": (
+                "reinitialize after pose estimation failure",
+                "restore balance after a fall",
+                "the controller lost localization",
+                "reset the navigation fault",
+                "recover from the unstable state",
+            ),
+        }
+        for expected, states in cases.items():
+            for state in states:
+                with self.subTest(expected=expected, state=state):
+                    if expected == "STOP":
+                        self.assertTrue(explicit_stop_signal(state))
+                        continue
+                    action = deterministic_control_action(state)
+                    self.assertIsNotNone(action)
+                    assert action is not None
+                    self.assertEqual(action.skill, expected)
+
     def test_low_confidence_and_long_ttl_are_rejected(self) -> None:
         policy = ControlSafetyPolicy(minimum_confidence=0.95, max_action_ttl_ms=100)
         low_confidence = ControlAction(skill="MOVE", confidence=0.8, ttl_ms=50)
@@ -310,6 +379,30 @@ class ControlContractTests(unittest.TestCase):
         self.assertFalse(called)
         self.assertEqual(action.skill, "APPROACH")
         self.assertEqual(action.source, "control-rule")
+
+    def test_control_student_can_disable_fast_path_for_model_only_measurement(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        config = StudentConfig(model_id="control-model-only-test", backbone="reference-ngram-encoder", precision="fp32")
+        model = build_torch_model(registry, config)
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "control.pt"
+            torch.save(
+                {"student": student_manifest(registry, config), "model_state_dict": model.state_dict()},
+                checkpoint,
+            )
+            client = ControlStudentClient(checkpoint, registry, enable_fast_path=False)
+            observation = ControlObservation(
+                observation_id="model-only-frame",
+                state="the reachable target is locked directly ahead",
+                domain="simulation",
+                timestamp_ms=1000.0,
+            )
+            action = client.decide(observation, now_ms=1001.0)
+        self.assertNotEqual(action.source, "control-rule")
 
 
 if __name__ == "__main__":

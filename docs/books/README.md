@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.76.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.77.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -158,6 +158,12 @@ reference Student fallback은 p50/p95/p99 `293.486/421.518/2972.318µs`였고,
 control-rule p95는 `14.112µs`였다. 이 차이는 teacher가 아니라 local Student
 fallback 비용이며, human golden과 GPU/e2e gate가 없으므로 production 수치가
 아니다.
+
+v1.77.0에서는 40개 compositional OOD fixture에서 model-only 정확도 `10%`,
+STOP recall `0%`와 integrated runtime 정확도 `100%`, STOP recall `100%`를
+나란히 측정했다. 이 차이는 fast path가 모델 오류를 가리는 것이 아니라 안전
+경계의 일부라는 사실을 보여준다. fixture는 synthetic/human `0/40`이므로
+production 정확도 증거가 아니다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

@@ -110,6 +110,7 @@
 | 1.74.0 | 진행 중 | reproducible fast-path evaluator와 queue SHA/latency/human gate report |
 | 1.75.0 | 진행 중 | checkpoint-backed integrated runtime replay와 safety/source report |
 | 1.76.0 | 진행 중 | runtime source별 fallback latency report와 seed replay |
+| 1.77.0 | 진행 중 | compositional OOD fixture와 model-only/integrated 정확도 분리 gate |
 
 ## 다음 기록 규칙
 

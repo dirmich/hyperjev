@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.76.0
+현재 버전: 1.77.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -278,6 +278,17 @@ Student의 p50/p95/p99는 `293.486/421.518/2972.318µs`였다. fast path의
 reference Student CPU replay이며, Qwen/Gemma teacher latency나 GPU production
 latency가 아니다. seed synthetic target/STOP recall은 100%였지만 human label은
 0건이므로 production gate는 false다.
+
+v1.77.0에서는 hand-authored compositional OOD fixture 40개를 추가하고
+model-only와 integrated runtime을 분리 측정했다. fixture SHA는
+`1d67466d89d265fdbcafd7ceb0c73edd1dc800d987df1178cffcb51dea0d7919`이며,
+40개 unique group과 cross-split leakage 0건이다. reference Student만 사용한
+`model_only_with_safety_policy`는 `4/40 (10%)`, STOP recall `0/5 (0%)`, p95
+`2506.615µs`였다. deterministic fast path를 포함한 integrated runtime은
+`40/40 (100%)`, STOP `5/5 (100%)`, p95 `22.480µs`였다. 따라서 integrated
+100%를 Student 모델 정확도로 부르지 않으며, human label `0/40`이라 production
+gate는 false다. 다음 정확도 개선은 이 OOD 의미쌍을 human golden으로 전환한 뒤
+encoder/head 학습과 독립 test에서 재검증하는 것이다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적
