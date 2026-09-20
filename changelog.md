@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — wire pair-aware priority through control CLI (v1.66.0)
+
+- `control review-pack --prioritize`가 실제 `export_review_pack` 호출까지
+  priority 옵션을 전달하도록 연결했다.
+- v1.65.0 helper/unit 경로는 통과했지만 CLI handler가 옵션을 누락한 것을 실제
+  1,000-sample smoke에서 발견해 수정했다.
+- 실데이터 검증 결과 `priority_order=uncertain_first`, 500개 pair adjacency
+  violation `0`, target/labels leakage `false`다.
+- 검증: parser 포함 review 테스트 8개, 실제 CLI pack 생성, Ruff, diff check 통과.
+
 ## 2026-09-21 — counterfactual pair-aware review ordering (v1.65.0)
 
 - review pack이 hard-negative의 `counterfactual_group_id`, `pair_side` 등

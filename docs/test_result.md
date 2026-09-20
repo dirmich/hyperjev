@@ -2015,3 +2015,21 @@ uv run hyperjev control review-pack \
   --output /tmp/qwen-control-hard-review-pack-prioritized.jsonl \
   --allow-raw --prioritize
 ```
+
+### 14.44 control CLI priority wiring (v1.66.0)
+
+v1.66.0에서 실제 `control review-pack` handler가 `--prioritize`를 helper까지
+전달하도록 수정했다. Qwen hard-negative artifact 1,000건을 실제 CLI로 다시
+생성한 결과는 다음과 같다.
+
+| 검증 | 결과 |
+| --- | ---: |
+| `priority_order` | `uncertain_first` |
+| item count | 1,000 |
+| unique counterfactual groups | 500 |
+| pair adjacency violations | 0 |
+| target/labels leakage | false |
+| parser priority flag | passed |
+
+이 결과는 unit helper만이 아니라 사용자가 호출하는 `control` CLI 경로까지
+priority 정책이 적용됨을 증명한다.

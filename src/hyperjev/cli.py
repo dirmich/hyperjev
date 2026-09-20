@@ -431,6 +431,7 @@ def _control_review_pack(args: argparse.Namespace) -> int:
         args.output,
         registry,
         include_raw=args.allow_raw,
+        prioritize=args.prioritize,
     )
     print(json.dumps(report["manifest"], ensure_ascii=False))
     return 0

@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.65.0까지 진행되어 있다. Python 테스트 123개와
+현재 `main`은 origin에 push될 1.66.0까지 진행되어 있다. Python 테스트 124개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -98,6 +98,12 @@ priority 정렬 시 counterfactual group 전체를 연속 배치했다. 따라�
 다음 500개 뒤에 반대쪽을 보는 검수 순서를 피할 수 있다. target과 labels는 여전히
 pack에서 제외되므로, 이 기능은 human 검수 품질과 일관성을 높이는 장치이지
 pseudo-label 생성기가 아니다.
+
+v1.66.0에서는 실제 `control review-pack` CLI handler가 `--prioritize`를
+`export_review_pack`까지 전달하는지 고쳤다. Qwen hard-negative 1,000건을 실제로
+재생성해 `uncertain_first`, 500 pair, adjacency violation 0, target/labels
+누출 false를 확인했다. 이 smoke가 helper만 통과하고 CLI가 queue order를 내는
+회귀를 잡았으므로 이후 단계의 운영 검증 기준에 포함한다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

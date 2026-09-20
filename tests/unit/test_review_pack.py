@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from hyperjev.cli import build_parser
 from hyperjev.config import load_config
 from hyperjev.control_data import generate_control_hard_negative_queue
 from hyperjev.golden import generate_review_queue
@@ -13,6 +14,23 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ReviewPackTests(unittest.TestCase):
+    def test_control_review_pack_exposes_priority_flag(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-pack",
+                "--queue",
+                "queue.jsonl",
+                "--draft",
+                "draft.jsonl",
+                "--output",
+                "pack.jsonl",
+                "--allow-raw",
+                "--prioritize",
+            ]
+        )
+        self.assertTrue(args.prioritize)
+
     def test_teacher_priority_puts_invalid_repaired_and_low_confidence_first(self) -> None:
         invalid = {"sample_id": "invalid", "teacher": {"schema_valid": False}}
         repaired = {

@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.65.0
+현재 버전: 1.66.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -157,6 +157,12 @@ v1.65.0부터 hard-negative의 `counterfactual_group_id`를 priority group으로
 `semantic_group_id`, `counterfactual_group_id`, `pair_side`만 복사하고 target과
 labels는 복사하지 않는다. 따라서 사람이 두 상태/question을 연속으로 비교할 수
 있지만 synthetic 정답을 보거나 pair의 정답을 추론하도록 유도하지 않는다.
+
+v1.66.0에서 이 옵션을 `control review-pack` handler까지 연결하고 실제 Qwen
+hard-negative 1,000건으로 검증했다. manifest는 `uncertain_first`, unique
+counterfactual group은 500개, pair adjacency violation은 0개였으며 review pack
+전체에 target/labels token이 없었다. 앞으로 CLI smoke는 helper 단위 테스트가
+아니라 이 manifest와 leakage 결과까지 확인해야 한다.
 
 Qwen/Gemma를 모두 실행한 뒤에는 합의 결과만 silver 후보로 표시한다.
 
