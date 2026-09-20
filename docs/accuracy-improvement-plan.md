@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.98.0
+현재 버전: 1.99.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1035,3 +1035,24 @@ v1.97의 batch 기능을 실제 `/tmp` control review pack에 실행해
 사람 label을 만들지 않으며, batch가 실제 control handler까지 전달되는지를 검증한다.
 추가 handler forwarding unit test로 generic `golden review-session`과 control
 `review-session`의 인자 경로를 분리해 고정했다.
+
+### v1.99.0 review progress and held-out readiness status
+
+사람 검수가 실제로 진행됐는지 추정하지 않도록 `control review-status`를
+추가했다. 이 명령은 feedback append-only stream의 queue digest, 전체 coverage,
+train/validation/test별 pending 수, 사람이 선택한 action별 count를 출력한다.
+synthetic `target`, Qwen, Gemma 결과를 정답으로 사용하거나 report에 복사하지
+않는다.
+
+```bash
+uv run hyperjev control review-status \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --feedback /tmp/control-feedback.jsonl
+```
+
+현재 실제 artifact 상태는 `sample_count=1000`, `reviewed_count=0`,
+`pending_count=1000`, validation `100`, test `100`, `test_ready=false`,
+`ready_for_materialize=false`다. 따라서 다음 판단은 명확하다. test split 100개를
+독립적으로 label하고, 전체 queue를 완료한 후에만 materialize와 human-only
+training으로 넘어간다. status 명령은 정확도를 대신하지 않으며, 단지 human gate의
+외부 상태를 재현 가능하게 관측한다.

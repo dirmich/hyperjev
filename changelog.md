@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — review progress and held-out readiness status (v1.99.0)
+
+- `control review-status`를 추가해 feedback queue의 전체/분할별 coverage,
+  action별 human count, `test_ready`, `ready_for_materialize`를 출력한다.
+- 현재 실제 hard-negative queue 1,000개는 `reviewed=0`, `pending=1000`,
+  validation pending `100`, test pending `100`이다.
+- 이 명령은 synthetic target과 teacher prediction을 읽어 정답으로 만들지 않으며,
+  human-label gate의 외부 상태만 검증한다.
+
 ## 2026-09-21 — verify control batch handler wiring (v1.98.0)
 
 - v1.97에서 추가한 `--offset`/`--limit`이 control handler에 실제 전달되도록

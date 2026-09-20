@@ -7,13 +7,18 @@ from unittest.mock import patch
 from hyperjev import cli as cli_module
 from hyperjev.cli import build_parser
 from hyperjev.config import load_config
-from hyperjev.control_data import generate_control_hard_negative_queue
+from hyperjev.control_data import (
+    CONTROL_SKILLS,
+    generate_control_hard_negative_queue,
+    generate_control_review_queue,
+)
 from hyperjev.golden import append_golden_feedback, apply_golden_feedback, generate_review_queue
 from hyperjev.registry import TaskRegistry
 from hyperjev.review_pack import (
     _prioritize_review_items,
     _teacher_priority,
     compare_control_reviews,
+    control_review_status,
     export_review_pack,
     finalize_control_reviews,
     format_control_review_action_summary,
@@ -94,6 +99,37 @@ class ReviewPackTests(unittest.TestCase):
             args.handler(args)
         self.assertEqual(review_session.call_args.kwargs["batch_offset"], 50)
         self.assertEqual(review_session.call_args.kwargs["batch_limit"], 25)
+
+    def test_control_review_status_reports_split_and_action_progress(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            feedback = root / "feedback.jsonl"
+            generate_control_review_queue(queue, registry, count_per_skill=1, seed=7)
+            first = json.loads(queue.read_text(encoding="utf-8").splitlines()[0])
+            append_golden_feedback(
+                queue,
+                feedback,
+                registry,
+                sample_id=first["sample_id"],
+                correction={
+                    "type": "choice",
+                    "selected": "STOP",
+                    "probabilities": {skill: float(skill == "STOP") for skill in CONTROL_SKILLS},
+                    "abstained": False,
+                },
+                reviewer="human-a",
+                reason="test review",
+            )
+            report = control_review_status(queue, feedback, registry)
+
+        self.assertEqual(report["sample_count"], 8)
+        self.assertEqual(report["reviewed_count"], 1)
+        self.assertEqual(report["pending_count"], 7)
+        self.assertEqual(report["reviewed_by_action"], {"STOP": 1})
+        self.assertFalse(report["ready_for_materialize"])
+        self.assertFalse(report["test_ready"])
 
     def test_review_session_limits_deterministic_blind_batches(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")

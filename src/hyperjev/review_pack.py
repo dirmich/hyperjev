@@ -414,6 +414,65 @@ def _validated_feedback_by_sample(
     return latest
 
 
+def control_review_status(
+    queue_path: str | Path,
+    feedback_path: str | Path,
+    registry: TaskRegistry,
+) -> dict[str, Any]:
+    """Report human-review progress without reading synthetic targets."""
+
+    queue = Path(queue_path)
+    feedback = Path(feedback_path)
+    samples = load_jsonl(queue, registry)
+    latest = _validated_feedback_by_sample(feedback, queue, registry)
+    total_by_split: dict[str, int] = {}
+    reviewed_by_split: dict[str, int] = {}
+    reviewed_by_action: dict[str, int] = {}
+    for sample in samples:
+        split = str(sample.provenance.get("split", "unknown"))
+        total_by_split[split] = total_by_split.get(split, 0) + 1
+        if sample.sample_id not in latest:
+            continue
+        reviewed_by_split[split] = reviewed_by_split.get(split, 0) + 1
+        correction = latest[sample.sample_id]["correction"]
+        if correction.get("type") == "choice":
+            action = str(correction.get("selected", ""))
+        elif correction.get("type") == "boolean":
+            action = str(bool(correction.get("value"))).lower()
+        else:
+            action = str(correction.get("type", "unknown"))
+        reviewed_by_action[action] = reviewed_by_action.get(action, 0) + 1
+    reviewed_count = len(latest)
+    sample_count = len(samples)
+    by_split = {
+        split: {
+            "count": count,
+            "reviewed_count": reviewed_by_split.get(split, 0),
+            "pending_count": count - reviewed_by_split.get(split, 0),
+            "coverage": round(reviewed_by_split.get(split, 0) / count, 6),
+        }
+        for split, count in sorted(total_by_split.items())
+    }
+    test = by_split.get("test", {"count": 0, "reviewed_count": 0, "pending_count": 0})
+    return {
+        "record_type": "control_review_status",
+        "queue_path": str(queue.resolve()),
+        "queue_sha256": hashlib.sha256(queue.read_bytes()).hexdigest(),
+        "feedback_path": str(feedback.resolve()),
+        "feedback_sha256": hashlib.sha256(feedback.read_bytes()).hexdigest()
+        if feedback.exists()
+        else None,
+        "sample_count": sample_count,
+        "reviewed_count": reviewed_count,
+        "pending_count": sample_count - reviewed_count,
+        "coverage": round(reviewed_count / sample_count, 6) if sample_count else 0.0,
+        "by_split": by_split,
+        "reviewed_by_action": dict(sorted(reviewed_by_action.items())),
+        "test_ready": bool(test["count"] and test["pending_count"] == 0),
+        "ready_for_materialize": reviewed_count == sample_count,
+    }
+
+
 def _correction_signature(correction: dict[str, Any]) -> str:
     return json.dumps(correction, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 

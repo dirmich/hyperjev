@@ -132,6 +132,7 @@
 | 1.96.0 | 진행 중 | 고유 episode/group을 포함한 재현 가능한 500-case safety matrix와 scenario ID 중복 방지 추가 |
 | 1.97.0 | 진행 중 | blind human review의 결정론적 offset/limit batch와 전체·배치 progress report 추가 |
 | 1.98.0 | 진행 중 | control review-session batch handler forwarding 교정과 실제 1,000-row smoke 검증 |
+| 1.99.0 | 진행 중 | review-status로 전체/분할 human coverage와 held-out test readiness 관측 추가 |
 
 ## 다음 기록 규칙
 

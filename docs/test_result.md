@@ -2807,3 +2807,30 @@ handler가 아니라 control handler로 전달되는지 unit test와 실제 pack
 
 이 smoke는 CLI wiring과 batch 범위만 검증한다. control 정확도나 human target의
 존재를 의미하지 않는다.
+
+### 14.76 review progress and held-out readiness status (v1.99.0)
+
+실행 명령:
+
+```bash
+uv run hyperjev control review-status \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --feedback /tmp/control-feedback-not-created.jsonl
+```
+
+실제 결과:
+
+| 항목 | 결과 |
+| --- | ---: |
+| queue sample count | `1,000` |
+| reviewed count | `0` |
+| pending count | `1,000` |
+| train pending | `800` |
+| validation pending | `100` |
+| test pending | `100` |
+| test ready | `false` |
+| ready for materialize | `false` |
+| teacher/synthetic target 사용 | 없음 |
+
+이 결과는 현재 human-label 외부 상태를 명확히 고정한다. control action accuracy
+99%는 아직 측정되지 않았고, safety 500/500 결과만으로 대체하지 않는다.

@@ -37,6 +37,7 @@ from .model_registry import STATUSES, ModelRegistry, build_model_manifest
 from .registry import RegistryError, TaskRegistry
 from .review_pack import (
     compare_control_reviews,
+    control_review_status,
     export_review_pack,
     finalize_control_reviews,
     format_control_review_action_summary,
@@ -476,6 +477,13 @@ def _control_review_pack(args: argparse.Namespace) -> int:
         focus_actions=focus_actions or None,
     )
     print(json.dumps(report["manifest"], ensure_ascii=False))
+    return 0
+
+
+def _control_review_status(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = control_review_status(args.queue, args.feedback, registry)
+    print(json.dumps(report, ensure_ascii=False))
     return 0
 
 
@@ -1081,6 +1089,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="maximum action agreement rate for manifest-driven focus (default: 0.98)",
     )
     control_review_pack.set_defaults(handler=_control_review_pack)
+    control_review_status_parser = control_subparsers.add_parser("review-status")
+    control_review_status_parser.add_argument("--registry", default="registry/control_tasks")
+    control_review_status_parser.add_argument("--queue", required=True)
+    control_review_status_parser.add_argument("--feedback", required=True)
+    control_review_status_parser.set_defaults(handler=_control_review_status)
     control_review_session = control_subparsers.add_parser("review-session")
     control_review_session.add_argument("--registry", default="registry/control_tasks")
     control_review_session.add_argument("--review-pack", required=True)
