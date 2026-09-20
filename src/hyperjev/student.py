@@ -112,7 +112,10 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
                 for index, spec in enumerate(specs)
             }
             self.embedding = nn.Embedding(selected.vocab_size, selected.hidden_size)
-            self.use_ngram_encoder = selected.backbone == "reference-ngram-encoder"
+            self.use_ngram_encoder = selected.backbone in {
+                "reference-ngram-encoder",
+                "reference-token-encoder",
+            }
             if self.use_ngram_encoder:
                 self.ngram_encoder = nn.Sequential(
                     nn.Conv1d(

@@ -89,6 +89,7 @@ class StudentContractTests(unittest.TestCase):
             import torch
         except ImportError:
             self.skipTest("PyTorch is optional")
+        self.assertIsNotNone(torch)
         model = build_torch_model(
             self.registry,
             StudentConfig(backbone="reference-ngram-encoder", precision="fp32"),
@@ -99,6 +100,18 @@ class StudentContractTests(unittest.TestCase):
             torch.ones((1, 16), dtype=torch.long),
         )
         self.assertEqual(output["type"], "boolean")
+
+    def test_reference_token_encoder_uses_local_feature_path(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        self.assertIsNotNone(torch)
+        model = build_torch_model(
+            self.registry,
+            StudentConfig(backbone="reference-token-encoder", precision="fp32"),
+        )
+        self.assertTrue(model.use_ngram_encoder)
 
     def test_student_evaluation_reports_accuracy_and_guarded_coverage(self) -> None:
         try:

@@ -1408,3 +1408,33 @@ uv run hyperjev control simulate \
 상태/로봇 sensor distribution의 정확도나 collision-free 주행을 증명하지
 않으므로, 다음 단계에서는 simulator episode와 실제 controller telemetry를
 같은 report에 추가해야 한다.
+
+### 14.21 accuracy evaluator와 token encoder 실험 (v1.43.0)
+
+정확도 개선을 임의의 train accuracy나 confidence 숫자로 판단하지 않도록
+다음 evaluator를 고정했다.
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint runs/control/control-student-48-300.pt
+```
+
+이 명령은 validation/test의 전체 accuracy, confidence gate 이후 accepted
+accuracy와 coverage/fallback, safety scenario의 action accuracy와 safe STOP
+recall을 함께 계산한다. report에는 dataset/checkpoint SHA-256, split row 수,
+unique exact group 수, human label 수를 기록한다. 기준은 두 split 모두
+99% 이상, safe STOP recall 100%이며, 낮은 coverage로 정확도를 포장하지 않는다.
+
+| checkpoint | validation | test | safety STOP recall | 판정 |
+| --- | ---: | ---: | ---: | --- |
+| `control-student-48-300.pt` byte/ngram | 3/8 (37.50%) | 1/8 (12.50%) | 100.00% | FAIL |
+| `control-token-300.pt` token/ngram | 4/8 (50.00%) | 5/8 (62.50%) | 100.00% | FAIL |
+
+token checkpoint의 dataset SHA-256은
+`2512bb0e686222771933b15aba9f14bb20ee4dbbbc5c4cd79533681e9cc7c20f`,
+checkpoint SHA-256은
+`e8631580b274c3690e2c8f357d65f6cc07271955014c3f60a3e918a35ad176e0`이다.
+두 결과 모두 synthetic 48개, human label 0개라서 production control 정확도나
+actuator 안전성을 의미하지 않는다. token path는 baseline보다 좋아졌지만,
+다음 정확도 상승의 우선순위는 human golden dataset, hard-negative,
+episode-level split, calibration/OOD gate다.

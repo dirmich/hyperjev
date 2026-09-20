@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — accuracy evaluator와 token encoder 실험 (v1.43.0)
+
+- validation/test split 정확도와 safety STOP recall을 한 번에 판정하는
+  `scripts/evaluate_control_quality.py`를 추가했다. report에는 checkpoint와
+  dataset SHA-256, split row/group 수, human label 수, accepted coverage를
+  함께 기록한다.
+- reference byte/ngram baseline은 validation `3/8 (37.50%)`, test
+  `1/8 (12.50%)`였다. 토큰화와 n-gram 국소 특징 경로를 연결한
+  `reference-token-encoder`는 validation `4/8 (50.00%)`, test
+  `5/8 (62.50%)`로 개선됐지만 99% gate에는 실패했다.
+- 두 checkpoint 모두 synthetic 48개이고 human label은 0개다. token
+  checkpoint SHA-256은 `e8631580b274c3690e2c8f357d65f6cc07271955014c3f60a3e918a35ad176e0`이며,
+  production 승격이나 실제 actuator 연결 근거로 사용하지 않는다.
+- 전체 테스트는 `98 passed, 1 skipped`, Ruff는 통과했다. 다음 단계는 human
+  golden control dataset과 exact/episode leakage gate를 구현하는 것이다.
+
 ## 2026-09-20 — deterministic control simulation harness (v1.42.0)
 
 - `control simulate`가 scenario JSONL을 재생해 skill 정확도, expected safety

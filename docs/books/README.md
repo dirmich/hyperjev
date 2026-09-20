@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.42.0까지 진행되어 있다. Python 테스트 96개와
+현재 `main`은 origin에 push될 1.43.0까지 진행되어 있다. Python 테스트 98개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -68,6 +68,12 @@ v1.41.0에서는 HyperMemory `POST /v1/context`를 control skill tick에 연결�
 v1.42.0에서는 `control simulate`로 정상 action과 safety STOP 시나리오를 같은
 JSONL에서 재생하고 latency/recall을 기록한다. 이 harness의 100% 결과는
 contract regression 증거이지, 새로운 상태에 대한 model 일반화 정확도는 아니다.
+
+v1.43.0에서는 validation/test 정확도와 safety STOP recall을 함께 판정하는
+독립 evaluator를 추가하고, dataset/checkpoint SHA와 split/group/human-label
+메타데이터를 report에 고정했다. `reference-token-encoder` 실험은 validation
+50.00%, test 62.50%로 baseline보다 좋아졌지만 99% gate에는 실패했으며,
+human golden 데이터가 없는 synthetic 결과로 production 승격하지 않는다.
 
 각 구현 단계는 다음 순서를 따른다.
 

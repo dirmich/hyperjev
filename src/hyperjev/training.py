@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import re
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -220,13 +221,26 @@ def _encode_reference_sample(
     vocab_size: int,
     max_length: int,
     pad_to_max: bool = True,
+    backbone: str = "reference-byte-encoder",
 ) -> tuple[list[int], list[int]]:
     """Encode text deterministically for the dependency-light reference trainer."""
 
     if vocab_size <= 2:
         raise TrainingDataError("vocab_size must be greater than 2")
-    raw = f"{sample.state}\n{sample.question}".encode()[:max_length]
-    token_ids = [2 + (byte % (vocab_size - 2)) for byte in raw]
+    text = f"{sample.state}\n{sample.question}"
+    if backbone == "reference-token-encoder":
+        words = re.findall(r"\w+", text.casefold(), flags=re.UNICODE)[:max_length]
+        token_ids = [
+            2
+            + (
+                int.from_bytes(hashlib.sha256(word.encode("utf-8")).digest()[:4], "big")
+                % (vocab_size - 2)
+            )
+            for word in words
+        ]
+    else:
+        raw = text.encode()[:max_length]
+        token_ids = [2 + (byte % (vocab_size - 2)) for byte in raw]
     attention = [1] * len(token_ids)
     if pad_to_max:
         token_ids.extend([0] * (max_length - len(token_ids)))
@@ -305,6 +319,7 @@ def run_reference_training(
                         sample,
                         vocab_size=selected_student.vocab_size,
                         max_length=selected_student.max_sequence_length,
+                        backbone=selected_student.backbone,
                     )
                     for sample in batch
                 ]

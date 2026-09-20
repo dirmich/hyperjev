@@ -76,6 +76,38 @@ class TrainingTests(unittest.TestCase):
         self.assertLess(len(dynamic), len(padded))
         self.assertEqual(padded[: len(dynamic)], dynamic)
 
+    def test_reference_token_encoder_is_deterministic_and_bounded(self) -> None:
+        sample = CanonicalSample(
+            sample_id="sample-token",
+            task_id="memory.remember_worthy",
+            task_version=1,
+            state="Obstacle is ahead",
+            question="Is this worth long-term memory?",
+            target=True,
+            language="en",
+            domain="test",
+            source={"kind": "synthetic"},
+            labels={"human": None},
+            provenance={"prompt_version": 1, "split": "train", "privacy_raw_inputs_stored": False},
+        )
+        first, first_mask = _encode_reference_sample(
+            sample,
+            vocab_size=32768,
+            max_length=4,
+            pad_to_max=False,
+            backbone="reference-token-encoder",
+        )
+        second, second_mask = _encode_reference_sample(
+            sample,
+            vocab_size=32768,
+            max_length=4,
+            pad_to_max=False,
+            backbone="reference-token-encoder",
+        )
+        self.assertEqual(first, second)
+        self.assertEqual(first_mask, second_mask)
+        self.assertLessEqual(len(first), 4)
+
     def test_dataset_validation_and_plan_are_reproducible(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "tasks")
         with tempfile.TemporaryDirectory() as directory:
