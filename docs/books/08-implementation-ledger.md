@@ -38,6 +38,7 @@
 | 1.14.1 | `8b2d067` | parent LLM/rule/mock 성능 결과 문서화 |
 | 1.15.0 | `0d32acd` | training/calibration/checkpoint 기반 model manifest |
 | 1.15.1 | `72d6a77` | model manifest milestone 원고 기록 |
+| 1.16.0 | `a975d77` | 30-sample confidence/coverage와 성능 차이 분석 |
 
 ## 다음 기록 규칙
 
