@@ -133,6 +133,33 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(match.rule_id, "wiki.style_only")  # type: ignore[union-attr]
         self.assertFalse(match.result.value)  # type: ignore[union-attr]
 
+    def test_remember_rule_covers_explicit_korean_commitment_and_preference(self) -> None:
+        task = self.registry.get("memory.remember_worthy", 1)
+        for state in (
+            "다음 분기부터 배포 승인 절차를 바꾸기로 했다.",
+            "나는 답변을 받을 때 코드 예제를 먼저 보고 싶다.",
+        ):
+            match = match_rule(task, state=state, question="장기 기억으로 저장할 가치가 있는가?")
+            self.assertIsNotNone(match)
+            self.assertEqual(match.rule_id, "remember.explicit_commitment")  # type: ignore[union-attr]
+            self.assertTrue(match.result.value)  # type: ignore[union-attr]
+
+    def test_remember_rule_covers_english_preference_without_matching_ephemeral_fact(self) -> None:
+        task = self.registry.get("memory.remember_worthy", 1)
+        preference = match_rule(
+            task,
+            state="I would like to see a code example first.",
+            question="Is this worth long-term memory?",
+        )
+        ephemeral = match_rule(
+            task,
+            state="I had noodles for lunch today.",
+            question="Is this worth long-term memory?",
+        )
+        self.assertIsNotNone(preference)
+        self.assertTrue(preference.result.value)  # type: ignore[union-attr]
+        self.assertIsNone(ephemeral)
+
     def test_qwen_acceptance_does_not_call_gemma(self) -> None:
         qwen = _FakeClient('{"type":"score","value":0.86,"interval_90":[0.8,0.9]}')
         gemma = _FakeClient('{"type":"score","value":0.2,"interval_90":[0.1,0.3]}')

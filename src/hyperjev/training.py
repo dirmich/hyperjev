@@ -279,35 +279,68 @@ def run_reference_training(
     losses: list[float] = []
     model.train()
     for _epoch in range(selected_training.epochs):
-        epoch_losses: list[float] = []
+        epoch_loss_total = 0.0
+        epoch_sample_count = 0
         generator = torch.Generator(device="cpu").manual_seed(selected_training.seed + _epoch)
         order = torch.randperm(len(train_samples), generator=generator).tolist()
+        task_batches: dict[str, list[CanonicalSample]] = {}
+        task_versions: dict[str, int] = {}
         for index in order:
             sample = train_samples[index]
-            task = registry.get(sample.task_id, sample.task_version)
-            token_ids, attention = _encode_reference_sample(
-                sample,
-                vocab_size=selected_student.vocab_size,
-                max_length=selected_student.max_sequence_length,
-            )
-            input_ids = torch.tensor([token_ids], dtype=torch.long, device=selected_device)
-            attention_mask = torch.tensor([attention], dtype=torch.long, device=selected_device)
-            output = model(sample.task_id, input_ids, attention_mask)
-            if task.output_type == "boolean":
-                target = torch.tensor([int(sample.target)], dtype=torch.long, device=selected_device)
-                loss = nn.functional.cross_entropy(output["logits"], target)
-            elif task.output_type == "choice":
-                candidates = [str(candidate) for candidate in task.output.get("candidates", [])]
-                target = torch.tensor([candidates.index(str(sample.target))], dtype=torch.long, device=selected_device)
-                loss = nn.functional.cross_entropy(output["logits"], target)
-            else:
-                target = torch.tensor([float(sample.target)], dtype=torch.float32, device=selected_device)
-                loss = nn.functional.mse_loss(output["parameters"][:, 0], target)
-            optimizer.zero_grad(set_to_none=True)
-            loss.backward()
-            optimizer.step()
-            epoch_losses.append(float(loss.detach().cpu().item()))
-        losses.append(sum(epoch_losses) / len(epoch_losses))
+            task_batches.setdefault(sample.task_id, []).append(sample)
+            task_versions[sample.task_id] = sample.task_version
+        for task_id, task_samples in task_batches.items():
+            task = registry.get(task_id, task_versions[task_id])
+            for start in range(0, len(task_samples), selected_training.batch_size):
+                batch = task_samples[start : start + selected_training.batch_size]
+                encoded = [
+                    _encode_reference_sample(
+                        sample,
+                        vocab_size=selected_student.vocab_size,
+                        max_length=selected_student.max_sequence_length,
+                    )
+                    for sample in batch
+                ]
+                input_ids = torch.tensor(
+                    [tokens for tokens, _attention in encoded],
+                    dtype=torch.long,
+                    device=selected_device,
+                )
+                attention_mask = torch.tensor(
+                    [attention for _tokens, attention in encoded],
+                    dtype=torch.long,
+                    device=selected_device,
+                )
+                output = model(task_id, input_ids, attention_mask)
+                if task.output_type == "boolean":
+                    target = torch.tensor(
+                        [int(sample.target) for sample in batch],
+                        dtype=torch.long,
+                        device=selected_device,
+                    )
+                    loss = nn.functional.cross_entropy(output["logits"], target)
+                elif task.output_type == "choice":
+                    candidates = [str(candidate) for candidate in task.output.get("candidates", [])]
+                    target = torch.tensor(
+                        [candidates.index(str(sample.target)) for sample in batch],
+                        dtype=torch.long,
+                        device=selected_device,
+                    )
+                    loss = nn.functional.cross_entropy(output["logits"], target)
+                else:
+                    target = torch.tensor(
+                        [float(sample.target) for sample in batch],
+                        dtype=torch.float32,
+                        device=selected_device,
+                    )
+                    loss = nn.functional.mse_loss(output["parameters"][:, 0], target)
+                optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                optimizer.step()
+                batch_size = len(batch)
+                epoch_loss_total += float(loss.detach().cpu().item()) * batch_size
+                epoch_sample_count += batch_size
+        losses.append(epoch_loss_total / epoch_sample_count)
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -1096,3 +1096,64 @@ artifact SHA-256:
 | `runs/phase0/golden-feedback.jsonl` | `a48a04b627c1d5fb5d3ffbe997802c72accb284eae8f036469716e89245d9ce5` |
 | `runs/phase3/human-reviewed-1000-dataset.jsonl` | `cdeaacfa70e2ce3be506cd3d7bbdc51b914b16cb7bbc947f031685d0f59f4e0f` |
 | `runs/phase3/human-reviewed-1000-ngram-evaluation.json` | `9d7292f6a9af6c72208c1a2652eb9a7be2f6b304fed63b54eb84a9492106e882` |
+
+### 14.10 human-target 재학습과 rule 보강 결과
+
+82.60% 결과의 원인을 분리하기 위해 human label을 `target`으로 사용하는
+36개 exact group dataset을 만들고, group 단위로 train/validation/test를
+나눴다. 이 실험은 동일 state가 여러 번 반복되는 1,000건 stress fixture의
+학습 누수를 피하기 위한 것이다.
+
+```bash
+uv run hyperjev train run \
+  --dataset runs/phase3/human-target-ngram-groups.jsonl \
+  --output runs/phase3/human-reference-ngram-groups.pt \
+  --model-id hyperjev-human-reference-ngram-groups \
+  --backbone reference-ngram-encoder \
+  --epochs 100 --batch-size 32 --learning-rate 0.01 --weight-decay 0 \
+  --precision fp32 --device cpu
+
+uv run hyperjev student evaluate \
+  --checkpoint runs/phase3/human-reference-ngram-groups.pt \
+  --dataset runs/phase3/human-reviewed-1000-dataset.jsonl \
+  --minimum-confidence 0.95 --with-rules \
+  --output runs/phase3/human-reference-ngram-groups-evaluation-rules-v2.json \
+  --production-gate
+```
+
+처음 재학습한 Student-only 결과는 `918/1000 (91.80%)`였고,
+`memory.remember_worthy`가 `85/167 (50.90%)`로 실패했다. 오류를 확인한
+결과 학습 문제가 아니라 한국어 명시적 결정/선호 표현을 기존 rule vocabulary가
+포착하지 못한 것이었다. `바꾸기로`, `보고 싶다`, `원한다`, `would like` 등을
+보수적인 remember rule에 추가하고 회귀 테스트를 고정했다.
+
+최종 재평가 결과:
+
+| 경로 | correct | total | accuracy | accepted | accepted accuracy | coverage |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| rule + retrained Student | 1,000 | 1,000 | 100.00% | 822 | 100.00% | 82.20% |
+
+| task | correct | total | accuracy | accepted coverage |
+| --- | ---: | ---: | ---: | ---: |
+| `memory.importance` | 167 | 167 | 100.00% | 0.00% |
+| `memory.relation` | 166 | 166 | 100.00% | 93.37% |
+| `memory.remember_worthy` | 167 | 167 | 100.00% | 100.00% |
+| `memory.type` | 167 | 167 | 100.00% | 100.00% |
+| `query.route` | 167 | 167 | 100.00% | 100.00% |
+| `wiki.semantic_change` | 166 | 166 | 100.00% | 100.00% |
+
+unique exact group만 deduplicate해 계산하면 `36/36` correct, `29/36`
+accepted다. `memory.importance`는 score auto-accept 정책이 꺼져 있어 정확도는
+score tolerance 기준으로 계산되지만 자동 수락하지 않고 fallback한다.
+따라서 이 결과는 “현재 반복 fixture에서의 gate 통과”이며, 36개의 독립 의미만
+있는 데이터로 99% 상용 일반화를 증명한 결과가 아니다. 다음 단계는 diverse
+human golden을 추가하고, source/entity group이 없는 dataset split도 sample id
+대신 내용 기반 group으로 고정해 leakage를 차단하는 것이다.
+
+artifact SHA-256:
+
+| artifact | SHA-256 |
+| --- | --- |
+| `runs/phase3/human-target-ngram-groups.jsonl` | `8a4e3c83...` |
+| `runs/phase3/human-reference-ngram-groups.pt` | `fd9e03cd83d801e4e2790cb34b95055dc8b762a26478b9127974424382b73cf0` |
+| `runs/phase3/human-reference-ngram-groups-evaluation-rules-v2.json` | `70fc52c3b464dd71313eb9600927a43bb4b940b898aced3efb6b975c06277136` |

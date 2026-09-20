@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — human-target retraining and remember rule coverage (v1.33.0)
+
+- reference trainer가 `TrainingConfig.batch_size`를 실제 task별 mini-batch에
+  적용하도록 고쳤다. 이전에는 설정값이 검증만 되고 sample 단위 update가
+  실행됐다.
+- 36개 exact human group에서 train 31, validation 3, test 2로 분리해 다시
+  학습한 checkpoint의 Student-only 중간 결과는 `918/1000 (91.80%)`였다.
+- 한국어 명시적 결정/선호 표현(`바꾸기로`, `보고 싶다`)을 high-precision
+  remember rule에 추가했다. 같은 checkpoint를 rule과 함께 재평가한 결과는
+  전체 `1000/1000 (100.00%)`, accepted `822/822 (100.00%)`, coverage
+  `822/1000 (82.20%)`, rule `279/279`였다. 모든 task가 100%였고 quality
+  gate도 통과했다.
+- 이 수치는 1,000 record가 36개 exact group을 반복하는 human-reviewed
+  synthetic fixture에서 얻은 결과다. 독립적인 1,000개 원문 정확도나 상용
+  일반화 성능을 뜻하지 않으므로, production 승격 근거로 사용하지 않는다.
+
 ## 2026-09-20 — full reviewed queue and human-source Student evaluation (v1.32.0)
 
 - exact-duplicate grouping을 사용해 1,000개 queue record에 feedback을 모두
