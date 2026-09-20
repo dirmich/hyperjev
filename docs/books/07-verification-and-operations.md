@@ -25,7 +25,11 @@ Golden review, metric, training validator, torch dependency gate가 포함되어
 
 Parent LLM과 HyperJev 경계의 실제 성능 측정은 [`docs/test_result.md`](../test_result.md)에
 기록했다. Qwen endpoint는 6개 smoke에서 HTTP 6/6, typed schema 5/6,
-p50 1,127.542ms였고, Gemma는 model discovery 후 generation timeout 상태였다.
+p50 1,127.542ms였고, 30개 synthetic 확장에서는 schema 27/30, p50
+1,121.314ms였다. Gemma는 model discovery 후 generation timeout 상태였다.
+확장 결과에서 score auto-accept가 부정확한 interval을 통과시킨 문제도 확인되어,
+상용 정책은 confidence를 높이는 대신 calibration과 abstain/risk-coverage를
+우선하도록 기록했다.
 Rule/mock 수치는 production Student 성능이 아니므로 Student checkpoint가 준비될
 때까지 별도 gate로 남긴다.
 

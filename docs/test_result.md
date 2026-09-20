@@ -305,3 +305,129 @@ parent 비교는 Qwen/Gemma와 Student가 같은 canonical input, 같은 task ve
 하나가 아니라 tail latency와 fallback까지 포함해야 한다. llama.cpp low-level
 결과는 별도 표로 prompt eval tok/s, generation tok/s, context, `-np`, batch,
 GPU offload 조건을 함께 기록한다.
+
+## 9. 추가 확장 시험: 성능 차이와 confidence/coverage
+
+### 9.1 Qwen synthetic queue 30개
+
+6개 smoke만으로 확률 품질을 판단하지 않기 위해, 사람이 검수하지 않은
+synthetic review queue의 앞 30개를 같은 Qwen 설정으로 실행했다. 이 데이터는
+반복 패턴을 포함하므로 production quality evidence가 아니라 threshold와
+failure-mode를 확인하는 확장 시험이다.
+
+```text
+run_id: 20260920T012034Z
+source: runs/phase0/phase0-review-queue.jsonl (first 30 records)
+dataset_sha256: 463b00f91257b34a837f8eaa184d5fb4efec49f2028f086dd78aa0e3bdbd873f
+provider/model: qwen/qwen38fn
+```
+
+| 지표 | 결과 |
+| --- | ---: |
+| completion | 30/30 (100%) |
+| typed schema valid | 27/30 (90.00%) |
+| schema failure | 3/30 (10.00%), 모두 `memory.type` |
+| 평균 latency | 1,469.105 ms |
+| p50 / p95 / p99 | 1,121.314 / 2,368.689 / 2,380.245 ms |
+| sequential throughput | 0.681 requests/s |
+| total tokens | 6,580 |
+| 평균 tokens/request | 219.33 |
+
+task별 확장 결과는 다음과 같다. Boolean과 choice의 `correct`는 typed
+prediction이 target과 일치하는지, score의 `correct`는 target과 ±0.10 이내인지
+계산했다.
+
+| task | valid/전체 | task quality | 현재 정책 accepted | accepted 결과 |
+| --- | ---: | --- | ---: | --- |
+| `memory.remember_worthy` | 5/5 | 5/5 correct | 5/5 | 5/5 correct |
+| `memory.type` | 2/5 | 2/2 valid correct | 2/5 | 2/2 correct, 3 schema failure |
+| `memory.importance` | 5/5 | MAE 0.210, RMSE 0.222486 | 5/5 | 0/5 within ±0.10 |
+| `query.route` | 5/5 | 5/5 correct | 3/5 | 3/3 accepted correct, 2 low confidence |
+| `memory.relation` | 5/5 | 5/5 correct | 4/5 | 4/4 accepted correct, 1 low confidence |
+| `wiki.semantic_change` | 5/5 | 5/5 correct | 5/5 | 5/5 correct |
+
+`memory.importance`의 90% interval coverage는 0/5였다. 즉 score 값이 typed
+schema를 통과하고 interval도 형식상 유효해도, held-out target을 포함하지
+않았다. 이 결과 때문에 score head를 “확률이 높다”는 이유만으로 자동 저장하는
+것은 상용 정책으로 부적합하다.
+
+### 9.2 답변 확률과 자동 수락률
+
+여기서 boolean의 `probability`와 choice의 선택 확률은 “반환한 답이 맞을
+자신감”으로 취급했다. Boolean metric 계산 때만 false prediction을 positive
+class probability로 변환한다. Score는 단일 answer probability가 없으므로
+90% interval width를 불확실성 proxy로 사용하며, 이것은 calibration을 대체하지
+않는다.
+
+현재 task-specific acceptance policy를 그대로 적용하면:
+
+| 정책 | 자동 수락 | 전체 coverage | accepted quality |
+| --- | ---: | ---: | ---: |
+| 현재 정책, score 포함 | 24/30 | 80.00% | 19/24 correct = 79.17% |
+| valid output 중 confidence >= 0.95 | 17/27 | 63.00% (전체 기준 56.67%) | 17/17 correct = 100% |
+| score 자동 수락 금지 + 기존 boolean/choice threshold | 19/30 | 63.33% | 19/19 correct = 100% |
+
+이 표의 100%는 반복 synthetic 30개에 대한 결과일 뿐이며, 사람이 검수한
+독립 test set의 100%를 의미하지 않는다. 그러나 운영 의사결정에는 중요한
+방향을 보여준다.
+
+- 낮은 confidence와 schema failure를 fallback/review로 보내면 coverage는
+  감소하지만 관측된 accepted risk가 줄어든다.
+- 현재 구현의 score `_accepted`가 모든 유효 score를 통과시키는 것은 위험하다.
+  score는 held-out calibration set에서 interval coverage가 확인될 때까지
+  자동 수락하지 않는 것이 안전하다.
+- confidence를 0.99로 강제로 올리는 방식은 해결책이 아니다. confidence는
+  held-out correctness와 calibration error에 맞춰야 한다.
+
+### 9.3 성능 차이의 수치 해석
+
+동일한 30개 시험의 Qwen parent와 앞서 측정한 deterministic/mock 경로를
+비교하면 다음과 같다.
+
+| 경로 | 대표 p50 | 대표 p95 | 의미 |
+| --- | ---: | ---: | --- |
+| Qwen parent, 30 sequential generations | 1,121.314 ms | 2,368.689 ms | 실제 parent generation |
+| rule primitive, matched samples | 약 0.001472 ms | 약 0.001536 ms | network/LLM 없는 rule 계산 |
+| mock `/v1/decide` | 0.329519 ms | 0.593950 ms | typed HTTP contract만 |
+
+Qwen p50과 rule primitive의 단순 비율은 약 76만 배, Qwen p50과 mock API의
+단순 비율은 약 3,400배다. 하지만 이 숫자는 Student encoder가 아니라 각각
+Python rule과 mock handler를 비교한 것이므로 product speedup으로 발표하지
+않는다. 실제 Student 비교를 위해서는 동일 입력을 encoder + typed heads로
+실행하고 calibration/fallback 비용까지 포함해야 한다.
+
+현재 측정으로 확정할 수 있는 것은 다음뿐이다.
+
+1. parent generation은 대략 1~2.4초 tail을 가진다.
+2. deterministic fast-path가 적용되는 입력은 parent 호출을 피할 수 있다.
+3. typed contract overhead는 parent generation보다 작지만 Student inference
+   비용을 아직 모른다.
+4. 품질을 100%로 보이게 만드는 가장 안전한 방법은 confidence를 조작하는
+   것이 아니라 낮은 confidence를 abstain/fallback으로 보내 coverage를
+   관리하는 것이다.
+
+### 9.4 상용 release를 위한 probability gate
+
+다음 gate를 production Student에 적용해야 한다. 수치는 실제 human golden과
+validation set에서 확정해야 하며, 현재 30개 결과가 통과했다는 뜻이 아니다.
+
+1. **Schema gate:** typed schema valid rate와 choice probability sum failure를
+   task별로 측정한다. schema failure는 confidence가 높아도 자동 수락하지
+   않는다.
+2. **Calibration gate:** task별 held-out set에서 Brier, NLL, ECE/adaptive ECE,
+   interval-90 coverage를 계산하고 calibration manifest를 고정한다.
+3. **Risk-coverage gate:** threshold별 coverage와 accepted error를 함께 보고,
+   고위험 task는 낮은 coverage를 감수하고 낮은 risk threshold를 사용한다.
+4. **Score gate:** interval coverage가 검증되기 전에는 `memory.importance`를
+   자동 저장하지 않고 Qwen/Gemma 또는 human review로 보낸다.
+5. **Fallback gate:** schema invalid, threshold 미달, OOD, teacher disagreement는
+   모두 fallback/review로 기록하며 “답을 만들기” 위해 confidence를 높이지
+   않는다.
+6. **Release gate:** human-reviewed 1,000개 이상에서 Student, Qwen, Gemma,
+   rule을 같은 task/version으로 비교하고, 동시에 p50/p95/p99, throughput,
+   abstain, fallback, Hyper Memory write reduction을 기록한다.
+
+현재 결과를 기준으로 한 보수적 운영 선택은 `score auto-accept off`,
+boolean/choice는 task별 threshold 적용, schema-invalid는 즉시 fallback이다.
+이 선택은 답변 coverage를 낮추지만, 잘못된 기억을 자동 저장하는 위험을
+줄이는 방향이다.
