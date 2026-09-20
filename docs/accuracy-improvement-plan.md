@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.69.0
+현재 버전: 1.70.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -214,6 +214,13 @@ server slot 대기로 전체 queue가 사라지지 않는다. 다만 queue SHA�
 있다. 이는 train split만 deterministic oversampling하고 validation/test는
 변경하지 않는다. class balance를 켠 checkpoint도 confidence calibration과
 control scenario를 다시 통과해야 하며, 평균 정확도만으로 승격하지 않는다.
+
+v1.70.0에는 counterfactual group의 per-example loss를 높이는 선택형
+`--hard-negative-weight`를 추가했다. 기본값 `1.0`은 이전과 같고, `2.0`/`4.0`은
+human hard-negative가 materialize된 뒤에만 재시도할 연구 후보로 취급한다. synthetic
+combined 1,800건에서 두 weight 모두 validation/test `100%`, STOP recall `100%`였지만
+safety action accuracy가 `75%`로 baseline `100%`보다 낮아 현재 production 후보에서
+탈락했다. safety를 희생해 aggregate accuracy를 만드는 weight는 사용하지 않는다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적

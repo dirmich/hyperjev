@@ -2004,6 +2004,33 @@ production accuracy를 상승시킨 것으로 해석하지 않는다.
 `control review-session`으로 feedback을 기록하고, `apply-feedback` →
 `materialize` → human-only train/evaluate를 수행하는 것이다.
 
+### 14.48 hard-negative weighted-loss ablation (v1.70.0)
+
+counterfactual pair를 더 강하게 학습하도록 `source.counterfactual_group_id`가
+있는 sample의 per-example loss에 선택형 weight를 적용했다.
+
+```bash
+uv run hyperjev control train \
+  --dataset /tmp/hyperjev-control-combined-1800.jsonl \
+  --output /tmp/control-combined-hardweight-2-100ep.pt \
+  --backbone reference-token-encoder \
+  --epochs 100 --batch-size 64 --learning-rate 0.01 \
+  --precision fp32 --device cpu --hard-negative-weight 2.0
+```
+
+dataset SHA는 `9b16c411597764a231e5b0395b962f7e9c145545112ca5f0679a59688139817f`다.
+
+| checkpoint | weight | validation | test | safety action | STOP recall | production |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| baseline combined token | 1.0 | 100% | 100% | 100% | 100% | research only |
+| hardweight-2 | 2.0 | 100% | 100% | 75% | 100% | FAIL |
+| hardweight-4 | 4.0 | 100% | 100% | 75% | 100% | FAIL |
+
+weight 2 checkpoint SHA는 `e5b51099e5233ef391989720c571384b5245e6359268afc6dbfcf0d825d50dc5`,
+weight 4 checkpoint SHA는 `159801b7c9503ad628c73c184b4702edcb1cfc91bd5210b3a93e169e279c0827`다.
+두 후보 모두 human label `0/360`인 synthetic 평가이므로 production 정확도 증거가
+아니며, safety action `75%` 때문에 baseline보다 개선된 것으로 취급하지 않는다.
+
 ### 14.46 pair-collision active review priority (v1.68.0)
 
 hard-negative Qwen 결과의 confidence 분포를 오류 여부와 분리해 분석했다.

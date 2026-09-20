@@ -16,6 +16,7 @@ from hyperjev.training import (
     TrainingDependencyError,
     _balance_class_samples,
     _encode_reference_sample,
+    _sample_loss_weight,
     build_training_plan,
     load_training_dataset,
     run_reference_training,
@@ -68,6 +69,42 @@ class TrainingTests(unittest.TestCase):
         for sample in balanced:
             counts[sample.target] += 1
         self.assertEqual(counts, {True: 2, False: 2})
+
+    def test_hard_negative_weight_defaults_to_one_and_validates(self) -> None:
+        self.assertEqual(TrainingConfig().hard_negative_weight, 1.0)
+        with self.assertRaises(TrainingDataError):
+            TrainingConfig(hard_negative_weight=0.0).validate()
+
+    def test_sample_loss_weight_only_targets_counterfactual_provenance(self) -> None:
+        training = TrainingConfig(hard_negative_weight=3.0)
+        hard = CanonicalSample(
+            sample_id="hard",
+            task_id="memory.remember_worthy",
+            task_version=1,
+            state="state",
+            question="question",
+            target=True,
+            language="en",
+            domain="test",
+            source={"counterfactual_group_id": "pair-1"},
+            labels={},
+            provenance={"prompt_version": 1, "split": "train"},
+        )
+        ordinary = CanonicalSample(
+            sample_id="ordinary",
+            task_id="memory.remember_worthy",
+            task_version=1,
+            state="state",
+            question="question",
+            target=True,
+            language="en",
+            domain="test",
+            source={},
+            labels={},
+            provenance={"prompt_version": 1, "split": "train"},
+        )
+        self.assertEqual(_sample_loss_weight(hard, training), 3.0)
+        self.assertEqual(_sample_loss_weight(ordinary, training), 1.0)
 
     def test_reference_encoder_supports_dynamic_inference_padding(self) -> None:
         sample = CanonicalSample(

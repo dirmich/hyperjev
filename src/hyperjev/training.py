@@ -35,12 +35,15 @@ class TrainingConfig:
     gradient_accumulation_steps: int = 1
     precision: str = "bf16"
     class_balance: bool = False
+    hard_negative_weight: float = 1.0
 
     def validate(self) -> None:
         if self.epochs < 1 or self.batch_size < 1 or self.gradient_accumulation_steps < 1:
             raise TrainingDataError("epochs, batch_size, and gradient_accumulation_steps must be positive")
         if self.learning_rate <= 0 or self.weight_decay < 0:
             raise TrainingDataError("learning_rate must be positive and weight_decay must be non-negative")
+        if self.hard_negative_weight <= 0:
+            raise TrainingDataError("hard_negative_weight must be positive")
         if self.precision not in {"fp32", "fp16", "bf16"}:
             raise TrainingDataError(f"unsupported training precision: {self.precision}")
 
@@ -266,6 +269,14 @@ def _balance_class_samples(samples: list[CanonicalSample]) -> list[CanonicalSamp
     return balanced
 
 
+def _sample_loss_weight(sample: CanonicalSample, training: TrainingConfig) -> float:
+    """Increase loss contribution for provenance-marked counterfactual samples."""
+
+    if sample.source.get("counterfactual_group_id"):
+        return training.hard_negative_weight
+    return 1.0
+
+
 def run_reference_training(
     dataset_path: str | Path,
     output_path: str | Path,
@@ -359,13 +370,20 @@ def run_reference_training(
                     device=selected_device,
                 )
                 output = model(task_id, input_ids, attention_mask)
+                weights = torch.tensor(
+                    [_sample_loss_weight(sample, selected_training) for sample in batch],
+                    dtype=torch.float32,
+                    device=selected_device,
+                )
                 if task.output_type == "boolean":
                     target = torch.tensor(
                         [int(sample.target) for sample in batch],
                         dtype=torch.long,
                         device=selected_device,
                     )
-                    loss = nn.functional.cross_entropy(output["logits"], target)
+                    per_sample_loss = nn.functional.cross_entropy(
+                        output["logits"], target, reduction="none"
+                    )
                 elif task.output_type == "choice":
                     candidates = [str(candidate) for candidate in task.output.get("candidates", [])]
                     target = torch.tensor(
@@ -373,14 +391,19 @@ def run_reference_training(
                         dtype=torch.long,
                         device=selected_device,
                     )
-                    loss = nn.functional.cross_entropy(output["logits"], target)
+                    per_sample_loss = nn.functional.cross_entropy(
+                        output["logits"], target, reduction="none"
+                    )
                 else:
                     target = torch.tensor(
                         [float(sample.target) for sample in batch],
                         dtype=torch.float32,
                         device=selected_device,
                     )
-                    loss = nn.functional.mse_loss(output["parameters"][:, 0], target)
+                    per_sample_loss = nn.functional.mse_loss(
+                        output["parameters"][:, 0], target, reduction="none"
+                    )
+                loss = (per_sample_loss * weights).sum() / weights.sum().clamp_min(1.0)
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()

@@ -349,6 +349,7 @@ def _control_train(args: argparse.Namespace) -> int:
             seed=args.seed,
             precision=args.precision,
             class_balance=args.class_balanced,
+            hard_negative_weight=args.hard_negative_weight,
         ),
         device=args.device,
     )
@@ -613,6 +614,7 @@ def _training_plan(args: argparse.Namespace) -> int:
             seed=args.seed,
             gradient_accumulation_steps=args.gradient_accumulation_steps,
             precision=args.precision,
+            hard_negative_weight=args.hard_negative_weight,
         ),
     )
     print(json.dumps(plan, ensure_ascii=False))
@@ -641,6 +643,7 @@ def _training_run(args: argparse.Namespace) -> int:
             seed=args.seed,
             gradient_accumulation_steps=args.gradient_accumulation_steps,
             precision=args.precision,
+            hard_negative_weight=args.hard_negative_weight,
         ),
         device=args.device,
     )
@@ -970,6 +973,12 @@ def build_parser() -> argparse.ArgumentParser:
     control_train.add_argument("--weight-decay", type=float, default=0.0)
     control_train.add_argument("--seed", type=int, default=7)
     control_train.add_argument("--class-balanced", action="store_true")
+    control_train.add_argument(
+        "--hard-negative-weight",
+        type=float,
+        default=1.0,
+        help="multiply loss for samples with source.counterfactual_group_id",
+    )
     control_train.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     control_train.set_defaults(handler=_control_train)
     control_decide = control_subparsers.add_parser("decide")
@@ -1036,6 +1045,7 @@ def build_parser() -> argparse.ArgumentParser:
     training_plan.add_argument("--weight-decay", type=float, default=0.01)
     training_plan.add_argument("--seed", type=int, default=7)
     training_plan.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    training_plan.add_argument("--hard-negative-weight", type=float, default=1.0)
     training_plan.set_defaults(handler=_training_plan)
     training_run = training_subparsers.add_parser("run")
     _config_argument(training_run)
@@ -1053,6 +1063,7 @@ def build_parser() -> argparse.ArgumentParser:
     training_run.add_argument("--weight-decay", type=float, default=0.01)
     training_run.add_argument("--seed", type=int, default=7)
     training_run.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    training_run.add_argument("--hard-negative-weight", type=float, default=1.0)
     training_run.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     training_run.set_defaults(handler=_training_run)
 

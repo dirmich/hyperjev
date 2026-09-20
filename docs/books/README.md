@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.69.0까지 진행되어 있다. Python 테스트 126개와
+현재 `main`은 origin에 push될 1.70.0까지 진행되어 있다. Python 테스트 128개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -118,6 +118,12 @@ active-review 개선이다.
 v1.69.0에서는 review manifest에 active-review 범위를 구조화했다. 실제 Qwen
 hard-negative는 500 counterfactual groups, 167 collision groups, 334 collision
 items로 기록되므로, 운영자가 JSONL을 재분석하지 않고도 우선 검수량을 알 수 있다.
+
+v1.70.0에서는 hard-negative provenance를 loss 가중치로 반영하는 연구 옵션을
+추가했다. weight 2.0/4.0은 synthetic split accuracy 100%를 유지했지만 safety
+action accuracy를 75%로 떨어뜨려 탈락했다. 이 실패를 기록한 이유는 human
+hard-negative가 들어온 뒤 같은 실험을 재현하되, STOP 안전 gate를 절대 양보하지
+않기 위해서다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

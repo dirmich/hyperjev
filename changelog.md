@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — hard-negative weighted-loss ablation (v1.70.0)
+
+- `TrainingConfig.hard_negative_weight`와 `control train --hard-negative-weight`를
+  추가했다. `source.counterfactual_group_id`가 있는 sample만 per-example loss를
+  가중하며 기본값 `1.0`은 기존 동작과 같다.
+- combined 1,800건에서 weight `2.0`과 `4.0`을 각각 100 epoch 실행했다. 두 후보는
+  synthetic validation/test `100%`와 STOP recall `100%`였지만 safety action
+  accuracy가 `75%`로 baseline `100%`보다 나빴다.
+- 따라서 이 기능은 human hard-negative가 materialize된 뒤 재실험할 연구 옵션으로
+  남기고 production checkpoint로 승격하지 않았다.
+- 검증: trainer 테스트 8개, 전체 suite, Ruff, diff check와 두 checkpoint quality gate.
+
 ## 2026-09-21 — review priority statistics manifest (v1.69.0)
 
 - prioritized review pack manifest에 `counterfactual_group_count`,
