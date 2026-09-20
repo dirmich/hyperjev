@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from hyperjev.control_data import (
+    generate_control_compositional_training_queue,
     generate_control_hard_negative_queue,
     generate_control_review_queue,
     materialize_control_human_dataset,
@@ -157,6 +158,17 @@ class ControlDatasetQualityTests(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertEqual(report["unique_semantic_group_count"], 12)
         self.assertEqual(report["leaks"]["semantic_group"], [])
+
+    def test_compositional_training_queue_is_train_only_and_balanced(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "control-compositional.jsonl"
+        generation = generate_control_compositional_training_queue(path, self.registry, seed=11)
+        self.assertEqual(generation["sample_count"], 64)
+        report = validate_control_dataset(path, self.registry)
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["split_counts"], {"train": 64})
+        self.assertEqual(report["human_labeled_count"], 0)
 
     def test_materialize_replaces_synthetic_target_with_human_choice(self) -> None:
         source = self._write(

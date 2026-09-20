@@ -2318,3 +2318,56 @@ model-only source는 `hyperjev-control=22`, `safety=18`이었다. integrated sou
 현재 encoder + typed head checkpoint가 새로운 표현을 일반화하지 못한다는 직접
 증거이며, fast path가 100%를 만들었다고 해서 모델 정확도가 100%가 아니다.
 40개 target은 synthetic hand-authored label이므로 상용 99% gate는 여전히 미통과다.
+
+### 14.56 compositional train augmentation과 STOP interlock (v1.78.0)
+
+OOD fixture 자체는 train에 넣지 않고, 별도의 64개 train-only compositional 문장을
+생성해 기존 queue와 결합했다.
+
+```bash
+uv run hyperjev control compositional \
+  --output /tmp/control-compositional-train.jsonl --seed 11
+uv run hyperjev control merge \
+  --input /tmp/hyperjev-control-combined-1800.jsonl \
+  --input /tmp/control-compositional-train.jsonl \
+  --output /tmp/hyperjev-control-combined-1864.jsonl
+uv run hyperjev control train \
+  --dataset /tmp/hyperjev-control-combined-1864.jsonl \
+  --output /tmp/control-combined-compositional-100ep.pt \
+  --backbone reference-token-encoder --epochs 100 --batch-size 64 \
+  --learning-rate 0.01 --precision fp32 --device cpu
+```
+
+| artifact | result |
+| --- | --- |
+| merged dataset SHA-256 | `78b54a46f5bd9d5049b7d3ea903c944854c87882a842ddcd87d67cab5f0f7c9b` |
+| dataset rows / train / validation / test | `1,864 / 1,504 / 180 / 180` |
+| unique episode/group / leakage | `1,364 / 0` |
+| checkpoint SHA-256 | `7d74e6bb9d1a5bb5ea294689aa4f97d8248758c589c061fb7ec11b93d8386848` |
+| validation / test | `180/180 (100%) / 180/180 (100%)` |
+| human labels | `0/1,864` |
+
+held-out OOD fixture 재생 명령:
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue tests/golden/control_ood_synthetic.jsonl \
+  --checkpoint /tmp/control-combined-compositional-100ep.pt \
+  --model-only
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue tests/golden/control_ood_synthetic.jsonl \
+  --checkpoint /tmp/control-combined-compositional-100ep.pt
+```
+
+| runtime | 정확도 | STOP recall | p50 / p95 / p99 (µs) | source |
+| --- | ---: | ---: | ---: | --- |
+| model-only + safety policy | `38/40 (95.00%)` | `5/5 (100.00%)` | `285.809 / 5,177.947 / 6,200.993` | `hyperjev-control=34`, `safety=1`, `safety-rule=5` |
+| integrated fast path + Student + safety | `40/40 (100.00%)` | `5/5 (100.00%)` | `19.728 / 25.233 / 38.400` | `control-rule=35`, `safety-rule=5` |
+
+v1.78에서는 `enable_fast_path=False`인 model-only 측정에서도 명시적 충돌
+STOP을 safety-rule로 처리하도록 수정했다. 따라서 model-only ablation은 일반
+control fast path만 끄고 안전 interlock은 유지한다. model-only의 남은 오분류는
+HOLD 두 건이며, 통합 runtime은 모두 deterministic rule로 해결했다. 모든 target은
+synthetic hand-authored label이고 human label은 `0/40`이므로 production-ready가
+아니다. 특히 model-only p95는 목표 5ms를 초과했으므로 실제 production encoder와
+DGX GPU 환경의 별도 latency benchmark가 필요하다.

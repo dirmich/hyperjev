@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — compositional augmentation과 safety interlock (v1.78.0)
+
+- held-out OOD fixture를 train에 복사하지 않고, skill별 8개씩 64개의 train-only
+  compositional 문장을 생성했다. 기존 queue와 합친 1,864개 dataset의 SHA는
+  `78b54a46f5bd9d5049b7d3ea903c944854c87882a842ddcd87d67cab5f0f7c9b`이다.
+- reference-token-encoder 100 epoch checkpoint의 validation/test는 모두
+  `180/180 (100%)`였고, held-out OOD model-only는 `38/40 (95%)`, STOP recall은
+  `5/5 (100%)`였다. v1.77 model-only `10%` 대비 개선됐지만 human label은 없다.
+- integrated fast path + Student + safety는 OOD `40/40 (100%)`, STOP recall
+  `5/5 (100%)`, p95 `25.233µs`였다. deterministic rule 포함 결과를 model-only
+  정확도로 부르지 않는다.
+- `enable_fast_path=False`에서도 explicit collision STOP safety interlock을
+  유지하도록 수정하고 회귀 테스트를 추가했다.
+- 검증: targeted control/data tests `32 passed, 39 subtests`, OOD replay,
+  quality evaluator, Ruff. 전체 suite와 push 전 최종 검증을 별도로 수행한다.
+
 ## 2026-09-21 — compositional OOD model-only gate (v1.77.0)
 
 - 40개 unique group의 hand-authored compositional OOD fixture를 추가했다.

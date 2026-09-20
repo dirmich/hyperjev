@@ -156,6 +156,89 @@ _CONTROL_HARD_NEGATIVE_PAIRS = (
     ),
 )
 
+_CONTROL_COMPOSITIONAL_TRAIN_TEMPLATES = {
+    "STOP": (
+        "front range sensor detects a collision within braking distance",
+        "braking is required before the obstacle is reached",
+        "the vehicle is about to hit a barrier",
+        "the safety perimeter contains an immediate impact threat",
+        "halt now because the path ends at a wall",
+        "contact is imminent on the current heading",
+        "the obstacle has entered the emergency buffer",
+        "no safe stopping margin remains ahead",
+    ),
+    "HOLD": (
+        "remain still while the stable pose is monitored",
+        "keep position until the next command is available",
+        "wait without moving for the sensor refresh",
+        "maintain the current stance in the quiet scene",
+        "pause at the waypoint with no hazard nearby",
+        "the robot is stable and should not advance yet",
+        "hold position while the target is temporarily unavailable",
+        "stay in place until perception updates",
+    ),
+    "MOVE": (
+        "advance through an unobstructed hallway",
+        "continue forward along an open route",
+        "travel toward the waypoint on a clear path",
+        "forward navigation is safe in free space",
+        "proceed straight through the corridor",
+        "the route ahead permits normal motion",
+        "move onward where the floor is clear",
+        "an open lane is available for forward travel",
+    ),
+    "ROTATE": (
+        "reorient toward the east corridor",
+        "turn left to align with the waypoint",
+        "change heading at the junction",
+        "the next route requires a ninety degree turn",
+        "rotate in place to face the goal",
+        "the robot must pivot before continuing",
+        "adjust orientation toward the next branch",
+        "turn in the clear space to correct heading",
+    ),
+    "APPROACH": (
+        "close the gap to the visible marker",
+        "move nearer to the selected object",
+        "the destination is visible but still distant",
+        "reduce distance to the goal safely",
+        "go toward the locked target",
+        "the object can be reached by moving closer",
+        "shorten the remaining distance to the waypoint",
+        "advance toward the identified target",
+    ),
+    "RETREAT": (
+        "back up from the moving obstacle",
+        "increase distance from the approaching hazard",
+        "reverse into the safe rear area",
+        "withdraw from the blocked front",
+        "move backward to escape the danger",
+        "retire toward the clear space behind",
+        "back away while the hazard closes in",
+        "leave the forward danger zone using the rear path",
+    ),
+    "INTERACT": (
+        "press the illuminated button",
+        "grasp the aligned handle",
+        "activate the switch beside the robot",
+        "touch the reachable object",
+        "pick up the selected item",
+        "open the latch that is within reach",
+        "use the nearby control panel",
+        "take hold of the highlighted tool",
+    ),
+    "RECOVER": (
+        "reinitialize after pose estimation failure",
+        "restore balance after a fall",
+        "the controller lost localization",
+        "reset the navigation fault",
+        "recover from the unstable state",
+        "reacquire position after tracking was lost",
+        "stabilize the robot after a control error",
+        "restart recovery for the failed motion controller",
+    ),
+}
+
 
 def _normalise_text(value: str) -> str:
     return _WHITESPACE.sub(" ", value.casefold()).strip()
@@ -334,6 +417,65 @@ def generate_control_hard_negative_queue(
         "pair_count": pair_count,
         "sample_count": pair_count * 2,
         "seed": seed,
+        "human_labeled": False,
+    }
+
+
+def generate_control_compositional_training_queue(
+    output_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    seed: int = 7,
+) -> dict[str, Any]:
+    """Create a train-only queue of compositional control paraphrases.
+
+    The held-out OOD fixture is intentionally not generated here. These rows are
+    synthetic research data and remain in the train split until human review.
+    """
+
+    registry.get("control.skill", 1)
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    index = 0
+    with output.open("w", encoding="utf-8") as handle:
+        for skill_index, skill in enumerate(CONTROL_SKILLS):
+            for variant, base_state in enumerate(_CONTROL_COMPOSITIONAL_TRAIN_TEMPLATES[skill]):
+                index += 1
+                sample = {
+                    "sample_id": f"control-compositional-train-{index:05d}",
+                    "task_id": "control.skill",
+                    "task_version": 1,
+                    "state": f"{base_state}; compositional training variant {variant:04d}",
+                    "question": "select next safe high-level control skill",
+                    "target": skill,
+                    "language": "en",
+                    "domain": "control-compositional-training",
+                    "source": {
+                        "kind": "synthetic-compositional-training",
+                        "scenario_id": f"control-compositional-scenario-{index:05d}",
+                        "episode_id": f"control-compositional-episode-{index:05d}",
+                        "semantic_group_id": f"control-compositional-group-{index:05d}",
+                        "seed": seed,
+                        "skill_index": skill_index,
+                    },
+                    "labels": {"qwen": None, "gemma": None, "human": None},
+                    "review": {"status": "pending", "reviewer": None},
+                    "provenance": {
+                        "prompt_version": 1,
+                        "generator": "control-compositional-training-v1",
+                        "split": "train",
+                        "privacy_raw_inputs_stored": False,
+                        "target_source": "synthetic_compositional_only",
+                    },
+                }
+                handle.write(json.dumps(sample, ensure_ascii=False, sort_keys=True) + "\n")
+    return {
+        "record_type": "control_compositional_training_queue",
+        "output_path": str(output.resolve()),
+        "sample_count": index,
+        "skill_counts": {skill: len(_CONTROL_COMPOSITIONAL_TRAIN_TEMPLATES[skill]) for skill in CONTROL_SKILLS},
+        "seed": seed,
+        "split": "train",
         "human_labeled": False,
     }
 

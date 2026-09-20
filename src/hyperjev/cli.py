@@ -20,6 +20,7 @@ from .config import ConfigError, load_config
 from .contracts import DecisionRequest
 from .control import ControlObservation, ControlSafetyPolicy, ControlStudentClient
 from .control_data import (
+    generate_control_compositional_training_queue,
     generate_control_hard_negative_queue,
     generate_control_review_queue,
     materialize_control_human_dataset,
@@ -401,6 +402,15 @@ def _control_hard_negative(args: argparse.Namespace) -> int:
         pair_count=args.pair_count,
         seed=args.seed,
     )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _control_compositional(args: argparse.Namespace) -> int:
+    config = load_config(args.config)
+    registry = TaskRegistry.load(args.registry)
+    output = args.output or config.runs_path / "control-compositional-training.jsonl"
+    report = generate_control_compositional_training_queue(output, registry, seed=args.seed)
     print(json.dumps(report, ensure_ascii=False))
     return 0
 
@@ -910,6 +920,12 @@ def build_parser() -> argparse.ArgumentParser:
     control_hard_negative.add_argument("--pair-count", type=int, default=100)
     control_hard_negative.add_argument("--seed", type=int, default=7)
     control_hard_negative.set_defaults(handler=_control_hard_negative)
+    control_compositional = control_subparsers.add_parser("compositional")
+    _config_argument(control_compositional)
+    control_compositional.add_argument("--registry", default="registry/control_tasks")
+    control_compositional.add_argument("--output")
+    control_compositional.add_argument("--seed", type=int, default=7)
+    control_compositional.set_defaults(handler=_control_compositional)
     control_materialize = control_subparsers.add_parser("materialize")
     control_materialize.add_argument("--registry", default="registry/control_tasks")
     control_materialize.add_argument("--input", required=True, help="human-reviewed control JSONL")

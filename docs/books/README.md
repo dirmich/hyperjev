@@ -165,6 +165,12 @@ STOP recall `0%`와 integrated runtime 정확도 `100%`, STOP recall `100%`를
 경계의 일부라는 사실을 보여준다. fixture는 synthetic/human `0/40`이므로
 production 정확도 증거가 아니다.
 
+v1.78.0에서는 OOD 자체를 train에 복사하지 않은 64개 compositional train 문장을
+추가해 model-only 정확도를 `95%`까지 올렸고, integrated runtime은 `100%`를
+유지했다. model-only STOP recall은 명시적 collision safety interlock을 항상 켜도록
+고정해 `100%`가 됐다. 다만 human label `0/40`이고 model-only HOLD 오분류가 남아
+있으므로 상용 99% gate나 모델 정확도 100%로 승격하지 않는다.
+
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
 100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지

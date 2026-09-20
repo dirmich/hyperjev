@@ -509,9 +509,12 @@ class ControlStudentClient:
             return safe_stop(reason="invalid_clock")
         if now_ms - observation.timestamp_ms > self.policy.max_observation_age_ms:
             return safe_stop(reason="stale_observation")
+        # Collision STOP is a safety interlock, not an accuracy fast path. It
+        # must remain enabled when ``enable_fast_path=False`` so model-only
+        # ablations cannot disable the fail-safe boundary.
+        if explicit_stop_signal(observation.state):
+            return explicit_stop_action()
         if self.enable_fast_path:
-            if explicit_stop_signal(observation.state):
-                return explicit_stop_action()
             fast_path_action = deterministic_control_action(observation.state)
             if fast_path_action is not None:
                 return apply_safety_policy(

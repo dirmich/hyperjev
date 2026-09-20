@@ -404,6 +404,31 @@ class ControlContractTests(unittest.TestCase):
             action = client.decide(observation, now_ms=1001.0)
         self.assertNotEqual(action.source, "control-rule")
 
+    def test_model_only_measurement_keeps_explicit_stop_interlock(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        config = StudentConfig(model_id="control-model-only-stop-test", backbone="reference-ngram-encoder", precision="fp32")
+        model = build_torch_model(registry, config)
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "control.pt"
+            torch.save(
+                {"student": student_manifest(registry, config), "model_state_dict": model.state_dict()},
+                checkpoint,
+            )
+            client = ControlStudentClient(checkpoint, registry, enable_fast_path=False)
+            observation = ControlObservation(
+                observation_id="model-only-stop-frame",
+                state="the front lidar reports an imminent impact",
+                domain="simulation",
+                timestamp_ms=1000.0,
+            )
+            action = client.decide(observation, now_ms=1001.0)
+        self.assertEqual(action.skill, "STOP")
+        self.assertEqual(action.source, "safety-rule")
+
 
 if __name__ == "__main__":
     unittest.main()

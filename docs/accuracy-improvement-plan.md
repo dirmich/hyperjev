@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.77.0
+현재 버전: 1.78.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -591,3 +591,28 @@ threshold를 낮추거나 test sample을 train으로 옮기지 않는다. 다음
 control dataset의 human-review 가능한 schema, exact/episode leakage 검사,
 counterfactual hard-negative 생성이다. 그 뒤 실제 human label이 쌓인 뒤에야
 model architecture와 학습률을 비교한다.
+
+### v1.78.0 compositional train augmentation과 safety interlock
+
+held-out OOD fixture와 어휘를 공유하지만 문장은 다른 train-only compositional
+queue 64개(8 skill × 8)를 생성하고, 기존 1,800개 queue와 합쳐 1,864개 dataset을
+만들었다. dataset SHA는
+`78b54a46f5bd9d5049b7d3ea903c944854c87882a842ddcd87d67cab5f0f7c9b`이며,
+compositional rows는 `train`에만 있고 unique episode/group 64개다. 이 변경은
+OOD 문장을 train에 복사하지 않고 표현 조합의 일반화만 학습시키는 ablation이다.
+
+reference-token-encoder 100 epoch checkpoint
+`7d74e6bb9d1a5bb5ea294689aa4f97d8248758c589c061fb7ec11b93d8386848`의
+held-out 40문장 결과는 다음과 같다.
+
+| 경로 | 정확도 | STOP recall | p95 | 판정 |
+| --- | ---: | ---: | ---: | --- |
+| model-only + safety policy | 38/40 (95.00%) | 5/5 (100.00%) | 5,177.947µs | latency/accuracy gate 실패 |
+| integrated fast path + Student + safety | 40/40 (100.00%) | 5/5 (100.00%) | 25.233µs | synthetic 통합 gate 통과 |
+
+model-only 정확도는 v1.77의 10.00%에서 95.00%로 개선됐지만, human label은
+여전히 `0/40`이다. 또한 model-only에서 HOLD 두 건이 오분류됐으므로 모델 단독
+99% 달성으로 주장하지 않는다. `enable_fast_path=False`에서도 explicit collision
+STOP interlock은 유지하도록 고정했으며, 이는 ablation 편의를 위해 안전 경계를
+끄지 않는 계약이다. 다음 단계는 HOLD/STOP 경계의 독립 human golden label과
+실제 DGX GPU latency 측정이다.
