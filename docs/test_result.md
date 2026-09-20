@@ -2672,3 +2672,21 @@ automatic focus loader가 `target_excluded=true`를 요구하도록 harden했다
 | targeted review-pack test | `21 passed` |
 | latest full suite | `154 passed, 1 skipped, 39 subtests passed` |
 | Ruff / diff check | 통과 |
+
+### 14.70 human-only control training gate (v1.93.0)
+
+`control train --require-human-labels`를 training loader까지 연결했다. control
+row마다 typed `labels.human`이 있어야 하고 `target_source`가 `human_review`여야
+한다.
+
+| 검증 항목 | 결과 |
+| --- | --- |
+| synthetic `control_smoke` + human gate | exit `2`, 거부 |
+| synthetic rejection reason | `human label is required` |
+| rejected checkpoint created | 아니오 |
+| materialized human label fixture | load 통과 |
+| targeted training tests | `11 passed, 1 skipped` |
+| latest full suite before this change | `154 passed, 1 skipped, 39 subtests passed` |
+
+이 gate는 정확도를 올리는 학습 자체가 아니라, synthetic target을 production
+training에 섞어 99%를 과장하는 경로를 차단한다.

@@ -363,6 +363,7 @@ def _control_train(args: argparse.Namespace) -> int:
             hard_negative_weight=args.hard_negative_weight,
         ),
         device=args.device,
+        require_human_labels=args.require_human_labels,
     )
     print(json.dumps(report, ensure_ascii=False))
     return 0
@@ -1138,6 +1139,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="multiply loss for samples with source.counterfactual_group_id",
     )
     control_train.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    control_train.add_argument(
+        "--require-human-labels",
+        action="store_true",
+        help="reject synthetic control targets; require validated human_review labels",
+    )
     control_train.set_defaults(handler=_control_train)
     control_decide = control_subparsers.add_parser("decide")
     control_decide.add_argument("--registry", default="registry/control_tasks")

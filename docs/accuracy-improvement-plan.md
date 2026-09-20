@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.92.0
+현재 버전: 1.93.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -907,3 +907,20 @@ manifest-driven focus는 이제 manifest의 `target_excluded`가 명시적으로
 경우에만 동작한다. target 누출 가능성이 있는 파일을 action priority 입력으로
 사용하면 즉시 거부한다. 이 검사는 blind review 경계를 지키기 위한 것이며,
 accuracy 계산이나 human label 생성과는 별개다.
+
+### v1.93.0 human-only control training gate
+
+production용 control checkpoint 학습은 다음 flag를 반드시 사용한다.
+
+```bash
+uv run hyperjev control train \
+  --dataset /path/to/control-human-target.jsonl \
+  --output /path/to/control-human.pt \
+  --require-human-labels \
+  --device cuda
+```
+
+이 flag는 모든 row의 typed `labels.human`을 검증하고, control task에 대해서는
+`provenance.target_source=human_review`를 요구한다. synthetic target이나 Qwen/
+Gemma draft만 있는 queue에서는 checkpoint를 생성하지 않는다. 따라서 이후
+evaluator의 `--require-human-test`와 결합해야 99% 승격 후보가 된다.

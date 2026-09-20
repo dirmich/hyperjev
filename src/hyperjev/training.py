@@ -11,7 +11,13 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from .contracts import BooleanDecision, ChoiceDecision, ScoreDecision, validate_result_for_task
+from .contracts import (
+    BooleanDecision,
+    ChoiceDecision,
+    ScoreDecision,
+    parse_decision_result,
+    validate_result_for_task,
+)
 from .registry import TaskRegistry
 from .samples import CanonicalSample, load_jsonl
 from .student import StudentConfig, student_manifest
@@ -132,7 +138,12 @@ def _validate_soft_target(raw: Any, sample: CanonicalSample, registry: TaskRegis
             raise TrainingDataError(f"{sample.sample_id}: score soft_target must be numeric") from exc
 
 
-def load_training_dataset(path: str | Path, registry: TaskRegistry) -> TrainingDataset:
+def load_training_dataset(
+    path: str | Path,
+    registry: TaskRegistry,
+    *,
+    require_human_labels: bool = False,
+) -> TrainingDataset:
     """Validate normalized dataset records before a training backend consumes them."""
 
     source = Path(path)
@@ -149,6 +160,19 @@ def load_training_dataset(path: str | Path, registry: TaskRegistry) -> TrainingD
             raise TrainingDataError(f"{sample.sample_id}: invalid provenance.split")
         if bool(sample.provenance.get("privacy_raw_inputs_stored", False)):
             raise TrainingDataError(f"{sample.sample_id}: raw inputs are not allowed in training data")
+        if require_human_labels:
+            human_label = sample.labels.get("human")
+            if not isinstance(human_label, dict):
+                raise TrainingDataError(f"{sample.sample_id}: human label is required")
+            if sample.task_id == "control.skill" and sample.provenance.get("target_source") != "human_review":
+                raise TrainingDataError(
+                    f"{sample.sample_id}: control target_source must be human_review"
+                )
+            try:
+                human_result = parse_decision_result(human_label)
+                validate_result_for_task(registry.get(sample.task_id, sample.task_version), human_result)
+            except (TypeError, ValueError) as exc:
+                raise TrainingDataError(f"{sample.sample_id}: invalid human label: {exc}") from exc
         _validate_target(sample, registry)
         _validate_soft_target(raw.get("soft_target"), sample, registry)
         split_counts[split] += 1
@@ -285,6 +309,7 @@ def run_reference_training(
     student: StudentConfig | None = None,
     training: TrainingConfig | None = None,
     device: str = "auto",
+    require_human_labels: bool = False,
 ) -> dict[str, Any]:
     """Train the small registry-derived reference Student when PyTorch is installed.
 
@@ -296,7 +321,11 @@ def run_reference_training(
     selected_training = training or TrainingConfig()
     selected_student.validate()
     selected_training.validate()
-    dataset = load_training_dataset(dataset_path, registry)
+    dataset = load_training_dataset(
+        dataset_path,
+        registry,
+        require_human_labels=require_human_labels,
+    )
     train_samples = tuple(
         sample
         for sample in dataset.samples
@@ -425,6 +454,7 @@ def run_reference_training(
         },
         "runtime": {"device": str(selected_device), "torch_version": torch.__version__},
         "epochs_completed": selected_training.epochs,
+        "require_human_labels": require_human_labels,
         "mean_train_loss": losses,
         "model_state_dict": model.state_dict(),
     }
@@ -441,5 +471,6 @@ def run_reference_training(
         "validation_count": dataset.split_counts.get("validation", 0),
         "device": str(selected_device),
         "epochs_completed": selected_training.epochs,
+        "require_human_labels": require_human_labels,
         "mean_train_loss": losses,
     }

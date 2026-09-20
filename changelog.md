@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — human-only control training gate (v1.93.0)
+
+- `control train --require-human-labels`를 연결해 synthetic control target 학습을
+  production 경로에서 명시적으로 차단한다.
+- control sample은 typed `labels.human`과 `provenance.target_source=human_review`를
+  모두 검증하며, 유효하지 않으면 checkpoint를 만들지 않는다.
+- synthetic 연구 학습은 기존처럼 flag 없이 가능하지만 production 정확도 근거로
+  승격하지 않는다.
+- targeted training 테스트 `11 passed, 1 skipped`; 전체 suite는 version bump 후
+  다시 실행한다.
+
 ## 2026-09-21 — target-exclusion guard for automatic focus (v1.92.0)
 
 - manifest-driven focus가 `target_excluded=true`를 명시한 dual-review manifest만

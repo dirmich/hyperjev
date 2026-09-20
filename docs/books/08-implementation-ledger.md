@@ -126,6 +126,7 @@
 | 1.90.0 | 진행 중 | low-agreement action을 먼저 배치하는 focus review ordering 추가 |
 | 1.91.0 | 진행 중 | dual-review manifest에서 low-agreement focus action 자동 추출 |
 | 1.92.0 | 진행 중 | automatic focus 입력에 target-exclusion contract guard 추가 |
+| 1.93.0 | 진행 중 | control train human-only target/source gate와 checkpoint 미생성 검증 |
 
 ## 다음 기록 규칙
 

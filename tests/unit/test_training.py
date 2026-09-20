@@ -6,7 +6,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 
-from hyperjev.cli import main
+from hyperjev.cli import build_parser, main
 from hyperjev.registry import TaskRegistry
 from hyperjev.samples import CanonicalSample
 from hyperjev.student import StudentConfig
@@ -226,6 +226,51 @@ class TrainingTests(unittest.TestCase):
             dataset.write_text(json.dumps(record) + "\n", encoding="utf-8")
             with self.assertRaises(TrainingDataError):
                 load_training_dataset(dataset, registry)
+
+    def test_control_human_training_gate_rejects_synthetic_targets(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            dataset = Path(directory) / "control.jsonl"
+            dataset.write_text(
+                json.dumps(_record("control-synthetic", "control.skill", "STOP", "train", None))
+                + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(TrainingDataError, "human label is required"):
+                load_training_dataset(dataset, registry, require_human_labels=True)
+
+    def test_control_human_training_gate_accepts_materialized_label(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            dataset = Path(directory) / "control-human.jsonl"
+            record = _record("control-human", "control.skill", "STOP", "train", None)
+            candidates = ["STOP", "HOLD", "MOVE", "ROTATE", "APPROACH", "RETREAT", "INTERACT", "RECOVER"]
+            record["labels"] = {
+                "human": {
+                    "type": "choice",
+                    "selected": "STOP",
+                    "probabilities": {candidate: float(candidate == "STOP") for candidate in candidates},
+                    "abstained": False,
+                }
+            }
+            record["provenance"]["target_source"] = "human_review"
+            dataset.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            loaded = load_training_dataset(dataset, registry, require_human_labels=True)
+        self.assertEqual(len(loaded.samples), 1)
+
+    def test_control_train_exposes_human_label_gate(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "train",
+                "--dataset",
+                "dataset.jsonl",
+                "--output",
+                "checkpoint.pt",
+                "--require-human-labels",
+            ]
+        )
+        self.assertTrue(args.require_human_labels)
 
     def test_train_plan_cli_writes_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
