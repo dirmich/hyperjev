@@ -6,7 +6,7 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from hyperjev.cli import main
+from hyperjev.cli import build_parser, main
 from hyperjev.model_registry import ModelRegistry, ModelRegistryError, build_model_manifest
 
 
@@ -129,6 +129,70 @@ class ModelRegistryTests(unittest.TestCase):
                 registry.transition("model-a", "active")
             with self.assertRaises(ModelRegistryError):
                 registry.register(_manifest("model-a"))
+
+    def test_control_quality_report_requires_human_and_hash_bound_safety_gates(self) -> None:
+        record = _manifest("control-model") | {
+            "checkpoint_sha256": "b" * 64,
+            "dataset_hash": "a" * 64,
+        }
+        report = {
+            "record_type": "control_quality_gate",
+            "passed": True,
+            "production_ready": True,
+            "human_label_gate": True,
+            "human_test_gate": True,
+            "checkpoint_sha256": "b" * 64,
+            "dataset_sha256": "a" * 64,
+            "safety": {
+                "safe_stop_recall": 1.0,
+                "safe_stop_recall_ci95": {"lower": 0.995},
+            },
+        }
+        ModelRegistry.validate_control_quality_report(record, report)
+        report["human_test_gate"] = False
+        with self.assertRaises(ModelRegistryError):
+            ModelRegistry.validate_control_quality_report(record, report)
+        report["human_test_gate"] = True
+        report["safety"] = {"safe_stop_recall": 1.0, "safe_stop_recall_ci95": []}
+        with self.assertRaises(ModelRegistryError):
+            ModelRegistry.validate_control_quality_report(record, report)
+
+    def test_control_quality_report_rejects_checkpoint_hash_mismatch(self) -> None:
+        record = _manifest("control-model") | {
+            "checkpoint_sha256": "b" * 64,
+            "dataset_hash": "a" * 64,
+        }
+        report = {
+            "record_type": "control_quality_gate",
+            "passed": True,
+            "production_ready": True,
+            "human_label_gate": True,
+            "human_test_gate": True,
+            "checkpoint_sha256": "c" * 64,
+            "dataset_sha256": "a" * 64,
+            "safety": {
+                "safe_stop_recall": 1.0,
+                "safe_stop_recall_ci95": {"lower": 0.995},
+            },
+        }
+        with self.assertRaises(ModelRegistryError):
+            ModelRegistry.validate_control_quality_report(record, report)
+
+    def test_model_promote_parser_exposes_strict_quality_flags(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "model",
+                "promote",
+                "control-model",
+                "--to",
+                "active",
+                "--quality-report",
+                "/tmp/control-quality.json",
+                "--require-quality-report",
+            ]
+        )
+        self.assertEqual(args.quality_report, "/tmp/control-quality.json")
+        self.assertTrue(args.require_quality_report)
 
 
 if __name__ == "__main__":

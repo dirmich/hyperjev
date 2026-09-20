@@ -3113,3 +3113,30 @@ uv run hyperjev control simulate \
 
 500개 safety 결과는 synthetic/local replay이며 human accuracy, raw Korean OOD,
 DGX Spark concurrent throughput를 의미하지 않는다.
+
+### 14.87 model promotion quality binding (v1.110.0)
+
+registry 승격 경계에 quality report 검증을 추가했다. strict 명령은 다음
+조건이 모두 맞지 않으면 실패해야 한다.
+
+| gate | 요구 조건 |
+| --- | --- |
+| report type/status | `control_quality_gate`, `passed=true`, `production_ready=true` |
+| human provenance | `human_label_gate=true`, `human_test_gate=true` |
+| artifact binding | report checkpoint/dataset SHA가 registry manifest와 일치 |
+| safety | STOP recall `1.0`, Wilson 95% 하한 `>=0.99` |
+
+단위 테스트는 `tests/unit/test_model_registry.py`에서 report type, human gate,
+checkpoint hash, parser flag를 검증한다. 현재 실제 review status는
+`reviewed=0/1000`, `test_ready=false`, `ready_for_materialize=false`이므로
+production-ready report는 존재하지 않는다. 따라서 다음 명령은 report가
+제공되지 않은 현재 상태에서 non-zero exit code `2`이어야 한다. 이는
+human readiness gate의 판정값 `1`과 달리, strict promotion 옵션 사용법 오류를
+뜻한다.
+
+```bash
+uv run hyperjev model promote control-model --to active \
+  --require-quality-report
+```
+
+이 결과는 promotion guard의 동작 증거이며 모델 정확도 99% 달성 증거가 아니다.

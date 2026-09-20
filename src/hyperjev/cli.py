@@ -34,7 +34,7 @@ from .evaluation import evaluate_run, validate_golden_set
 from .golden import append_golden_feedback, apply_golden_feedback, generate_review_queue
 from .golden_draft import adjudicate_teacher_drafts, generate_teacher_draft
 from .mock_server import serve
-from .model_registry import STATUSES, ModelRegistry, build_model_manifest
+from .model_registry import STATUSES, ModelRegistry, ModelRegistryError, build_model_manifest
 from .registry import RegistryError, TaskRegistry
 from .review_pack import (
     compare_control_reviews,
@@ -819,7 +819,14 @@ def _model_manifest(args: argparse.Namespace) -> int:
 
 
 def _model_promote(args: argparse.Namespace) -> int:
-    record = _model_registry(args).transition(args.model_id, args.to, reason=args.reason)
+    registry = _model_registry(args)
+    if args.quality_report:
+        quality_report = json.loads(Path(args.quality_report).read_text(encoding="utf-8"))
+        record = registry.get(args.model_id)
+        registry.validate_control_quality_report(record, quality_report)
+    elif args.require_quality_report:
+        raise ModelRegistryError("--require-quality-report requires --quality-report")
+    record = registry.transition(args.model_id, args.to, reason=args.reason)
     print(json.dumps(record, ensure_ascii=False))
     return 0
 
@@ -1350,6 +1357,15 @@ def build_parser() -> argparse.ArgumentParser:
     model_promote.add_argument("model_id")
     model_promote.add_argument("--to", required=True, choices=("evaluated", "calibrated", "candidate", "canary", "active", "retired"))
     model_promote.add_argument("--reason", default="")
+    model_promote.add_argument(
+        "--quality-report",
+        help="passed control_quality_gate JSON bound to the registered checkpoint and dataset",
+    )
+    model_promote.add_argument(
+        "--require-quality-report",
+        action="store_true",
+        help="reject promotion unless --quality-report is supplied and passes",
+    )
     model_promote.set_defaults(handler=_model_promote)
     model_rollback = model_subparsers.add_parser("rollback")
     _config_argument(model_rollback)

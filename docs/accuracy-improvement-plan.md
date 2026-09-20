@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.109.0
+현재 버전: 1.110.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1275,3 +1275,30 @@ label을 수집하고, disagreement를 adjudicate한 뒤 human-only checkpoint�
 검증한다. raw Student multilingual OOD와 human test accuracy는 별도 gate이며,
 human label은 여전히 `0/1000`이다. DGX Spark concurrent GPU load test와 실제
 robot/game closed-loop test는 아직 수행하지 않았다.
+
+### v1.110.0 model promotion quality binding
+
+정확도·안전·human provenance가 검증되지 않은 control checkpoint가 registry의
+`active` 상태로 이동하지 않도록 promotion 명령에 report binding을 추가했다.
+strict promotion은 다음처럼 실행한다.
+
+```bash
+uv run hyperjev model promote control-model \
+  --to active \
+  --quality-report /path/to/control-quality.json \
+  --require-quality-report
+```
+
+report는 `record_type=control_quality_gate`여야 하며, `passed=true`,
+`production_ready=true`, `human_label_gate=true`, `human_test_gate=true`를
+모두 포함해야 한다. report의 `checkpoint_sha256`는 registry manifest의
+checkpoint와, `dataset_sha256`는 manifest의 dataset과 각각 일치해야 한다.
+안전 조건은 safe STOP recall `1.0` 및 Wilson 95% 하한 `0.99` 이상이다.
+
+이 검증은 label을 자동 생성하거나 Qwen/Gemma draft를 human target으로
+승격하지 않는다. 현재 queue는 reviewed `0/1000`, test pending `100`, 전체
+pending `1000`이므로 유효한 production quality report가 없고, strict
+promotion은 non-zero exit로 실패하는 것이 올바르다. 현재 CLI 인자 누락은
+exit code `2`를 반환한다. 다음 단계는 blind dual human review,
+adjudication, human-only materialize/재학습 후 동일한 hash-bound report를
+생성하는 것이다.

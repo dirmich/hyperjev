@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — bind model promotion to quality gates (v1.110.0)
+
+- `model promote`에 `--quality-report`와 `--require-quality-report`를 추가했다.
+  strict 모드에서는 `control_quality_gate` report가 없거나 통과하지 않으면
+  checkpoint를 승격하지 않는다.
+- quality report는 `production_ready`, 전체 human label/test gate, 등록된
+  checkpoint SHA-256, dataset SHA-256을 함께 검증한다. 또한 safe STOP recall
+  `1.0`과 Wilson 95% 하한 `0.99` 미만을 거부한다.
+- 이 기능은 검증된 human report를 생성하지 않는다. 현재 상태는 여전히
+  reviewed `0/1000`, `test_ready=false`이므로 strict promotion은 의도적으로
+  실패해야 한다.
+
 ## 2026-09-21 — selected BOW safety replay (v1.109.0)
 
 - 선택된 v1.105 BOW checkpoint를 `control simulate`로 500개 고유 safety

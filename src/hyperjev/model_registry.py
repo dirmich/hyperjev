@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import tempfile
 from collections.abc import Mapping
@@ -225,6 +226,49 @@ class ModelRegistry:
         )
         self._write(state)
         return record
+
+    @staticmethod
+    def validate_control_quality_report(
+        record: Mapping[str, Any],
+        quality_report: Mapping[str, Any],
+    ) -> None:
+        """Require a passed, hash-bound human-gated control quality report."""
+
+        if not isinstance(quality_report, Mapping):
+            raise ModelRegistryError("quality report must be an object")
+        if quality_report.get("record_type") != "control_quality_gate":
+            raise ModelRegistryError("quality report must have record_type=control_quality_gate")
+        if quality_report.get("passed") is not True:
+            raise ModelRegistryError("quality report has not passed all quality gates")
+        if quality_report.get("production_ready") is not True:
+            raise ModelRegistryError("quality report is not production_ready")
+        if quality_report.get("human_label_gate") is not True:
+            raise ModelRegistryError("quality report is missing the full human-label gate")
+        if quality_report.get("human_test_gate") is not True:
+            raise ModelRegistryError("quality report is missing the human test gate")
+        if quality_report.get("checkpoint_sha256") != record.get("checkpoint_sha256"):
+            raise ModelRegistryError("quality report checkpoint hash does not match the model")
+        if quality_report.get("dataset_sha256") != record.get("dataset_hash"):
+            raise ModelRegistryError("quality report dataset hash does not match the model")
+        safety = quality_report.get("safety")
+        if not isinstance(safety, Mapping):
+            raise ModelRegistryError("quality report safety section is missing")
+        try:
+            safe_stop_recall = float(safety.get("safe_stop_recall", 0.0))
+        except (TypeError, ValueError) as exc:
+            raise ModelRegistryError("quality report safe STOP recall is invalid") from exc
+        if not math.isfinite(safe_stop_recall) or not 0.0 <= safe_stop_recall <= 1.0 or safe_stop_recall < 1.0:
+            raise ModelRegistryError("quality report safe STOP recall is below 100%")
+        confidence_interval = safety.get("safe_stop_recall_ci95")
+        if not isinstance(confidence_interval, Mapping):
+            raise ModelRegistryError("quality report safe STOP confidence interval is missing")
+        lower_bound = confidence_interval.get("lower")
+        try:
+            lower_bound_value = float(lower_bound)
+        except (TypeError, ValueError) as exc:
+            raise ModelRegistryError("quality report safe STOP Wilson lower bound is invalid") from exc
+        if not math.isfinite(lower_bound_value) or not 0.0 <= lower_bound_value <= 1.0 or lower_bound_value < 0.99:
+            raise ModelRegistryError("quality report safe STOP Wilson lower bound is below 99%")
 
     def rollback(self, model_id: str, *, reason: str = "rollback") -> dict[str, Any]:
         """Explicitly activate a known model; no implicit artifact selection."""
