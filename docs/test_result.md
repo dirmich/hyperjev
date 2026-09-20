@@ -2942,3 +2942,23 @@ uv run hyperjev control simulate \
 이 결과는 duplicate inflation 방지와 local CPU sequential safety replay를
 검증한다. human-labeled control accuracy, teacher fallback latency, DGX Spark
 동시성/열 부하 결과는 아직 별도 gate다.
+
+### 14.81 strict dual-review materialization gate (v1.104.0)
+
+production accuracy 후보에 single-review label이 섞이지 않도록
+`control materialize --require-dual-review`를 추가했다. strict 모드에서 각 row는
+`review.status=reviewed`, non-empty reviewer, `control dual-review agreement`
+또는 `control dual-review adjudication` reason을 모두 가져야 한다.
+
+검증 결과:
+
+| 입력 provenance | strict 결과 |
+| --- | --- |
+| human label만 있고 review metadata 없음 | 거부 |
+| dual-agreement reviewer/reason | 통과 |
+| 기본 materialize (strict 미사용) | 기존 호환 동작 |
+| 실제 queue human label | `0/1000`, 변화 없음 |
+
+따라서 이 단계의 산출물은 정확도 수치가 아니라 human label 품질 gate다. 실제
+dual-review와 adjudication이 완료되기 전에는 99% production accuracy를 주장하지
+않는다.

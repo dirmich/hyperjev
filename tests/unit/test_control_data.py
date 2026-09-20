@@ -218,6 +218,60 @@ class ControlDatasetQualityTests(unittest.TestCase):
         self.assertEqual(materialized["provenance"]["target_source"], "human_review")
         self.assertEqual(materialized["provenance"]["materialized_from_target"], "MOVE")
 
+    def test_materialize_can_require_dual_review_provenance(self) -> None:
+        source = self._write(
+            [
+                self._record(
+                    "dual-review-1",
+                    "train",
+                    state="emergency hazard",
+                    episode_id="ep-dual-1",
+                    semantic_group_id="sg-dual-1",
+                    human={
+                        "type": "choice",
+                        "selected": "STOP",
+                        "probabilities": {
+                            skill: float(skill == "STOP")
+                            for skill in (
+                                "STOP",
+                                "HOLD",
+                                "MOVE",
+                                "ROTATE",
+                                "APPROACH",
+                                "RETREAT",
+                                "INTERACT",
+                                "RECOVER",
+                            )
+                        },
+                        "abstained": False,
+                    },
+                )
+            ]
+        )
+        with self.assertRaisesRegex(ValueError, "dual-review materialization"):
+            materialize_control_human_dataset(
+                source,
+                source.with_name("strict-materialized.jsonl"),
+                self.registry,
+                require_dual_review=True,
+            )
+
+        record = json.loads(source.read_text(encoding="utf-8"))
+        record["review"] = {
+            "status": "reviewed",
+            "reviewer": "dual-agreement:reviewer-a+reviewer-b",
+            "reason": "control dual-review agreement",
+        }
+        source.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
+        report = materialize_control_human_dataset(
+            source,
+            source.with_name("strict-materialized.jsonl"),
+            self.registry,
+            require_dual_review=True,
+        )
+        self.assertTrue(report["dual_review_required"])
+        self.assertEqual(report["dual_reviewed_count"], 1)
+
     def test_materialize_rejects_pending_queue(self) -> None:
         source = self._write(
             [

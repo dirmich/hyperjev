@@ -647,6 +647,7 @@ def materialize_control_human_dataset(
     registry: TaskRegistry,
     *,
     require_human_labels: bool = True,
+    require_dual_review: bool = False,
 ) -> dict[str, Any]:
     """Copy a control queue while replacing synthetic targets with typed human labels.
 
@@ -667,6 +668,32 @@ def materialize_control_human_dataset(
         for line in source.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+    dual_reviewed_count = 0
+    if require_dual_review:
+        dual_review_errors: list[str] = []
+        for raw in raw_records:
+            sample_id = str(raw.get("sample_id", ""))
+            review = raw.get("review")
+            if not isinstance(review, dict):
+                dual_review_errors.append(f"{sample_id}: review metadata is missing")
+                continue
+            reason = str(review.get("reason", ""))
+            reviewer = str(review.get("reviewer", ""))
+            if review.get("status") != "reviewed":
+                dual_review_errors.append(f"{sample_id}: review status is not reviewed")
+            elif not reviewer.strip():
+                dual_review_errors.append(f"{sample_id}: reviewer is empty")
+            elif not reason.startswith("control dual-review "):
+                dual_review_errors.append(
+                    f"{sample_id}: review reason is not dual-review provenance"
+                )
+            else:
+                dual_reviewed_count += 1
+        if dual_review_errors:
+            raise ValueError(
+                "control dataset is not ready for dual-review materialization: "
+                f"{dual_review_errors[:3]}"
+            )
     by_id = {sample.sample_id: sample for sample in samples}
     materialized: list[dict[str, Any]] = []
     for raw in raw_records:
@@ -691,6 +718,8 @@ def materialize_control_human_dataset(
         "output_path": str(output.resolve()),
         "sample_count": len(materialized),
         "human_labeled_count": output_validation["human_labeled_count"],
+        "dual_review_required": require_dual_review,
+        "dual_reviewed_count": dual_reviewed_count if require_dual_review else None,
         "target_source": "human_review",
         "input_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "output_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),

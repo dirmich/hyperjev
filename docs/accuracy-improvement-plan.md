@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.103.0
+현재 버전: 1.104.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1127,3 +1127,23 @@ Gemma endpoint의 control draft 경계를 실제로 확인했다. `/v1/models`�
 `500/500`, p95 `0.000976 ms`, p99 `0.001552 ms`를 확인했고 5ms latency gate를
 통과했다. 이는 local CPU sequential replay 증거이며, human-labeled control
 accuracy나 DGX Spark 동시성 production benchmark를 대체하지 않는다.
+
+### v1.104.0 strict dual-review materialization gate
+
+사람이 검수한 라벨도 한 명의 실수나 teacher anchoring을 포함할 수 있으므로,
+production 후보 dataset을 materialize할 때는 독립 reviewer 두 명의 agreement
+또는 disagreement adjudication provenance를 요구할 수 있게 했다.
+
+```bash
+uv run hyperjev control materialize \
+  --input /path/to/control-reviewed.jsonl \
+  --output /path/to/control-human-target.jsonl \
+  --require-dual-review
+```
+
+strict gate는 `review.status=reviewed`, reviewer 식별자, 그리고
+`reason`이 `control dual-review agreement` 또는
+`control dual-review adjudication`으로 시작하는지 확인한다. 단일 reviewer
+feedback은 연구용 기본 materialize에서는 허용되지만 strict production 후보에서는
+거부된다. 이 gate는 model accuracy를 자동으로 올리는 장치가 아니라, 잘못된
+label이 99% 평가와 학습을 오염시키지 않게 하는 전제조건이다.

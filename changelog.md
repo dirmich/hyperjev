@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — strict dual-review materialization gate (v1.104.0)
+
+- `control materialize --require-dual-review`를 추가해 single-review label이
+  production 학습 dataset으로 승격되는 경로를 차단했다.
+- `control dual-review agreement` 또는 adjudication provenance가 있는
+  `control dual-review ...` reason만 strict gate를 통과한다.
+- 기본 materialize 동작은 유지해 연구용 단일 human label workflow와의 호환성을
+  보존하되, 99% production 후보는 strict 옵션을 사용하도록 문서화했다.
+- 이 단계는 정확도 숫자를 생성하지 않는다. human label 0/1000 상태와
+  production accuracy 미측정 상태는 그대로다.
+
 ## 2026-09-21 — control simulation scenario uniqueness guard (v1.103.0)
 
 - `control simulate`가 입력 시나리오의 중복 `scenario_id`를 거부하도록 했다.

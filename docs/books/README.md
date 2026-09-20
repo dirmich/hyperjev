@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.103.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.104.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -62,6 +62,12 @@ v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했
 정확도·STOP recall을 부풀리는 실수를 회귀 테스트로 막는다. 500-case 재생은
 고유 500개, 정확도 100%, safe STOP recall 100%, p99 0.001552ms였지만 여전히
 local CPU evidence이며 human control accuracy 증거는 아니다.
+
+v1.104.0에서는 production 후보 materialize에 선택적 dual-review provenance
+gate를 추가했다. agreement 또는 adjudication이 없는 single-review label은
+strict 모드에서 거부되며, 기본 연구 workflow는 호환성을 유지한다. 이 단계는
+정답을 자동 생성하지 않고, 사람 라벨의 신뢰성을 평가·학습 단계로 전달하기
+위한 품질 경계다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

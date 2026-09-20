@@ -438,7 +438,12 @@ def _control_boundary(args: argparse.Namespace) -> int:
 
 def _control_materialize(args: argparse.Namespace) -> int:
     registry = TaskRegistry.load(args.registry)
-    report = materialize_control_human_dataset(args.input, args.output, registry)
+    report = materialize_control_human_dataset(
+        args.input,
+        args.output,
+        registry,
+        require_dual_review=args.require_dual_review,
+    )
     print(json.dumps(report, ensure_ascii=False))
     return 0
 
@@ -1048,6 +1053,11 @@ def build_parser() -> argparse.ArgumentParser:
     control_materialize.add_argument("--registry", default="registry/control_tasks")
     control_materialize.add_argument("--input", required=True, help="human-reviewed control JSONL")
     control_materialize.add_argument("--output", required=True, help="human-target training JSONL")
+    control_materialize.add_argument(
+        "--require-dual-review",
+        action="store_true",
+        help="require control dual-review agreement or adjudication provenance",
+    )
     control_materialize.set_defaults(handler=_control_materialize)
     control_merge = control_subparsers.add_parser("merge")
     control_merge.add_argument("--registry", default="registry/control_tasks")
