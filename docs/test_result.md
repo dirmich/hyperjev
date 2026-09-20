@@ -924,3 +924,5 @@ uv run hyperjev golden review-pack \\
 선택한다. `e`에서는 boolean `true/false`, choice 후보값, score 숫자만
 입력하며 typed JSON은 시스템이 생성한다. 각 결과는 즉시 append되며 이전
 item을 다시 수정하면 feedback의 최신 correction이 reviewed queue에 적용된다.
+EOF나 `Ctrl-C`로 세션을 종료해도 traceback 없이 저장된 결과를 보존하고
+종료한다.

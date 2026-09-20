@@ -62,6 +62,7 @@
 | 1.27.0 | 진행 중 | human remember-worthiness rubric과 검수 기준 문서 |
 | 1.28.0 | 진행 중 | next/previous navigable human review session |
 | 1.29.0 | 진행 중 | task-aware value-only correction input |
+| 1.29.1 | 진행 중 | review-session EOF/pipe safe quit |
 
 ## 다음 기록 규칙
 

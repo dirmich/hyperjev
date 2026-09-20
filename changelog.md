@@ -3,6 +3,11 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — safe review-session EOF handling (v1.29.1)
+
+- `Ctrl-D`, piped input 종료, `Ctrl-C`를 traceback 없이 저장 후 종료로
+  처리한다.
+
 ## 2026-09-20 — value-only human correction input (v1.29.0)
 
 - interactive `e` 수정이 raw JSON 전체가 아니라 task에 맞는 값만 받도록

@@ -166,6 +166,71 @@ class ReviewPackTests(unittest.TestCase):
         self.assertFalse(reviewed_records[0]["labels"]["human"]["value"])
         self.assertEqual(reviewed_records[1]["labels"]["human"]["selected"], "decision")
 
+    def test_review_session_treats_eof_as_safe_quit(self) -> None:
+        config = load_config(ROOT / "configs" / "phase0.toml")
+        registry = TaskRegistry.load(config.registry_path)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            draft = root / "draft.jsonl"
+            pack = root / "review-pack.jsonl"
+            feedback = root / "feedback.jsonl"
+            generate_review_queue(queue, registry, count=1, seed=7)
+            sample = json.loads(queue.read_text(encoding="utf-8"))
+            queue_sha256 = __import__("hashlib").sha256(queue.read_bytes()).hexdigest()
+            draft.write_text(
+                "\n".join(
+                    [
+                        json.dumps(
+                            {
+                                "record_type": "golden_teacher_draft_manifest",
+                                "queue_sha256": queue_sha256,
+                                "provider": "qwen",
+                                "model": "qwen38fn",
+                                "prompt_version": 2,
+                            }
+                        ),
+                        json.dumps(
+                            {
+                                "record_type": "golden_teacher_draft",
+                                "sample_id": sample["sample_id"],
+                                "provider": "qwen",
+                                "model": "qwen38fn",
+                                "normalized_result": {
+                                    "type": "boolean",
+                                    "value": True,
+                                    "probability": 0.95,
+                                    "abstained": False,
+                                },
+                                "schema_valid": True,
+                                "status": "completed",
+                                "error": None,
+                                "response_sha256": "hash",
+                            }
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            export_review_pack(queue, draft, pack, registry, include_raw=True)
+
+            def eof(_prompt: str) -> str:
+                raise EOFError
+
+            report = run_review_session(
+                pack,
+                queue,
+                feedback,
+                registry,
+                reviewer="tester",
+                input_fn=eof,
+                output_fn=lambda _message: None,
+            )
+
+        self.assertTrue(report["stopped"])
+        self.assertEqual(report["saved_in_session"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

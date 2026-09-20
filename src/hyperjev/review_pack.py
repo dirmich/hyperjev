@@ -241,7 +241,11 @@ def run_review_session(
                 + json.dumps(latest[sample_id].get("correction"), ensure_ascii=False, sort_keys=True)
             )
         output_fn("Commands: [a]ccept  [e]dit  [n]ext  [p]revious  [s]kip  [q]uit")
-        command = input_fn("> ").strip().lower()
+        try:
+            command = input_fn("> ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            stopped = True
+            break
         if command in {"q", "quit"}:
             stopped = True
             break
@@ -269,7 +273,12 @@ def run_review_session(
             reason = "interactive review: reviewer accepted teacher draft"
         else:
             try:
-                correction = _correction_from_value(item, input_fn("correct value: "), registry)
+                raw_value = input_fn("correct value: ")
+            except (EOFError, KeyboardInterrupt):
+                stopped = True
+                break
+            try:
+                correction = _correction_from_value(item, raw_value, registry)
             except (TypeError, ValueError) as exc:
                 output_fn(f"Invalid value: {exc}")
                 continue
