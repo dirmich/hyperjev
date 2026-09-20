@@ -3,6 +3,21 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — Qwen v2 draft and confusion-focused review pack (v1.112.0)
+
+- prompt v2 800-row queue를 Qwen `qwen38fn`으로 전수 draft했다. 800/800
+  completed, schema-valid `786/800 (98.25%)`, repaired 3건이었다.
+- synthetic target과의 일치율은 valid row 기준 `762/786 (96.95%)`, 전체 row
+  기준 `762/800 (95.25%)`였다. per-skill 약점은 APPROACH `91/100`, RETREAT
+  `84/92`, INTERACT `92/97`이며, p50/p95/p99 latency는
+  `2120.494/2329.496/2513.755ms`였다.
+- 오류를 숨기지 않도록 target을 제외한 800-item `uncertain_first` review pack을
+  만들었다. invalid 14건과 valid-but-wrong 24건은 다음 blind human review의
+  우선 검수 후보로 남겼다.
+- 이 결과는 Qwen teacher draft와 synthetic target 비교이며 human label이 아니다.
+  `human_labeled_count=0`, `production_ready=false`이므로 Student 정확도나
+  production promotion 근거로 사용하지 않는다.
+
 ## 2026-09-21 — diversify control review prompts (v1.111.0)
 
 - `control seed`의 review queue generator를 prompt version 2로 올렸다. 영어와

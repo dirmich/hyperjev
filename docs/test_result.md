@@ -3168,3 +3168,37 @@ uv run hyperjev control seed \
 이 검증은 중복 질문 완화와 provenance 재현성을 확인한다. synthetic target은
 그대로 human label이 아니며, 새 generator만으로 Student 정확도 99%를 주장하지
 않는다.
+
+### 14.89 Qwen v2 draft quality and blind review pack (v1.112.0)
+
+prompt v2 queue 800건에 대해 Qwen `qwen38fn` draft를 `max_tokens=128`, timeout
+300초로 실행했다. 실행은 manifest와 row를 append/flush했고, 중단 대비
+`--resume`로 20건 smoke 뒤 전체 800건을 완료했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| completed | `800/800` |
+| schema-valid | `786/800 (98.25%)` |
+| schema repaired | `3` |
+| synthetic target match, valid rows | `762/786 (96.95%)` |
+| synthetic target match, all rows | `762/800 (95.25%)` |
+| human labels | `0/800` |
+| latency p50/p95/p99/max | `2120.494/2329.496/2513.755/2600.419ms` |
+
+per-skill valid/일치 결과는 STOP `100/100`, HOLD `100/100`, MOVE `99/97`,
+ROTATE `100/100`, APPROACH `100/91`, RETREAT `92/84`, INTERACT `97/92`,
+RECOVER `98/98`이다. invalid 14건과 valid-but-wrong 24건을 추출했으며,
+주요 혼동은 APPROACH↔MOVE, RETREAT↔MOVE, INTERACT↔APPROACH다.
+
+target을 review item에 복사하지 않은 `uncertain_first` pack도 생성했다.
+
+| artifact | SHA-256 |
+| --- | --- |
+| queue | `3c1696dccc1c9545e4dc03f96bdc2b6a50010dac7457f84cbd88d2ae01fc8d84` |
+| Qwen draft | `558aaa7b668c5762f844e9fc6b7692c2448a01b300201f924a9a994d900da0d4` |
+| quality report | `244d121768affe50ad1f74ea4c3eb508b5c282f4df8b99d22c383fae0d93333d` |
+| blind review pack | `625f1766682e5c67022fdfabb8ecda75655a6ae6f3f5323b13798ad675de677` |
+
+이 수치는 Qwen draft와 synthetic target의 비교이지 human accuracy가 아니다.
+`human_label_gate=false`, `production_ready=false`이므로 이 draft를 학습 target
+또는 model promotion 증거로 자동 사용하지 않는다.

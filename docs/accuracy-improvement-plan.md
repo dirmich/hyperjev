@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.111.0
+현재 버전: 1.112.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1327,3 +1327,42 @@ sha256=3c1696dccc1c9545e4dc03f96bdc2b6a50010dac7457f84cbd88d2ae01fc8d84
 입력 coverage를 넓히지만 target은 여전히 synthetic이므로, blind dual human
 label과 held-out human test 없이는 정확도 상승이나 production 승격으로
 판정하지 않는다.
+
+### v1.112.0 Qwen v2 draft와 혼동쌍 review
+
+새 queue의 target을 사람 라벨로 취급하지 않고, Qwen `qwen38fn`을 빠른 draft
+생성기로만 실행했다.
+
+| skill | valid | valid 중 synthetic 일치 | coverage |
+| --- | ---: | ---: | ---: |
+| STOP | 100/100 | 100/100 (100%) | 100% |
+| HOLD | 100/100 | 100/100 (100%) | 100% |
+| MOVE | 99/100 | 97/99 (97.98%) | 99% |
+| ROTATE | 100/100 | 100/100 (100%) | 100% |
+| APPROACH | 100/100 | 91/100 (91%) | 100% |
+| RETREAT | 92/100 | 84/92 (91.30%) | 92% |
+| INTERACT | 97/100 | 92/97 (94.85%) | 97% |
+| RECOVER | 98/100 | 98/98 (100%) | 98% |
+
+전체는 completed `800/800`, schema-valid `786/800 (98.25%)`, valid 기준 일치율
+`762/786 (96.95%)`, 전체 기준 `762/800 (95.25%)`였다. latency는 p50/p95/p99
+`2120.494/2329.496/2513.755ms`로 실시간 control loop가 아니라 비동기
+teacher draft 용도다. 주요 오류는 APPROACH↔MOVE, RETREAT↔MOVE,
+INTERACT↔APPROACH였다.
+
+target을 제거한 blind pack은 다음 명령으로 생성된다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/control-review-v2-1000.jsonl \
+  --draft /tmp/qwen-control-review-v2-20.jsonl \
+  --output /tmp/control-qwen-review-v2-pack.jsonl \
+  --allow-raw --prioritize
+```
+
+queue SHA는
+`3c1696dccc1c9545e4dc03f96bdc2b6a50010dac7457f84cbd88d2ae01fc8d84`, draft
+SHA는 `558aaa7b668c5762f844e9fc6b7692c2448a01b300201f924a9a994d900da0d4`,
+pack SHA는 `625f1766682e5c67022fdfabb8ecda75655a6ae6f3f5323b13798ad675de677`다.
+다음은 이 pack을 `--blind`로 두 사람이 검수하고, disagreement를 adjudicate한
+뒤에만 human-only materialize와 재학습을 수행하는 것이다.

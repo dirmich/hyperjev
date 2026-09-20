@@ -145,6 +145,7 @@
 | 1.109.0 | 진행 중 | 선택 BOW checkpoint의 500-case 고유 safety replay와 latency gate |
 | 1.110.0 | 진행 중 | model promotion의 human/quality report와 checkpoint·dataset hash binding |
 | 1.111.0 | 진행 중 | control review seed prompt 다양화와 800-row unique prompt 재생성 |
+| 1.112.0 | 진행 중 | Qwen v2 800-row draft, per-skill 오류 분석, target-excluded review pack |
 
 ## 다음 기록 규칙
 
