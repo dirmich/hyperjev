@@ -101,6 +101,18 @@ curl http://127.0.0.1:6777/v1/tasks
 curl http://127.0.0.1:6777/metrics
 ```
 
+검증된 Student checkpoint를 붙이는 smoke는 다음과 같다.
+
+```bash
+HYPERJEV_STUDENT_CHECKPOINT=runs/phase3/reference-ngram-student.pt \
+HYPERJEV_STUDENT_MIN_CONFIDENCE=0.95 \
+uv run hyperjev decide --request runs/phase3/student-smoke-request.json
+```
+
+응답 trace의 `route=student`와 `attempts[0].provider=student`를 확인한다.
+confidence 미달은 `accepted=false`이고 Qwen fallback으로 이어져야 하며,
+teacher까지 실패하면 `route=human`이어야 한다.
+
 모델은 `registered → evaluated → calibrated → candidate → canary → active`를
 순서대로 이동한다. quality/calibration, latency, privacy, rollback evidence가
 없는 manifest를 active로 만들지 않는다. drift report는 promotion의 입력이지

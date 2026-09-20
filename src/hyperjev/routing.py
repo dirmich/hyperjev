@@ -26,6 +26,7 @@ from .prompts import messages_for_question
 from .registry import TaskDefinition, TaskRegistry
 from .review import ReviewStore
 from .rules import match_rule
+from .student_client import student_client_from_config
 from .teachers import TeacherClient, parse_json_object, response_hash
 
 
@@ -132,6 +133,9 @@ class DecisionRouter:
             "qwen": TeacherClient(config.teachers["qwen"]),
             "gemma": TeacherClient(config.teachers["gemma"]),
         }
+        configured_student = student_client_from_config(config, registry)
+        if configured_student is not None:
+            self.clients["student"] = configured_student
         if clients:
             self.clients.update(clients)
         self.review_store = review_store or ReviewStore(config.review_path)
@@ -149,9 +153,10 @@ class DecisionRouter:
     ) -> tuple[DecisionResult | None, dict[str, Any]]:
         client = self.clients[provider]
         started = time.perf_counter()
+        model_name = getattr(client, "model_name", None)
         attempt: dict[str, Any] = {
             "provider": provider,
-            "model": self.config.teachers[provider].model,
+            "model": model_name or self.config.teachers[provider].model,
             "status": "error",
             "schema_valid": False,
             "accepted": False,
@@ -160,15 +165,23 @@ class DecisionRouter:
             "reason": None,
         }
         try:
-            completion = client.complete(
-                messages_for_question(
-                    provider,
+            if provider == "student":
+                completion = client.complete_decision(
                     task,
                     state=request.state,
                     question=question_id,
                     candidates=candidates,
                 )
-            )
+            else:
+                completion = client.complete(
+                    messages_for_question(
+                        provider,
+                        task,
+                        state=request.state,
+                        question=question_id,
+                        candidates=candidates,
+                    )
+                )
             attempt["latency_ms"] = round(float(completion.elapsed_ms), 3)
             attempt["model"] = completion.model
             attempt["response_sha256"] = response_hash(completion.content)
@@ -230,7 +243,8 @@ class DecisionRouter:
 
             if selected is None and request.options.allow_fallback:
                 candidates = list(question.candidates or task.output.get("candidates", []))
-                for provider in ("qwen", "gemma"):
+                providers = ("student", "qwen", "gemma") if "student" in self.clients else ("qwen", "gemma")
+                for provider in providers:
                     if provider == "gemma" and (
                         (time.perf_counter() - started) * 1000 >= request.options.deadline_ms
                     ):

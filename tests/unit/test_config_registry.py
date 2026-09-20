@@ -48,6 +48,21 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.teachers["gemma"].base_url, "http://example.test/v1")
         self.assertEqual(config.hypermemory_base_url, "http://memory.test:6767")
 
+    def test_student_checkpoint_is_optional_and_environment_configurable(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "HYPERJEV_STUDENT_CHECKPOINT": "runs/phase3/reference-ngram-student.pt",
+                "HYPERJEV_STUDENT_MIN_CONFIDENCE": "0.97",
+                "HYPERJEV_STUDENT_DEVICE": "cpu",
+            },
+            clear=False,
+        ):
+            config = load_config(ROOT / "configs" / "phase0.toml")
+        self.assertEqual(config.student_checkpoint.name, "reference-ngram-student.pt")
+        self.assertEqual(config.student_minimum_confidence, 0.97)
+        self.assertEqual(config.student_device, "cpu")
+
     def test_missing_config_is_explicit(self) -> None:
         with self.assertRaises(ConfigError):
             load_config(ROOT / "configs" / "missing.toml")

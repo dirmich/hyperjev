@@ -99,3 +99,21 @@
   - rule: 197/197 = 100%
 - 단, 이 queue는 synthetic이며 human label 0/1,000이다. 따라서 이 결과는
   regression/stress 증거이고 production 99% gate 통과 증거가 아니다.
+
+## 2026-09-20 — Student router 연결 (v1.21.0)
+
+- optional `StudentClient`를 추가해 checkpoint가 설정된 경우 실제 제품 경로를
+  `rule → Student → Qwen → Gemma → human` 순서로 연결했다.
+- 기본 설정에는 checkpoint가 없어 기존 Phase 0/mock와 teacher 동작을 보존한다.
+- `HYPERJEV_STUDENT_CHECKPOINT`, `HYPERJEV_STUDENT_MIN_CONFIDENCE`,
+  `HYPERJEV_STUDENT_DEVICE`로 로컬 checkpoint와 confidence gate를 설정한다.
+- checkpoint는 registry task/head와 manifest를 검증하고, boolean/choice의
+  confidence 미달 및 score의 calibration 전에는 abstain한다.
+- 실제 n-gram checkpoint smoke:
+  - confidence 0.95: `route=student`, `accepted=true`, 약 5ms
+  - confidence 0.9999: `Student uncertain → Qwen/Gemma error → human`
+- `abstained=true` 결과는 typed output의 확률이 높아도 자동 수락하지 않도록
+  router gate를 수정했다.
+- 검증: **70 passed, 1 skipped**, Ruff 통과, `git diff --check` 통과.
+- 이 변경은 synthetic 품질 수치를 production 99%로 승격하지 않는다. human
+  golden 1,000개와 `--production-gate` 통과는 여전히 필요하다.

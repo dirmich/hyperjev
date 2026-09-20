@@ -128,6 +128,31 @@ training plan
 checkpoint 파일이 없는데 model registry를 active로 만들지 않는다. 이 원칙은
 개발 속도보다 재현성과 운영 안전성을 우선하는 HyperJev의 핵심이다.
 
+## 6.6 Student를 실제 router에 연결하기
+
+checkpoint를 생성하는 것과 제품 경로에서 사용하는 것은 별도 단계다.
+`StudentClient`는 manifest의 backbone/vocab/sequence 설정으로 모델을 복원하고,
+router는 다음 순서를 사용한다.
+
+```text
+rule → Student → Qwen → Gemma → human
+```
+
+기본 설정은 backward compatible하게 Student를 비활성화한다. 개발자가 검증된
+로컬 checkpoint를 연결할 때는 다음과 같이 실행한다.
+
+```bash
+HYPERJEV_STUDENT_CHECKPOINT=runs/phase3/reference-ngram-student.pt \
+HYPERJEV_STUDENT_MIN_CONFIDENCE=0.95 \
+uv run hyperjev decide --request runs/phase3/student-smoke-request.json
+```
+
+Student가 confidence gate를 넘으면 parent LLM 호출을 줄인다. gate를 넘지
+못하면 결과를 버리지 않고 Qwen fallback으로 전달하며, teacher도 실패하면
+Gemma와 human review로 계속 내려간다. `abstained=true`는 확률이 높아 보여도
+수락하지 않는다. 따라서 coverage를 높이기 위해 threshold를 무리하게 낮추는
+것보다 accepted accuracy와 fallback 비용을 함께 기록해야 한다.
+
 ## 6.5 Training plan에서 registry manifest로
 
 checkpoint가 실제로 생성되고 calibration manifest가 준비되면 두 artifact를

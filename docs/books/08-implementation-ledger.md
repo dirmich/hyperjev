@@ -46,7 +46,8 @@
 | 1.18.0 | `f4d4319` | guarded Student evaluator와 accepted accuracy/coverage 분리 |
 | 1.19.0 | 진행 중 | n-gram Student와 rule+Student guarded 100% synthetic path |
 | 1.20.0 | `6913c8e` | human label을 요구하는 production quality gate |
-| 1.20.1 | 진행 중 | 1,000개 synthetic stress 결과 기록 |
+| 1.20.1 | `99169d2` | 1,000개 synthetic stress 결과 기록 |
+| 1.21.0 | 진행 중 | optional Student router 연결과 abstain fallback guard |
 
 ## 다음 기록 규칙
 

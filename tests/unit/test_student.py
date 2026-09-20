@@ -16,6 +16,7 @@ from hyperjev.student import (
     head_specs,
     student_manifest,
 )
+from hyperjev.student_client import StudentClient
 from hyperjev.student_inference import evaluate_student_checkpoint
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -127,6 +128,37 @@ class StudentContractTests(unittest.TestCase):
         self.assertEqual(report["overall"]["accepted_count"], 0)
         self.assertFalse(report["quality_gate"]["ready"])
         self.assertIn("human_labels_required", report["quality_gate"]["reasons"])
+
+    def test_student_client_loads_checkpoint_and_returns_typed_result(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint_path = Path(directory) / "student.pt"
+            config = StudentConfig(
+                model_id="client-test",
+                backbone="reference-ngram-encoder",
+                precision="fp32",
+            )
+            model = build_torch_model(self.registry, config)
+            torch.save(
+                {
+                    "student": student_manifest(self.registry, config),
+                    "model_state_dict": model.state_dict(),
+                },
+                checkpoint_path,
+            )
+            client = StudentClient(checkpoint_path, self.registry, minimum_confidence=0.0)
+            completion = client.complete_decision(
+                self.registry.get("memory.remember_worthy"),
+                state="A stable deployment decision.",
+                question="remember",
+                candidates=[],
+            )
+        payload = json.loads(completion.content)
+        self.assertIn(payload["type"], {"boolean", "choice", "score"})
+        self.assertEqual(completion.model, "client-test")
 
 
 class CalibrationTests(unittest.TestCase):

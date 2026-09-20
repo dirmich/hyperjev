@@ -6,10 +6,16 @@ still under development:
 ```text
 request
   -> high-precision deterministic rule
+  -> optional encoder Student
   -> Qwen primary teacher
   -> Gemma independent judge
   -> abstain + append-only human review
 ```
+
+Student is enabled only when `HYPERJEV_STUDENT_CHECKPOINT` points to a validated
+checkpoint. Its typed result is accepted only above the configured confidence
+threshold; an explicit `abstained=true` result is never accepted even when its
+raw probability is high. The default configuration remains teacher-only.
 
 Every attempt records provider, model, schema validity, response hash, latency,
 acceptance status, and a SHA-256 state identifier. Raw state and raw teacher

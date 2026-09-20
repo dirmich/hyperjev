@@ -636,3 +636,82 @@ accepted 100%였지만 human label 0/36이라 exit code 1과
 따라서 synthetic stress에서는 99% 목표를 넘겼지만, `--production-gate`는
 `human_labels_required`로 실패한다. 다음 정확도 작업은 이 수치를 더 높이는
 것이 아니라 이 queue를 실제 사람이 검수한 golden dataset으로 교체하는 것이다.
+
+## 12. Student router 실제 연결 및 confidence fallback
+
+### 12.1 구현 범위
+
+1.21.0에서 checkpoint를 단순히 evaluator로 읽는 데서 끝내지 않고 실제
+`DecisionRouter`에 optional provider로 연결했다. 환경 변수가 없으면 기존
+teacher-only 경로를 유지하고, 설정되면 다음 순서로 시도한다.
+
+```text
+high-precision rule → Student → Qwen → Gemma → human
+```
+
+Student는 `student_manifest`와 registry task definition을 이용해 typed head를
+복원한다. boolean/choice는 `minimum_confidence` 미만이면
+`abstained=true`를 반환하고 score는 `allow_score=false` 정책으로 자동
+수락하지 않는다. router의 `_accepted`는 모든 abstention을 먼저 거부하므로
+확률 필드가 높아도 fallback guard를 우회할 수 없다.
+
+### 12.2 실제 checkpoint smoke
+
+실행 대상은 local ignored artifact인
+`runs/phase3/reference-ngram-student.pt`이며, 공개 저장소에는 checkpoint를
+push하지 않고 코드·명령·hash만 기록한다. request는
+`memory.type@1` 한 건이고 state는 `The service uses PostgreSQL for durable
+storage.`였다.
+
+```bash
+HYPERJEV_STUDENT_CHECKPOINT=runs/phase3/reference-ngram-student.pt \
+HYPERJEV_STUDENT_MIN_CONFIDENCE=0.95 \
+uv run hyperjev decide --request runs/phase3/student-smoke-request.json
+```
+
+관측 결과:
+
+| 항목 | 결과 |
+| --- | --- |
+| route | `student` |
+| model | `hyperjev-reference-ngram` |
+| selected | `fact` |
+| top probability | `0.9993294477` |
+| accepted | `true` |
+| latency | 약 `5.04 ms` |
+| parent calls | 0 |
+
+confidence gate를 의도적으로 `0.9999`로 올리고 Qwen/Gemma 주소를 연결 거부
+endpoint로 격리한 두 번째 smoke도 실행했다.
+
+```bash
+HYPERJEV_STUDENT_CHECKPOINT=runs/phase3/reference-ngram-student.pt \
+HYPERJEV_STUDENT_MIN_CONFIDENCE=0.9999 \
+HYPERJEV_QWEN_BASE_URL=http://127.0.0.1:9/v1 \
+HYPERJEV_GEMMA_BASE_URL=http://127.0.0.1:9/v1 \
+uv run hyperjev decide --request runs/phase3/student-smoke-request.json
+```
+
+결과는 Student가 동일한 `0.9993294477` 확률을 내고 `accepted=false`가 된 뒤,
+Qwen/Gemma connection error를 기록하고 `route=human`,
+`review_required=true`로 종료되었다. 즉 confidence 미달 결과를 억지로
+자동 수락하지 않고 fail-closed 한다.
+
+### 12.3 회귀 및 정합성 검증
+
+```bash
+uv run ruff check src tests
+git diff --check
+uv run pytest -q
+```
+
+결과: **70 passed, 1 skipped**. 새 테스트는 optional config 환경 변수,
+checkpoint load/typed result, Student 우선 수락, Student abstention의 Qwen
+fallback을 고정했다. Torch는 현재 NumPy 미설치 warning만 출력했으며 테스트
+실패는 없었다.
+
+이 단계의 정확도 해석은 명확하다. 실제 router 연결과 fallback 계약은 검증했지만,
+smoke 한 건은 모델 정확도 benchmark가 아니다. synthetic 1,000개 stress의
+100% accepted accuracy와 human golden 0/1,000이라는 기존 제한은 그대로이며,
+`student evaluate --production-gate`는 human label이 채워질 때까지 실패해야
+한다.

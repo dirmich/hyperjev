@@ -10,6 +10,7 @@ build/
 *.egg-info/
 .env
 runs/phase0/*.jsonl
+runs/phase1/*.jsonl
 runs/phase2/*.jsonl
 runs/phase3/*.json
 runs/phase3/*.pt

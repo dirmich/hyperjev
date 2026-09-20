@@ -84,6 +84,9 @@ class Phase0Config:
     cache_enabled: bool
     cache_max_entries: int
     teachers: Mapping[str, TeacherSettings]
+    student_checkpoint: Path | None = None
+    student_minimum_confidence: float = 0.95
+    student_device: str = "cpu"
 
     @classmethod
     def from_file(cls, path: str | Path) -> Phase0Config:
@@ -99,6 +102,7 @@ class Phase0Config:
         hypermemory = raw.get("hypermemory", {})
         privacy = raw.get("privacy", {})
         cache = raw.get("cache", {})
+        model = raw.get("model", {})
         raw_teachers = raw.get("teachers", {})
         teachers: dict[str, TeacherSettings] = {}
         for name, values in raw_teachers.items():
@@ -139,6 +143,19 @@ class Phase0Config:
         cache_max_entries = int(cache.get("max_entries", 1024))
         if cache_max_entries < 1:
             raise ConfigError("cache.max_entries must be positive")
+        raw_checkpoint = os.getenv("HYPERJEV_STUDENT_CHECKPOINT", model.get("checkpoint"))
+        student_checkpoint = None
+        if raw_checkpoint:
+            candidate = Path(str(raw_checkpoint)).expanduser()
+            student_checkpoint = (root / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
+        student_minimum_confidence = float(
+            os.getenv("HYPERJEV_STUDENT_MIN_CONFIDENCE", model.get("minimum_confidence", 0.95))
+        )
+        student_device = str(os.getenv("HYPERJEV_STUDENT_DEVICE", model.get("student_device", "cpu")))
+        if not 0.0 <= student_minimum_confidence <= 1.0:
+            raise ConfigError("model.minimum_confidence must be between 0 and 1")
+        if student_device not in {"cpu", "cuda"}:
+            raise ConfigError("model.student_device must be cpu or cuda")
         return cls(
             root=root,
             project_name=str(project.get("name", "hyperjev")),
@@ -162,6 +179,9 @@ class Phase0Config:
             cache_enabled=bool(cache.get("enabled", True)),
             cache_max_entries=cache_max_entries,
             teachers=teachers,
+            student_checkpoint=student_checkpoint,
+            student_minimum_confidence=student_minimum_confidence,
+            student_device=student_device,
         )
 
 

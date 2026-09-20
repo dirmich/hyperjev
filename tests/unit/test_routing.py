@@ -32,6 +32,51 @@ class _FakeClient:
         )
 
 
+class _FakeStudent:
+    model_name = "fake-student"
+
+    def complete_decision(self, task, *, state: str, question: str, candidates: list[str]):
+        del state, question
+        if task.output_type == "boolean":
+            content = '{"type":"boolean","value":true,"probability":0.99}'
+        elif task.output_type == "choice":
+            selected = candidates[0] if candidates else str(task.output["candidates"][0])
+            values = candidates or [str(item) for item in task.output["candidates"]]
+            probability = 1.0 / len(values)
+            content = json.dumps(
+                {
+                    "type": "choice",
+                    "selected": selected,
+                    "probabilities": {value: probability for value in values},
+                }
+            )
+        else:
+            content = '{"type":"score","value":0.5,"interval_90":[0.4,0.6]}'
+        return TeacherCompletion(
+            content=content,
+            model=self.model_name,
+            prompt_tokens=None,
+            completion_tokens=None,
+            total_tokens=None,
+            elapsed_ms=0.1,
+        )
+
+
+class _AbstainingStudent(_FakeStudent):
+    model_name = "fake-abstaining-student"
+
+    def complete_decision(self, task, *, state: str, question: str, candidates: list[str]):
+        del task, state, question, candidates
+        return TeacherCompletion(
+            content='{"type":"boolean","value":true,"probability":0.99,"abstained":true}',
+            model=self.model_name,
+            prompt_tokens=None,
+            completion_tokens=None,
+            total_tokens=None,
+            elapsed_ms=0.1,
+        )
+
+
 def _request(task: str, *, state: str = "중립적인 입력", question_id: str = "q") -> DecisionRequest:
     return DecisionRequest.from_dict(
         {
@@ -100,6 +145,44 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(qwen.calls, 1)
         self.assertEqual(gemma.calls, 0)
         self.assertFalse(outcome.traces[0].review_required)
+
+    def test_student_acceptance_precedes_parent_teachers(self) -> None:
+        qwen = _FakeClient('{"type":"boolean","value":false,"probability":0.99}')
+        gemma = _FakeClient('{"type":"boolean","value":false,"probability":0.99}')
+        directory = tempfile.TemporaryDirectory()
+        router = DecisionRouter(
+            self.config,
+            self.registry,
+            clients={"student": _FakeStudent(), "qwen": qwen, "gemma": gemma},
+            review_store=ReviewStore(Path(directory.name) / "review.jsonl"),
+        )
+        try:
+            outcome = router.decide(_request("memory.remember_worthy@1", state="일반적인 정보에 대한 문장"))
+        finally:
+            directory.cleanup()
+        self.assertEqual(outcome.response.route, "student")
+        self.assertEqual(outcome.traces[0].attempts[0]["provider"], "student")
+        self.assertEqual(qwen.calls, 0)
+        self.assertEqual(gemma.calls, 0)
+
+    def test_student_abstention_falls_through_to_qwen(self) -> None:
+        qwen = _FakeClient('{"type":"boolean","value":false,"probability":0.99}')
+        gemma = _FakeClient('{"type":"boolean","value":false,"probability":0.99}')
+        directory = tempfile.TemporaryDirectory()
+        router = DecisionRouter(
+            self.config,
+            self.registry,
+            clients={"student": _AbstainingStudent(), "qwen": qwen, "gemma": gemma},
+            review_store=ReviewStore(Path(directory.name) / "review.jsonl"),
+        )
+        try:
+            outcome = router.decide(_request("memory.remember_worthy@1", state="일반적인 정보에 대한 문장"))
+        finally:
+            directory.cleanup()
+        self.assertEqual(outcome.response.route, "qwen")
+        self.assertEqual(qwen.calls, 1)
+        self.assertEqual(gemma.calls, 0)
+        self.assertEqual(outcome.traces[0].attempts[0]["status"], "uncertain")
 
     def test_uncertain_qwen_is_cross_validated_by_gemma(self) -> None:
         qwen = _FakeClient(

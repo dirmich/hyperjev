@@ -10,7 +10,7 @@
 
 - `docs/prd.md`를 구현 가능한 계약과 단계별 gate로 분해하는 방법
 - Qwen3 8B와 Gemma 4를 teacher로 배치하는 local-first 개발 환경
-- rule → Qwen → Gemma → human fallback의 typed decision router
+- rule → optional Student → Qwen → Gemma → human fallback의 typed decision router
 - encoder + typed decision heads Student와 별도 연구 트랙 HyperJev-D의 경계
 - privacy-safe dataset factory, calibration, golden review, shadow serving,
   registry, drift monitoring을 한 흐름으로 연결하는 방법
@@ -40,14 +40,14 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.20.1까지 진행되어 있다. Python 테스트 66개와
+현재 `main`은 origin에 push될 1.21.0까지 진행되어 있다. Python 테스트 70개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
-guarded 99% 평가, parent LLM 대 HyperJev
+guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
 경계의 성능 시험 기록까지 완료됐다. training plan·calibration·checkpoint를
 registry manifest로 묶는 contract와 30-sample confidence/coverage 분석도
-추가됐다. 다만 checkpoint는 synthetic 36개 샘플의 reference-byte-encoder이고
-held-out test 정확도가 33.33%이므로 production 모델로 승격하지 않았다. 실제
+추가됐다. 다만 checkpoint는 synthetic 36개 샘플의 reference-ngram-encoder이고
+human golden이 없으므로 production 모델로 승격하지 않았다. 실제
 사람 검수 golden set, Gemma live baseline 전수 실행, production multilingual
 PyTorch checkpoint 학습, Student GPU inference benchmark, Rust toolchain compile은
 이 책에서 성공했다고 가장하지 않고 외부 의존성 gate로 표시한다. 상세 결과는
