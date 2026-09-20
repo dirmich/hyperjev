@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.110.0
+현재 버전: 1.111.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1302,3 +1302,28 @@ promotion은 non-zero exit로 실패하는 것이 올바르다. 현재 CLI 인�
 exit code `2`를 반환한다. 다음 단계는 blind dual human review,
 adjudication, human-only materialize/재학습 후 동일한 hash-bound report를
 생성하는 것이다.
+
+### v1.111.0 review queue diversity
+
+동일한 질문이 반복되면 human reviewer가 의미를 새로 판단하지 않고 기계적으로
+응답하게 되며, Student가 질문 문자열 하나에 과적합할 수 있다. 그래서
+`hyperjev control seed --count-per-skill 100`의 queue generator를 prompt
+version 2로 바꾸었다. 영어 state는 seed/compositional/boundary template을,
+한국어 state는 seed/compositional template을 사용하고, 각 언어에 4개의
+질문 표현을 둔다. split 배정과 sample 수 계약은 유지한다.
+
+재현 결과:
+
+```text
+sample_count=800
+unique_prompt_count=800
+unique_state_count=800
+unique_question_count=8
+sha256=3c1696dccc1c9545e4dc03f96bdc2b6a50010dac7457f84cbd88d2ae01fc8d84
+```
+
+이 단계의 800개는 8개 skill의 review seed이며, hard-negative 200개와 합쳐
+1,000개 human review queue를 구성할 수 있다. 다양성 증가는 학습 후보의
+입력 coverage를 넓히지만 target은 여전히 synthetic이므로, blind dual human
+label과 held-out human test 없이는 정확도 상승이나 production 승격으로
+판정하지 않는다.

@@ -405,6 +405,21 @@ _CONTROL_KOREAN_COMPOSITIONAL_TRAIN_TEMPLATES = {
     ),
 }
 
+_CONTROL_REVIEW_QUESTION_TEMPLATES = {
+    "en": (
+        "select next safe high-level control skill",
+        "choose the safest control action for this state",
+        "which control skill should execute next",
+        "decide the next controller action from this state",
+    ),
+    "ko": (
+        "다음 안전한 고수준 제어 skill을 선택하라",
+        "이 상태에서 가장 안전한 제어 동작을 골라라",
+        "다음에 실행할 제어 skill은 무엇인가",
+        "현재 상태에서 다음 제어 행동을 결정하라",
+    ),
+}
+
 
 def _normalise_text(value: str) -> str:
     return _WHITESPACE.sub(" ", value.casefold()).strip()
@@ -461,19 +476,34 @@ def generate_control_review_queue(
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     sample_count = len(CONTROL_SKILLS) * count_per_skill
+    unique_prompts: set[tuple[str, str, str]] = set()
+    unique_questions: set[str] = set()
     with output.open("w", encoding="utf-8") as handle:
         index = 0
         for skill_index, skill in enumerate(CONTROL_SKILLS):
             for variant in range(count_per_skill):
                 index += 1
                 language = "ko" if (variant + skill_index + seed) % 2 else "en"
-                templates = _CONTROL_SEED_TEMPLATES[skill][language]
+                if language == "en":
+                    templates = (
+                        _CONTROL_SEED_TEMPLATES[skill][language]
+                        + _CONTROL_COMPOSITIONAL_TRAIN_TEMPLATES[skill]
+                        + _CONTROL_BOUNDARY_TRAIN_TEMPLATES[skill]
+                    )
+                else:
+                    templates = (
+                        _CONTROL_SEED_TEMPLATES[skill][language]
+                        + _CONTROL_KOREAN_COMPOSITIONAL_TRAIN_TEMPLATES[skill]
+                    )
                 base_state = templates[variant % len(templates)]
                 state = (
                     f"{base_state}; scenario variant {variant:04d}"
                     if language == "en"
                     else f"{base_state}; 시나리오 변형 {variant:04d}"
                 )
+                question = _CONTROL_REVIEW_QUESTION_TEMPLATES[language][variant % 4]
+                unique_prompts.add((language, _normalise_text(state), _normalise_text(question)))
+                unique_questions.add(_normalise_text(question))
                 split_bucket = (variant + skill_index * 3 + seed) % 10
                 split = "train" if split_bucket < 8 else "validation" if split_bucket == 8 else "test"
                 sample = {
@@ -481,11 +511,7 @@ def generate_control_review_queue(
                     "task_id": "control.skill",
                     "task_version": 1,
                     "state": state,
-                    "question": (
-                        "select next safe high-level control skill"
-                        if language == "en"
-                        else "다음 안전한 고수준 제어 skill을 선택하라"
-                    ),
+                    "question": question,
                     "target": skill,
                     "language": language,
                     "domain": "control-review-seed",
@@ -499,8 +525,8 @@ def generate_control_review_queue(
                     "labels": {"qwen": None, "gemma": None, "human": None},
                     "review": {"status": "pending", "reviewer": None},
                     "provenance": {
-                        "prompt_version": 1,
-                        "generator": "control-review-seed-v1",
+                        "prompt_version": 2,
+                        "generator": "control-review-seed-v2",
                         "split": split,
                         "privacy_raw_inputs_stored": False,
                         "target_source": "synthetic_seed_only",
@@ -515,6 +541,9 @@ def generate_control_review_queue(
         "skill_counts": {skill: count_per_skill for skill in CONTROL_SKILLS},
         "seed": seed,
         "human_labeled": False,
+        "prompt_version": 2,
+        "unique_prompt_count": len(unique_prompts),
+        "unique_question_count": len(unique_questions),
     }
 
 

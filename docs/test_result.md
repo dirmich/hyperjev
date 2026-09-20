@@ -3140,3 +3140,31 @@ uv run hyperjev model promote control-model --to active \
 ```
 
 이 결과는 promotion guard의 동작 증거이며 모델 정확도 99% 달성 증거가 아니다.
+
+### 14.88 control review prompt diversity (v1.111.0)
+
+`control seed --count-per-skill 100 --seed 7`을 새 prompt version 2로 재생했다.
+기존 generator의 언어별 고정 질문 2종 대신 영어 4종과 한국어 4종을 사용하고,
+state는 skill별 seed/compositional/boundary 문구를 순환한다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| skill/sample count | `8 × 100 = 800` |
+| unique prompt (language/state/question) | `800` |
+| unique state | `800` |
+| unique question | `8` |
+| prompt version | `2` |
+| queue SHA-256 | `3c1696dccc1c9545e4dc03f96bdc2b6a50010dac7457f84cbd88d2ae01fc8d84` |
+
+실행 명령:
+
+```bash
+uv run hyperjev control seed \
+  --registry registry/control_tasks \
+  --output /tmp/control-review-v2-800.jsonl \
+  --count-per-skill 100 --seed 7
+```
+
+이 검증은 중복 질문 완화와 provenance 재현성을 확인한다. synthetic target은
+그대로 human label이 아니며, 새 generator만으로 Student 정확도 99%를 주장하지
+않는다.

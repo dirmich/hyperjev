@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — diversify control review prompts (v1.111.0)
+
+- `control seed`의 review queue generator를 prompt version 2로 올렸다. 영어와
+  한국어 상태 문구를 기존 seed/compositional/boundary template에서 조합하고,
+  질문도 언어별 4개 변형을 순환해 같은 질문 반복을 줄였다.
+- 8개 skill × 100개를 재생성한 결과 800개 row 모두 고유 state prompt였고,
+  질문 종류는 기존 언어별 2개에서 8개로 늘었다. queue SHA-256은
+  `3c1696dccc1c9545e4dc03f96bdc2b6a50010dac7457f84cbd88d2ae01fc8d84`다.
+- 이는 synthetic review queue의 다양성과 human review 효율을 개선한 것이다.
+  human label을 만들지 않으며, 새 checkpoint 정확도나 production readiness를
+  의미하지 않는다.
+
 ## 2026-09-21 — bind model promotion to quality gates (v1.110.0)
 
 - `model promote`에 `--quality-report`와 `--require-quality-report`를 추가했다.

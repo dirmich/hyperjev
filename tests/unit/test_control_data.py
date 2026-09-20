@@ -149,6 +149,11 @@ class ControlDatasetQualityTests(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertEqual(report["human_labeled_count"], 0)
         self.assertEqual(report["split_counts"], {"test": 2, "train": 13, "validation": 1})
+        records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        self.assertGreaterEqual(len({record["question"] for record in records}), 4)
+        self.assertEqual(generation["unique_prompt_count"], 16)
+        self.assertEqual(generation["unique_question_count"], 4)
+        self.assertEqual({record["provenance"]["prompt_version"] for record in records}, {2})
 
     def test_hard_negative_pairs_stay_in_one_split(self) -> None:
         directory = tempfile.TemporaryDirectory()
