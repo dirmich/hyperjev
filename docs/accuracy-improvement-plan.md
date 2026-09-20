@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.105.0
+현재 버전: 1.106.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1184,3 +1184,29 @@ integrated fast path도 `40/40`, STOP recall `5/5`였다. 그러나 human label�
 없고 Korean model-only p99가 `5.386ms`이므로 production 승격은 보류한다.
 다음 단계는 Korean human golden을 dual-review로 확보하고, BOW/typed-head의
 DGX Spark GPU latency를 다시 측정하는 것이다.
+
+### v1.106.0 multilingual ablation boundary
+
+v1.105의 선택된 64개 Korean train-only queue와 default BOW vocabulary를
+기준으로 데이터 증강과 vocabulary 크기를 독립적으로 시험했다. 실험은 모두
+test fixture를 학습 데이터에 섞지 않은 synthetic ablation이며, human golden을
+대체하지 않는다.
+
+| 실험 | English OOD | Korean OOD | model-only latency | 판정 |
+| --- | ---: | ---: | --- | --- |
+| HOLD 8개 추가, BOW + class-balanced | 39/40 (97.5%) | 39/40 (97.5%) | p99 5.248/5.737ms | 정확도 개선 없음, latency 회귀 |
+| BOW vocab 8,192 | 39/40 (97.5%) | 36/40 (90.0%) | p99 2.877/2.588ms | latency는 낮지만 정확도 회귀 |
+| BOW vocab 16,384 | 39/40 (97.5%) | 36/40 (90.0%) | English p99 34.157ms outlier | 폐기 |
+| v1.105 BOW vocab 32,768 | 39/40 (97.5%) | 39/40 (97.5%) | p99 4.715/5.386ms | 현재 synthetic best |
+
+추가 HOLD queue의 merged SHA는
+`3ef7faf1f12a1944d28e42b12df09830089d59452c72e8223b451f67659d0d73`이고, 각
+checkpoint SHA와 실행 결과는 `docs/test_result.md`의 14.83절에 고정했다. 이
+결과는 sample 수나 feature vocabulary를 늘리는 것만으로 일반화가 보장되지
+않음을 보여준다. 선택 후보는 정확도·안전·latency를 함께 통과해야 하며, 현재
+사람 라벨은 `0/1000`, production accuracy는 미측정이다.
+
+다음 실행 순서는 (1) v1.105 synthetic best 고정, (2) blind dual human review로
+train/validation/test label 수집, (3) human-only materialize 및 재학습, (4) held-out
+test accuracy/Wilson 하한/STOP recall/latency 동시 평가다. human label 없이
+threshold를 조정하거나 test 문장을 train에 복사하지 않는다.

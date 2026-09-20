@@ -2993,3 +2993,45 @@ recall `500/500`, p95 `0.000960ms`, p99 `0.001312ms`로 gate를 통과했다.
 다만 quality evaluator의 safety sample은 4건이라 Wilson 하한 gate는 별도
 실패하며, human label은 `0/1000`이다. 따라서 이 단계는 다국어 synthetic
 generalization 개선이지 상용 99% accuracy 증명이 아니다.
+
+### 14.83 multilingual accuracy ablation boundary (v1.106.0)
+
+v1.105 선택 후보의 정확도와 latency를 넘길 수 있는지 확인하기 위해 Korean
+train-only 증강과 BOW vocabulary 크기를 비교했다. 모든 수치는 model-only
+OOD fixture이며, integrated rule/fast path 결과와 섞지 않았다.
+
+#### 실험 A — HOLD 증강
+
+v1.105의 Korean queue 64개에서 HOLD 문장만 8개 추가해 72개로 만들었다. 생성
+queue SHA는 `1a9e63151707708555e11bc573888803278ff4e801f008316229857385b68297`,
+merged dataset SHA는
+`3ef7faf1f12a1944d28e42b12df09830089d59452c72e8223b451f67659d0d73`이며 merged
+count는 2,000개다. checkpoint SHA와 결과는 다음과 같다.
+
+| checkpoint | English OOD | Korean OOD | English p95/p99 | Korean p95/p99 | 판정 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `6c4151802eee969eedce7e56687647802bee5502acd0d135c408df098ed92072` | 39/40 (97.5%) | 39/40 (97.5%) | 4.685/5.248ms | 5.246/5.737ms | v1.105보다 latency 악화, 폐기 |
+
+정확도는 v1.105의 `39/40`을 넘지 못했고 Korean p99는 5ms 목표를 넘었다.
+따라서 repository의 기본 generator와 선택 checkpoint는 v1.105의 64개 queue와
+32,768 BOW 설정으로 유지한다.
+
+#### 실험 B — vocabulary 크기
+
+v1.105의 64개 Korean queue merged dataset을 그대로 사용하고 vocabulary만
+변경했다.
+
+| checkpoint | vocab | English OOD | Korean OOD | latency 관찰 | 판정 |
+| --- | ---: | ---: | ---: | --- | --- |
+| `0386c11dcd69c6a5e1eea002481636f13be227ede5ac7e330c29c4954142db92` | 8,192 | 39/40 (97.5%) | 36/40 (90.0%) | p99 2.877/2.588ms | Korean 정확도 회귀 |
+| `af61509f617a5a7bdbc0a9ec4e8f28bb28fcfa53b19e4b7e72b963fa6192aa51` | 16,384 | 39/40 (97.5%) | 36/40 (90.0%) | English p99 34.157ms outlier | Korean 정확도 회귀/변동성 |
+| `3ae6df70072feca352bd0c6ae959a04323ec27ce5b9569bec43c0a2506e9b0a6` | 32,768 | 39/40 (97.5%) | 39/40 (97.5%) | p99 4.715/5.386ms | 현재 synthetic best |
+
+#### 판정과 다음 gate
+
+v1.106 실험은 데이터 양·vocabulary 축소가 자동으로 정확도를 높이지 않음을
+확인했다. 현재 best candidate는 v1.105 BOW checkpoint이며, synthetic OOD
+`39/40`은 production accuracy가 아니다. human label status는
+`reviewed=0`, `pending=1000`, `test_ready=false`다. 다음 gate는 blind dual
+human review와 human-only materialize이며, 그 전에는 checkpoint promotion을
+수행하지 않는다.

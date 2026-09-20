@@ -3,6 +3,26 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — multilingual accuracy ablation boundary (v1.106.0)
+
+- v1.105의 64개 Korean train-only queue를 기준선으로 유지하고, HOLD만 8개 더한
+  72개 queue를 별도 ablation으로 생성했다. merged dataset은 2,000개였고
+  SHA-256은 `3ef7faf1f12a1944d28e42b12df09830089d59452c72e8223b451f67659d0d73`다.
+- 추가 HOLD 증강 BOW + class-balanced checkpoint
+  (`6c4151802eee969eedce7e56687647802bee5502acd0d135c408df098ed92072`)는
+  English/Korean OOD 각각 `39/40 (97.5%)`로 v1.105 정확도를 넘지 못했다.
+  model-only p99도 English `5.248ms`, Korean `5.737ms`로 악화되어 채택하지 않았다.
+- BOW vocabulary 8,192 checkpoint
+  (`0386c11dcd69c6a5e1eea002481636f13be227ede5ac7e330c29c4954142db92`)는
+  Korean `36/40 (90%)`으로 회귀했다. 16,384 checkpoint
+  (`af61509f617a5a7bdbc0a9ec4e8f28bb28fcfa53b19e4b7e72b963fa6192aa51`)도
+  Korean `36/40 (90%)`이고 English latency outlier가 있어 모두 폐기했다.
+- 따라서 현재 synthetic best는 v1.105의 default BOW 32,768 후보 그대로다.
+  v1.106은 데이터 양·feature vocabulary를 늘리면 정확도가 자동으로 오르지
+  않으며, accuracy와 latency를 함께 gate해야 한다는 실험 경계를 남긴다.
+- human label은 `0/1000`, production test readiness는 false다. 다음 단계는
+  추가 synthetic ablation이 아니라 blind dual human label 수집과 test 승격이다.
+
 ## 2026-09-21 — Korean multilingual control accuracy track (v1.105.0)
 
 - Korean held-out OOD fixture 40개와 train-only Korean augmentation 64개를
