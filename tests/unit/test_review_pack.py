@@ -86,6 +86,7 @@ class ReviewPackTests(unittest.TestCase):
                 json.dumps(
                     {
                         "record_type": "control_dual_review_manifest",
+                        "target_excluded": True,
                         "label_agreement_by_action": {
                             "APPROACH": {"agreement_rate": 0.75},
                             "STOP": {"agreement_rate": 1.0},
@@ -99,6 +100,19 @@ class ReviewPackTests(unittest.TestCase):
                 load_control_review_focus_actions(manifest, maximum_agreement=0.98),
                 {"APPROACH"},
             )
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "record_type": "control_dual_review_manifest",
+                        "target_excluded": False,
+                        "label_agreement_by_action": {"APPROACH": {"agreement_rate": 0.75}},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError):
+                load_control_review_focus_actions(manifest)
 
     def test_control_review_pack_exposes_student_priority_flags(self) -> None:
         args = build_parser().parse_args(

@@ -125,6 +125,7 @@
 | 1.89.0 | 진행 중 | review-agreement에 낮은 agreement 우선 human-readable summary 추가 |
 | 1.90.0 | 진행 중 | low-agreement action을 먼저 배치하는 focus review ordering 추가 |
 | 1.91.0 | 진행 중 | dual-review manifest에서 low-agreement focus action 자동 추출 |
+| 1.92.0 | 진행 중 | automatic focus 입력에 target-exclusion contract guard 추가 |
 
 ## 다음 기록 규칙
 

@@ -603,6 +603,8 @@ def load_control_review_focus_actions(
     manifest = records[0]
     if manifest.get("record_type") != "control_dual_review_manifest":
         raise ValueError("focus manifest must be a control dual-review manifest")
+    if manifest.get("target_excluded") is not True:
+        raise ValueError("focus manifest must explicitly exclude synthetic targets")
     action_stats = manifest.get("label_agreement_by_action", {})
     if not isinstance(action_stats, dict):
         raise TypeError("focus manifest action agreement is invalid")

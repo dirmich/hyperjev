@@ -2659,3 +2659,16 @@ threshold 미만인 action을 focus set으로 만든다. CLI의 명시적 focus 
 
 이 단계는 review throughput을 개선할 뿐이며 human label, model accuracy,
 production gate를 자동으로 바꾸지 않는다.
+
+### 14.69 target-exclusion guard (v1.92.0)
+
+automatic focus loader가 `target_excluded=true`를 요구하도록 harden했다. target
+누출 가능성이 있는 manifest는 action priority를 계산하기 전에 거부한다.
+
+| 검증 항목 | 결과 |
+| --- | --- |
+| valid target-free manifest | 허용 |
+| `target_excluded=false` manifest | `ValueError`로 거부 |
+| targeted review-pack test | `21 passed` |
+| latest full suite | `154 passed, 1 skipped, 39 subtests passed` |
+| Ruff / diff check | 통과 |

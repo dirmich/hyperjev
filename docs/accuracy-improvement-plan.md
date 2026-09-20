@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.91.0
+현재 버전: 1.92.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -900,3 +900,10 @@ uv run hyperjev control review-pack \
 없거나 comparable action이 없으면 자동 focus는 비어 있으며 기존 priority만
 동작한다. 이 자동화도 human correction을 만들지 않으므로 99% 정확도나
 production readiness의 증거가 아니다.
+
+### v1.92.0 target-exclusion guard
+
+manifest-driven focus는 이제 manifest의 `target_excluded`가 명시적으로 `true`인
+경우에만 동작한다. target 누출 가능성이 있는 파일을 action priority 입력으로
+사용하면 즉시 거부한다. 이 검사는 blind review 경계를 지키기 위한 것이며,
+accuracy 계산이나 human label 생성과는 별개다.

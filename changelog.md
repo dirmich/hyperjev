@@ -3,6 +3,14 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — target-exclusion guard for automatic focus (v1.92.0)
+
+- manifest-driven focus가 `target_excluded=true`를 명시한 dual-review manifest만
+  받도록 검증한다.
+- target이 포함될 수 있는 잘못된 manifest는 action priority 계산 전에 거부한다.
+- targeted review-pack 테스트 `21 passed`; 전체 suite와 Ruff를 version bump 후
+  다시 실행한다.
+
 ## 2026-09-21 — manifest-driven action focus (v1.91.0)
 
 - `review-pack --agreement-manifest`가 dual-review manifest의 action별 agreement
