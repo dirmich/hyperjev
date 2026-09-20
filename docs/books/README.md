@@ -40,18 +40,26 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.39.0까지 진행되어 있다. Python 테스트 89개와
+현재 `main`은 origin에 push될 1.40.0까지 진행되어 있다. Python 테스트 92개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
 경계의 성능 시험 기록까지 완료됐다. training plan·calibration·checkpoint를
 registry manifest로 묶는 contract와 30-sample confidence/coverage 분석도
-추가됐다. 다만 checkpoint는 synthetic 36개 샘플의 reference-ngram-encoder이고
-human golden이 없으므로 production 모델로 승격하지 않았다. 실제
+추가됐다. memory/query checkpoint는 synthetic 36개 group의
+reference-ngram-encoder이고 control checkpoint는 별도 48개 smoke fixture다.
+둘 다 human golden이 없거나 일반화 gate를 통과하지 않았으므로 production
+모델로 승격하지 않았다. 실제
 사람 검수 golden set, Gemma live baseline 전수 실행, production multilingual
 PyTorch checkpoint 학습, Student GPU inference benchmark, Rust toolchain compile은
 이 책에서 성공했다고 가장하지 않고 외부 의존성 gate로 표시한다. 상세 결과는
 [`docs/test_result.md`](../test_result.md)에 있다.
+
+v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
+`control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
+100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지
+않는다. control latency p50 0.128ms는 in-process CPU model-only 측정이며,
+simulator와 저수준 controller를 포함한 end-to-end 결과가 아니다.
 
 각 구현 단계는 다음 순서를 따른다.
 

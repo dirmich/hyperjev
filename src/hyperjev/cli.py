@@ -16,6 +16,7 @@ from .baseline import run_benchmark
 from .calibration import fit_temperature
 from .config import ConfigError, load_config
 from .contracts import DecisionRequest
+from .control import ControlObservation, ControlSafetyPolicy, ControlStudentClient
 from .dataset_factory import build_dataset, validate_dataset
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
@@ -316,6 +317,72 @@ def _student_evaluate(args: argparse.Namespace) -> int:
     return 1 if args.production_gate and not report["quality_gate"]["ready"] else 0
 
 
+def _control_train(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = run_reference_training(
+        args.dataset,
+        args.output,
+        registry,
+        student=StudentConfig(
+            model_id=args.model_id,
+            backbone=args.backbone,
+            hidden_size=args.hidden_size,
+            vocab_size=args.vocab_size,
+            max_sequence_length=args.max_sequence_length,
+            precision=args.precision,
+        ),
+        training=TrainingConfig(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            weight_decay=args.weight_decay,
+            seed=args.seed,
+            precision=args.precision,
+        ),
+        device=args.device,
+    )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _control_decide(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    observation = ControlObservation.from_dict(json.loads(Path(args.observation).read_text(encoding="utf-8")))
+    client = ControlStudentClient(
+        args.checkpoint,
+        registry,
+        policy=ControlSafetyPolicy(
+            minimum_confidence=args.minimum_confidence,
+            max_observation_age_ms=args.max_observation_age_ms,
+            max_action_ttl_ms=args.max_action_ttl_ms,
+        ),
+        device=args.device,
+    )
+    action = client.decide(observation, now_ms=args.now_ms)
+    print(json.dumps(action.to_dict(), ensure_ascii=False))
+    return 0
+
+
+def _control_evaluate(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = evaluate_student_checkpoint(
+        args.checkpoint,
+        args.dataset,
+        registry,
+        split=args.split,
+        minimum_confidence=args.minimum_confidence,
+        minimum_accuracy=args.minimum_accuracy,
+        minimum_accepted_accuracy=args.minimum_accepted_accuracy,
+        minimum_task_accuracy=args.minimum_task_accuracy,
+        deduplicate_exact=args.deduplicate_exact,
+        device=args.device,
+    )
+    if args.output:
+        write_student_evaluation(report, args.output)
+    print(json.dumps(report, ensure_ascii=False))
+    return 1 if args.production_gate and not report["quality_gate"]["ready"] else 0
+
+
 def _training_plan(args: argparse.Namespace) -> int:
     _, registry = _load(args.config)
     plan = write_training_plan(
@@ -600,6 +667,58 @@ def build_parser() -> argparse.ArgumentParser:
     student_evaluate_parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     student_evaluate_parser.add_argument("--output")
     student_evaluate_parser.set_defaults(handler=_student_evaluate)
+
+    control = subparsers.add_parser("control")
+    control_subparsers = control.add_subparsers(dest="control_command", required=True)
+    control_train = control_subparsers.add_parser("train")
+    control_train.add_argument("--registry", default="registry/control_tasks")
+    control_train.add_argument("--dataset", required=True)
+    control_train.add_argument("--output", required=True)
+    control_train.add_argument("--model-id", default="hyperjev-control-dev")
+    control_train.add_argument("--backbone", default="reference-ngram-encoder")
+    control_train.add_argument("--hidden-size", type=int, default=128)
+    control_train.add_argument("--vocab-size", type=int, default=32768)
+    control_train.add_argument("--max-sequence-length", type=int, default=256)
+    control_train.add_argument("--precision", choices=("fp32", "fp16", "bf16"), default="fp32")
+    control_train.add_argument("--epochs", type=int, default=30)
+    control_train.add_argument("--batch-size", type=int, default=8)
+    control_train.add_argument("--learning-rate", type=float, default=0.01)
+    control_train.add_argument("--weight-decay", type=float, default=0.0)
+    control_train.add_argument("--seed", type=int, default=7)
+    control_train.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    control_train.set_defaults(handler=_control_train)
+    control_decide = control_subparsers.add_parser("decide")
+    control_decide.add_argument("--registry", default="registry/control_tasks")
+    control_decide.add_argument("--checkpoint", required=True)
+    control_decide.add_argument("--observation", required=True)
+    control_decide.add_argument("--now-ms", type=float, required=True)
+    control_decide.add_argument("--minimum-confidence", type=float, default=0.90)
+    control_decide.add_argument("--max-observation-age-ms", type=float, default=100.0)
+    control_decide.add_argument("--max-action-ttl-ms", type=int, default=100)
+    control_decide.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    control_decide.set_defaults(handler=_control_decide)
+    control_evaluate = control_subparsers.add_parser("evaluate")
+    control_evaluate.add_argument("--registry", default="registry/control_tasks")
+    control_evaluate.add_argument("--checkpoint", required=True)
+    control_evaluate.add_argument("--dataset", required=True)
+    control_evaluate.add_argument("--split", choices=("all", "train", "validation", "test"), default="all")
+    control_evaluate.add_argument("--minimum-confidence", type=float, default=0.90)
+    control_evaluate.add_argument("--minimum-accuracy", type=float, default=0.99)
+    control_evaluate.add_argument("--minimum-accepted-accuracy", type=float, default=0.995)
+    control_evaluate.add_argument("--minimum-task-accuracy", type=float, default=0.98)
+    control_evaluate.add_argument(
+        "--deduplicate-exact",
+        action="store_true",
+        help="evaluate one representative per exact task/language/domain/state/question group",
+    )
+    control_evaluate.add_argument(
+        "--production-gate",
+        action="store_true",
+        help="return exit code 1 when human labels or quality thresholds are missing",
+    )
+    control_evaluate.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    control_evaluate.add_argument("--output")
+    control_evaluate.set_defaults(handler=_control_evaluate)
 
     training = subparsers.add_parser("train")
     training_subparsers = training.add_subparsers(dest="training_command", required=True)

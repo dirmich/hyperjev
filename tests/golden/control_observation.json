@@ -1,0 +1,10 @@
+{
+  "observation_id": "frame-1",
+  "state": "obstacle is directly ahead and the target is nearby",
+  "domain": "simulation",
+  "timestamp_ms": 1000,
+  "emergency_stop": false,
+  "metadata": {
+    "source": "control-smoke"
+  }
+}

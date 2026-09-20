@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — control typed head CLI와 smoke checkpoint (v1.40.0)
+
+- `control train`, `control evaluate`, `control decide` CLI를 추가했다.
+- `control.skill@1`은 abstract skill만 반환하고, safety policy가 stale,
+  emergency, 낮은 confidence, 긴 TTL을 `STOP`으로 바꾼다.
+- 48개 synthetic control sample로 reference checkpoint를 만들었다.
+  train `32/32 (100%)`, validation `3/8 (37.50%)`, test `1/8 (12.50%)`였다.
+- 이 결과는 reference byte/ngram encoder의 일반화 실패를 드러낸 smoke gate다.
+  checkpoint를 production control model로 승격하지 않으며, 사람 라벨·실제
+  simulator trajectory·OOD/충돌 테스트가 추가되기 전에는 actuator에 연결하지 않는다.
+- warm CPU in-process `ControlStudentClient`는 p50 `0.128ms`, p95 `0.2675ms`,
+  평균 `7,634.6 decisions/s`였다. HTTP, HyperMemory, controller 비용은 제외했다.
+
 ## 2026-09-20 — real-time control safety contract (v1.39.0)
 
 - `ControlObservation`, `ControlAction`, `ControlSafetyPolicy`를 추가했다.

@@ -1,12 +1,20 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 from hyperjev.control import (
+    CONTROL_SKILLS,
     ControlAction,
     ControlContractError,
     ControlObservation,
     ControlSafetyPolicy,
+    ControlStudentClient,
     apply_safety_policy,
 )
+from hyperjev.registry import TaskRegistry
+from hyperjev.student import StudentConfig, build_torch_model, student_manifest
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class ControlContractTests(unittest.TestCase):
@@ -62,6 +70,52 @@ class ControlContractTests(unittest.TestCase):
     def test_motor_like_unbounded_parameter_is_rejected(self) -> None:
         with self.assertRaises(ControlContractError):
             ControlAction(skill="MOVE", parameters={"pwm": 255.0}, confidence=0.99)
+
+    def test_observation_rejects_non_boolean_emergency_flag(self) -> None:
+        with self.assertRaises(ControlContractError):
+            ControlObservation.from_dict(
+                {
+                    "observation_id": "frame-1",
+                    "state": "clear",
+                    "domain": "simulation",
+                    "timestamp_ms": 1000,
+                    "emergency_stop": "false",
+                }
+            )
+
+    def test_boolean_parameters_are_rejected(self) -> None:
+        with self.assertRaises(ControlContractError):
+            ControlAction(skill="MOVE", parameters={"enabled": True}, confidence=0.99)
+
+    def test_control_student_maps_typed_head_to_registered_skill(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        config = StudentConfig(
+            model_id="control-test",
+            backbone="reference-ngram-encoder",
+            precision="fp32",
+        )
+        model = build_torch_model(registry, config)
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "control.pt"
+            torch.save(
+                {
+                    "student": student_manifest(registry, config),
+                    "model_state_dict": model.state_dict(),
+                },
+                checkpoint,
+            )
+            client = ControlStudentClient(
+                checkpoint,
+                registry,
+                policy=ControlSafetyPolicy(minimum_confidence=0.0),
+            )
+            action = client.decide(self.observation, now_ms=1001.0)
+        self.assertIn(action.skill, CONTROL_SKILLS)
+        self.assertEqual(action.source, "hyperjev-control")
 
 
 if __name__ == "__main__":

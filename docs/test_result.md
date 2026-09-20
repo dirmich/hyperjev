@@ -1280,5 +1280,75 @@ registry와 Student checkpoint를 변경하지 않는 별도 경계다.
 이 계약은 HyperJev가 저수준 모터/PWM 제어기가 아니라 빠른 skill supervisor가
 되도록 한다. 로봇에서는 PID/MPC/trajectory controller가 최종 actuator를
 담당하고, 게임에서는 실제 입력 rate limiter가 action을 실행해야 한다.
-현재 단계는 계약/안전 테스트까지이며, 다음 단계에서 control-specific typed
-head와 simulator loop를 추가한다.
+control-specific typed head와 CLI도 별도 registry로 추가했다. 기존 memory/query
+checkpoint를 섞지 않기 위해 `registry/control_tasks/control.skill.yaml`과
+control checkpoint를 독립적으로 유지한다.
+
+### 14.17 control typed head smoke 학습과 일반화 gate
+
+재현 명령은 다음과 같다.
+
+```bash
+uv run hyperjev control train \
+  --dataset tests/golden/control_smoke.jsonl \
+  --output runs/control/control-student-48-300.pt \
+  --epochs 300 --batch-size 32 --learning-rate 0.01 \
+  --precision fp32 --device cpu
+
+uv run hyperjev control evaluate \
+  --checkpoint runs/control/control-student-48-300.pt \
+  --dataset tests/golden/control_smoke.jsonl \
+  --split test --minimum-confidence 0.90
+```
+
+| split | correct | total | accuracy | accepted coverage |
+| --- | ---: | ---: | ---: | ---: |
+| train | 32 | 32 | 100.00% | 100.00% |
+| validation | 3 | 8 | 37.50% | 100.00% |
+| test | 1 | 8 | 12.50% | 100.00% |
+
+checkpoint SHA-256은
+`970ab360e6bfa2fd4d32cf7d421d33e435468a5c91cf1b0b504d5816b3aef7ef`, dataset
+SHA-256은 `2512bb0e686222771933b15aba9f14bb20ee4dbbbc5c4cd79533681e9cc7c20f`다.
+
+train과 test의 차이는 이 모델이 reference byte/ngram encoder로는 새로운
+상태 표현을 안전하게 일반화하지 못한다는 것을 보여준다. 더 중요한 문제는
+오답인데도 높은 softmax confidence를 낼 수 있다는 점이다. 따라서 `0.90`
+threshold만으로 정확도가 보장되지 않으며, human label, calibration,
+OOD/novelty detector, simulator collision test를 통과하기 전에는 실제
+게임 입력이나 로봇 actuator에 연결하지 않는다.
+
+정상 observation은 다음처럼 skill JSON을 반환한다.
+
+```bash
+uv run hyperjev control decide \
+  --checkpoint runs/control/control-student-48-300.pt \
+  --observation tests/golden/control_observation.json \
+  --now-ms 1001 --minimum-confidence 0
+```
+
+오래된 observation(`now_ms=1101`)은 모델 호출 전에 `STOP`/`stale_observation`
+으로 차단된다. 기본 `minimum-confidence=0.90`에서는 smoke 모델의 낮은
+확신도 결과도 `STOP`으로 바뀐다. 이 단계의 다음 gate는 저수준 controller를
+구현하는 것이 아니라, simulator에서 action latency, collision/unsafe-action
+rate, abstention recall, recovery latency를 계측하는 control harness다.
+
+### 14.18 control client latency와 safety shield
+
+`ControlStudentClient`를 warm-up 20회 후 200회 실행했다. 조건은 CPU, PyTorch
+inference mode, `torch.set_num_threads(1)`, in-process 단일
+`control.skill` decision이며 HTTP, HyperMemory 조회, PID/MPC, 실제 actuator는
+포함하지 않는다.
+
+| 지표 | 결과 |
+| --- | ---: |
+| p50 | 0.128 ms |
+| p95 | 0.2675 ms |
+| 평균 | 0.131 ms |
+| 평균 처리량 | 7,634.6 decisions/s |
+
+stale observation과 emergency stop은 각각 `STOP`과 `reason`을 반환했다. 이
+수치는 JEv형 저지연 후보 경로의 비용이지, 게임/로봇 end-to-end 제어 주기를
+보장하지 않는다. 실제 상용 판단에서는 sensor acquisition, feature/state
+construction, HyperMemory read, action arbitration, controller execution,
+logging, network/IPC까지 포함한 p50/p95/p99를 다시 측정해야 한다.

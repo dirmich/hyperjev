@@ -181,3 +181,31 @@ reference checkpoint는 `trained` 상태로 registry manifest에 등록했지만
 test 3개 중 1개만 맞았으므로 `evaluated`, `candidate`, `canary`, `active`로
 승격하지 않았다. calibration도 held-out 3개에 한정되어 production gate가
 아니다. production checkpoint 등록과 promotion은 여전히 별도 품질 gate다.
+
+## 6.7 control 전용 typed head
+
+실시간 게임/로봇 실험은 memory/query task와 다른 위험 모델을 가지므로
+`registry/control_tasks/control.skill.yaml`에 `control.skill@1`을 별도 정의했다.
+이 head의 출력은 직접 actuator 값이 아니라 abstract skill이다. control
+checkpoint가 memory checkpoint와 registry를 공유하지 않게 해 task head의
+candidate 순서나 manifest가 섞이는 사고를 막는다.
+
+현재 CLI는 다음 세 단계로 재현된다.
+
+```text
+control train → control evaluate → control decide
+```
+
+`control evaluate`는 train accuracy만 보고하지 않고 validation/test를 별도
+출력한다. 48개 synthetic sample의 reference checkpoint는 train `32/32`,
+validation `3/8`, test `1/8`이었다. 이것은 작은 dataset과 reference
+byte/ngram encoder가 새로운 표현을 이해하지 못한다는 증거이며, model
+confidence도 calibration되지 않았음을 보여준다. 따라서 control model은
+human-labelled state/action data, simulator trajectory, collision/unsafe-action
+metric, OOD detector를 추가한 뒤에야 다음 lifecycle 단계로 이동한다.
+
+runtime에서 safety policy는 observation age 100ms, confidence 0.90, action TTL
+100ms를 기본으로 삼고 위반 시 `STOP`을 만든다. 이 방어층은 model accuracy를
+대체하지 않는다. 가장 안전한 구조는 HyperJev가 skill을 고르고, HyperMemory가
+짧은 relevant context/episode summary를 제공하며, deterministic controller가
+최종 움직임을 제한하는 세 층 구조다.

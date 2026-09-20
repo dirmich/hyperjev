@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 
@@ -23,6 +24,7 @@ CONTROL_SKILLS = frozenset(
         "RECOVER",
     }
 )
+CONTROL_QUESTION = "Select the next safe high-level control skill."
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,10 @@ class ControlObservation:
             raise ControlContractError("observation_id, state, and domain must not be empty")
         if not math.isfinite(self.timestamp_ms) or self.timestamp_ms < 0:
             raise ControlContractError("timestamp_ms must be a finite non-negative number")
+        if not isinstance(self.emergency_stop, bool):
+            raise ControlContractError("emergency_stop must be a boolean")
+        if not isinstance(self.metadata, dict):
+            raise ControlContractError("metadata must be an object")
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> ControlObservation:
@@ -52,8 +58,8 @@ class ControlObservation:
                 state=str(raw["state"]),
                 domain=str(raw["domain"]),
                 timestamp_ms=float(raw["timestamp_ms"]),
-                emergency_stop=bool(raw.get("emergency_stop", False)),
-                metadata=dict(raw.get("metadata", {})),
+                emergency_stop=raw.get("emergency_stop", False),
+                metadata=raw.get("metadata", {}),
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise ControlContractError(f"invalid observation: {exc}") from exc
@@ -74,12 +80,21 @@ class ControlAction:
     def __post_init__(self) -> None:
         if self.skill not in CONTROL_SKILLS:
             raise ControlContractError(f"unsupported control skill: {self.skill}")
-        if self.ttl_ms < 1:
+        if isinstance(self.ttl_ms, bool) or self.ttl_ms < 1:
             raise ControlContractError("ttl_ms must be positive")
-        if not 0.0 <= self.confidence <= 1.0:
+        if isinstance(self.confidence, bool) or not math.isfinite(self.confidence) or not 0.0 <= self.confidence <= 1.0:
             raise ControlContractError("confidence must be between 0 and 1")
         for name, value in self.parameters.items():
-            if not str(name).strip() or not math.isfinite(float(value)) or not -1.0 <= float(value) <= 1.0:
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError) as exc:
+                raise ControlContractError(f"parameter {name!r} must be numeric") from exc
+            if (
+                isinstance(value, bool)
+                or not str(name).strip()
+                or not math.isfinite(numeric_value)
+                or not -1.0 <= numeric_value <= 1.0
+            ):
                 raise ControlContractError(f"parameter {name!r} must be finite and within [-1, 1]")
 
     def to_dict(self) -> dict[str, Any]:
@@ -105,7 +120,13 @@ class ControlSafetyPolicy:
     def __post_init__(self) -> None:
         if not 0.0 <= self.minimum_confidence <= 1.0:
             raise ControlContractError("minimum_confidence must be between 0 and 1")
-        if self.max_observation_age_ms < 0 or self.max_action_ttl_ms < 1:
+        if (
+            isinstance(self.max_observation_age_ms, bool)
+            or not math.isfinite(self.max_observation_age_ms)
+            or self.max_observation_age_ms < 0
+            or isinstance(self.max_action_ttl_ms, bool)
+            or self.max_action_ttl_ms < 1
+        ):
             raise ControlContractError("safety limits must be non-negative/positive")
 
 
@@ -145,3 +166,66 @@ def apply_safety_policy(
     if action.ttl_ms > selected.max_action_ttl_ms:
         return safe_stop(reason="action_ttl_exceeded")
     return action
+
+
+class ControlStudentClient:
+    """Adapt a typed Student control head to the safety-bounded action contract."""
+
+    def __init__(
+        self,
+        checkpoint_path: str | Path,
+        registry: Any,
+        *,
+        policy: ControlSafetyPolicy | None = None,
+        device: str = "cpu",
+    ) -> None:
+        from .student_client import StudentClient
+
+        self.policy = policy or ControlSafetyPolicy()
+        self._client = StudentClient(
+            checkpoint_path,
+            registry,
+            minimum_confidence=0.0,
+            device=device,
+        )
+        self._task = registry.get("control.skill", 1)
+
+    def decide(self, observation: ControlObservation, *, now_ms: float) -> ControlAction:
+        """Return a safe skill decision; runtime failures fail closed to STOP."""
+
+        if observation.emergency_stop:
+            return safe_stop(reason="emergency_stop")
+        if not math.isfinite(now_ms) or now_ms < observation.timestamp_ms:
+            return safe_stop(reason="invalid_clock")
+        if now_ms - observation.timestamp_ms > self.policy.max_observation_age_ms:
+            return safe_stop(reason="stale_observation")
+        try:
+            completion = self._client.complete_decision(
+                self._task,
+                state=observation.state,
+                question=CONTROL_QUESTION,
+                candidates=list(self._task.output["candidates"]),
+            )
+            from .contracts import ChoiceDecision, parse_decision_result, validate_result_for_task
+            from .teachers import parse_json_object
+
+            result = parse_decision_result(parse_json_object(completion.content))
+            validate_result_for_task(self._task, result)
+            if not isinstance(result, ChoiceDecision):
+                return safe_stop(reason="control_head_output_type_error")
+            confidence = result.probabilities.get(result.selected, 0.0)
+            action = ControlAction(
+                skill=result.selected,
+                confidence=confidence,
+                source="hyperjev-control",
+                abstained=result.abstained,
+                reason="student_abstained" if result.abstained else None,
+            )
+            return apply_safety_policy(
+                observation,
+                action,
+                now_ms=now_ms,
+                policy=self.policy,
+            )
+        except (AttributeError, KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
+            return safe_stop(reason=f"control_inference_error:{type(exc).__name__}")

@@ -1,0 +1,15 @@
+id: control.skill
+version: 1
+input:
+  max_chars: 4096
+output:
+  type: choice
+  candidates: [STOP, HOLD, MOVE, ROTATE, APPROACH, RETREAT, INTERACT, RECOVER]
+thresholds:
+  minimum_probability: 0.90
+  otherwise: safe_stop
+cost:
+  wrong_motion: 10
+  missed_stop: 100
+languages: [ko, en]
+teacher_prompt_version: 1

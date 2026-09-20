@@ -114,3 +114,30 @@ benchmark하고, 실제 응답이 생기기 전에는 Gemma 품질 수치를 기
 - privacy exclusion: training에 포함시키지 않는 정상 결과
 - dependency unavailable: torch/cargo 같은 실행환경 준비 문제
 - quality gate failure: code bug가 아니라 데이터/모델 품질 미달일 수 있음
+
+## 7.5 실시간 control 적용의 검증 순서
+
+게임과 로봇에서는 HyperJev를 저수준 actuator 대신 고수준 skill supervisor로
+배치한다. `ControlObservation`은 한 시점의 bounded state를 받고,
+`ControlStudentClient`는 `control.skill@1` typed head에서 `MOVE`, `ROTATE`,
+`APPROACH`, `RETREAT`, `HOLD`, `INTERACT`, `RECOVER`, `STOP` 중 하나를
+선택한다. 실제 PWM/토크/키 입력은 별도의 rate-limited controller가 담당한다.
+
+검증은 다음 순서로 쪼갠다.
+
+1. contract: 잘못된 parameter, 잘못된 clock, stale frame, emergency stop을
+   모두 `STOP`으로 바꾸는지 unit test한다.
+2. model: train이 아닌 validation/test의 unique state에서 typed accuracy와
+   calibration을 측정한다. confidence가 높은 오답은 별도 실패로 기록한다.
+3. simulator: action latency, collision/unsafe-action rate, stop recall,
+   recovery latency를 episode 단위로 측정한다.
+4. shadow: 실제 게임/로봇 제어기에는 연결하지 않고 parent policy와 결과를
+   비교하며 HyperMemory read/write 및 fallback을 포함한 end-to-end 비용을
+   측정한다.
+5. canary: 승인된 skill subset과 속도/TTL 상한으로 제한된 환경에서만 실제
+   실행한다. 모든 예외와 stale frame은 STOP 또는 controller hold로 보낸다.
+
+v1.40.0의 48-sample synthetic smoke는 train `100%`였지만 validation
+`37.5%`, test `12.5%`에 불과했다. 따라서 latency `p50 0.128ms`만으로 제품
+적용을 선언하지 않는다. 현재 checkpoint는 reference encoder 실험 artifact이고,
+사람 라벨과 simulator gate 전에는 actuator 연결 금지 상태다.
