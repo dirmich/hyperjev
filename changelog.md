@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — enforce human review readiness from CLI (v1.108.0)
+
+- `control review-status --require-test-ready`를 추가해 held-out test 전체가
+  human label을 얻기 전에는 exit code `1`을 반환하도록 했다.
+- `--require-materialize-ready`는 전체 queue가 human label을 얻기 전에는 성공하지
+  않는다. 두 옵션은 label을 만들거나 synthetic target을 복사하지 않고, 기존
+  status report를 승격/CI gate로만 사용한다.
+- 현재 queue 상태는 `reviewed=0/1000`, `test_ready=false`,
+  `ready_for_materialize=false`이므로 두 strict gate가 의도대로 실패한다.
+- 이 단계는 모델 정확도를 자동으로 높이지 않는다. 대신 human label 없는
+  checkpoint가 production accuracy 후보로 잘못 승격되는 경로를 차단한다.
+
 ## 2026-09-21 — multilingual replay correction and char/hybrid ablation (v1.107.0)
 
 - 독립 raw Student replay로 이전 기록의 측정 경계를 교정했다. v1.105 BOW

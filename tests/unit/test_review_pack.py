@@ -131,6 +131,45 @@ class ReviewPackTests(unittest.TestCase):
         self.assertFalse(report["ready_for_materialize"])
         self.assertFalse(report["test_ready"])
 
+    def test_control_review_status_exposes_human_gate_flags(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-status",
+                "--queue",
+                "queue.jsonl",
+                "--feedback",
+                "feedback.jsonl",
+                "--require-test-ready",
+                "--require-materialize-ready",
+            ]
+        )
+        self.assertTrue(args.require_test_ready)
+        self.assertTrue(args.require_materialize_ready)
+
+    def test_control_review_status_gate_returns_failure_until_human_labels_exist(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-status",
+                "--queue",
+                "queue.jsonl",
+                "--feedback",
+                "feedback.jsonl",
+                "--require-test-ready",
+            ]
+        )
+        with (
+            patch.object(
+                cli_module,
+                "control_review_status",
+                return_value={"test_ready": False, "ready_for_materialize": False},
+            ),
+            patch.object(cli_module.TaskRegistry, "load"),
+            patch("builtins.print"),
+        ):
+            self.assertEqual(args.handler(args), 1)
+
     def test_review_session_limits_deterministic_blind_batches(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
         with tempfile.TemporaryDirectory() as directory:

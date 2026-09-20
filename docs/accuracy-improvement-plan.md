@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.107.0
+현재 버전: 1.108.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1231,3 +1231,27 @@ checkpoint SHA는
 후보 모두 Korean 단독 개선을 보였지만 bilingual 최저 정확도와 latency를 동시에
 만족하지 못했다. 다음은 human-labeled Korean/English test에서 같은 비교를
 반복하는 것이며, synthetic OOD 결과만으로 promotion하지 않는다.
+
+### v1.108.0 human-review readiness gate
+
+사람 라벨이 없는 synthetic 결과가 production 정확도로 오인되지 않도록 status
+명령 자체를 strict gate로 사용할 수 있게 했다.
+
+```bash
+uv run hyperjev control review-status \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --feedback /tmp/control-feedback.jsonl \
+  --require-test-ready \
+  --require-materialize-ready
+```
+
+`--require-test-ready`는 test split의 pending이 0일 때만 성공하고,
+`--require-materialize-ready`는 전체 queue의 pending이 0일 때만 성공한다.
+현재 status는 reviewed `0/1000`, test pending `100`, 전체 pending `1000`이므로
+exit code `1`이어야 한다. 이 gate는 human label을 생성하지 않으며, strict
+dual-review provenance는 이후 `control materialize --require-dual-review`가
+별도로 검증한다.
+
+다음 정확도 상승 단계는 이 gate를 통과할 수 있도록 두 독립 reviewer의 blind
+label을 수집하고, disagreement를 adjudicate한 뒤 human-only checkpoint를
+재학습하는 것이다.

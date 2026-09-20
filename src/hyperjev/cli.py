@@ -500,6 +500,10 @@ def _control_review_status(args: argparse.Namespace) -> int:
     registry = TaskRegistry.load(args.registry)
     report = control_review_status(args.queue, args.feedback, registry)
     print(json.dumps(report, ensure_ascii=False))
+    if args.require_test_ready and not report["test_ready"]:
+        return 1
+    if args.require_materialize_ready and not report["ready_for_materialize"]:
+        return 1
     return 0
 
 
@@ -1130,6 +1134,16 @@ def build_parser() -> argparse.ArgumentParser:
     control_review_status_parser.add_argument("--registry", default="registry/control_tasks")
     control_review_status_parser.add_argument("--queue", required=True)
     control_review_status_parser.add_argument("--feedback", required=True)
+    control_review_status_parser.add_argument(
+        "--require-test-ready",
+        action="store_true",
+        help="return exit code 1 until every held-out test row has a human label",
+    )
+    control_review_status_parser.add_argument(
+        "--require-materialize-ready",
+        action="store_true",
+        help="return exit code 1 until every queue row has a human label",
+    )
     control_review_status_parser.set_defaults(handler=_control_review_status)
     control_review_session = control_subparsers.add_parser("review-session")
     control_review_session.add_argument("--registry", default="registry/control_tasks")

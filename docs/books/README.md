@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.107.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.108.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -84,6 +84,11 @@ v1.107.0에서는 raw Student와 integrated rule/fast-path의 측정 경계를 �
 분리했다. char-BOW와 hybrid-BOW는 Korean raw OOD를 각각 95.0%와 97.5%까지
 올렸지만 English가 80.0%와 85.0%로 회귀해 폐기했다. 이 실패를 기록한 이유는
 한국어 단일 지표를 올리는 것이 다국어 상용 정확도 향상과 같지 않기 때문이다.
+
+v1.108.0에서는 `review-status`에 test-ready와 전체 materialize-ready strict
+gate를 추가했다. 현재 human label이 0/1000이면 명령이 실패하는 것이 정상이며,
+이 실패는 모델 실패가 아니라 사람 golden 없이 production 승격하지 않도록 하는
+품질 계약이다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두
