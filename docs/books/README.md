@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.114.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.115.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -119,6 +119,10 @@ dataset을 다시 학습해 BOW 질문 노이즈 가설을 분리했다. v1.113.
 `31/40 → 35/40`, Korean `27/40 → 29/40`으로 회복했지만 v1.105 기준선
 `39/40`, `36/40`에는 못 미쳐 후보를 폐기했다. state-only가 질문 표현을 제거해도
 human label `0/1800` 상태에서는 production 정확도나 promotion을 주장할 수 없다.
+
+v1.115.0에서는 malformed quality report가 evaluator traceback으로 끝나지 않고
+명시적 gate failure로 거부되도록 hardening했다. 이는 정확도 점수를 바꾸지 않으며,
+human label 없는 후보를 production-ready로 잘못 표시하지 않는 운영 경계다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

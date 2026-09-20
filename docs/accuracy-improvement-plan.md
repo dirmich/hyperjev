@@ -1417,3 +1417,16 @@ label은 `0/1800`이므로 이 결과는 synthetic ablation이며 production pro
 근거가 아니다. 다음 우선순위는 blind dual human label을 확보한 뒤 state encoder와
 question encoder를 별도 projection으로 학습하고, 혼동쌍별 calibration/abstain을
 검증하는 것이다.
+
+### v1.115.0 malformed quality report rejection hardening
+
+정확도 gate는 모델 후보를 자동 승인하는 장치가 아니라, 기준 미달 후보를 안전하게
+거부하는 경계다. 그래서 quality evaluator의 safety 입력이 누락되거나 잘못된
+타입이어도 evaluator 자체가 traceback으로 중단되지 않고 명시적인 실패 목록을
+반환하도록 보강했다. 이 변경은 점수나 target을 보정하지 않으며, 정상 출력의
+정확도 계산에는 영향을 주지 않는다.
+
+새 회귀 테스트는 문자열 accuracy, `None` recall/count, list 형태 confidence
+interval을 각각 실패로 분류하는지 확인한다. 이는 `production_ready=true`를
+잘못 만들지 않도록 하는 운영 신뢰성 개선이며 human label `0/1800`이라는 현재
+정확도 한계를 변경하지 않는다.

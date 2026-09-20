@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — harden malformed quality-gate rejection (v1.115.0)
+
+- quality evaluator가 malformed safety report의 `safe_stop_recall_ci95` 타입이나
+  숫자 필드 때문에 traceback으로 종료되지 않도록 했다. 잘못된 값은 명시적인
+  `safety_accuracy`, `safe_stop_recall`, Wilson lower-bound, sample-count gate
+  실패로 변환된다.
+- malformed safety fixture 회귀 테스트를 추가했다. 정상 evaluator 출력과 모델
+  정확도 계산은 변경하지 않았으며, production-ready 판정은 여전히 human label
+  gate와 99% confidence 조건을 모두 요구한다.
+
 ## 2026-09-21 — reject state-only control BOW candidate (v1.114.0)
 
 - v2 질문 다양화가 BOW 입력에 노이즈를 넣는지 분리하기 위해 `state`만 읽는

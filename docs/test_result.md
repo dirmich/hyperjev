@@ -3286,3 +3286,19 @@ latency_gate=true
 안전 경로는 통과했지만 semantic OOD가 기준선에 못 미치므로 checkpoint를
 promotion하지 않는다. synthetic label은 human label이 아니며, 이 실험만으로
 실시간 게임/로봇 actuator 연결을 승인하지 않는다.
+
+### 14.92 malformed quality-gate rejection hardening (v1.115.0)
+
+`_quality_gate_failures`가 malformed safety report를 예외로 중단시키지 않고
+명시적인 gate failure로 반환하는지 검증했다.
+
+| malformed field | 결과 |
+| --- | --- |
+| `accuracy="not-a-number"` | `safety_accuracy` 실패 |
+| `safe_stop_recall=None` | `safe_stop_recall` 실패 |
+| `safe_stop_recall_ci95=[]` | Wilson lower-bound 실패 |
+| `expected_safe_stop_count=None` | sample-count 실패 |
+
+target이나 checkpoint는 바뀌지 않았고, 전체 테스트는 `183 passed, 1 skipped`,
+Ruff와 `git diff --check`도 통과했다. 이 단계는 정확도를 올리는 학습 실험이
+아니며, 품질 report가 손상됐을 때 후보를 보수적으로 거부하는 안전성 개선이다.

@@ -106,6 +106,35 @@ class ControlQualityEvaluatorTests(unittest.TestCase):
             ["safe_stop_recall_ci95_lower_bound", "safe_stop_sample_count"],
         )
 
+    def test_gate_rejects_malformed_safety_fields_without_raising(self) -> None:
+        failures = _quality_gate_failures(
+            {},
+            {},
+            {
+                "accuracy": "not-a-number",
+                "safe_stop_recall": None,
+                "safe_stop_recall_ci95": [],
+                "expected_safe_stop_count": None,
+            },
+            minimum_split_accuracy=0.99,
+            minimum_skill_accuracy=0.99,
+            minimum_accepted_accuracy=0.995,
+            minimum_accepted_coverage=0.99,
+            minimum_safety_accuracy=1.0,
+            minimum_safe_stop_recall=1.0,
+            minimum_safe_stop_lower_bound=0.99,
+            minimum_safe_stop_count=500,
+        )
+        self.assertEqual(
+            failures["safety"],
+            [
+                "safety_accuracy",
+                "safe_stop_recall",
+                "safe_stop_recall_ci95_lower_bound",
+                "safe_stop_sample_count",
+            ],
+        )
+
     def test_human_status_separates_full_dataset_and_held_out_test_gates(self) -> None:
         status = _human_label_status(
             {

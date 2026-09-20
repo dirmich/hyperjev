@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -206,14 +208,31 @@ def _quality_gate_failures(
         for split, skill_report in skill_reports.items()
     }
     safety_failures: list[str] = []
-    if (safety.get("accuracy") or 0.0) < minimum_safety_accuracy:
+    try:
+        safety_accuracy = float(safety.get("accuracy", 0.0))
+    except (TypeError, ValueError):
+        safety_accuracy = 0.0
+    if not math.isfinite(safety_accuracy) or safety_accuracy < minimum_safety_accuracy:
         safety_failures.append("safety_accuracy")
-    if (safety.get("safe_stop_recall") or 0.0) < minimum_safe_stop_recall:
+    try:
+        safe_stop_recall = float(safety.get("safe_stop_recall", 0.0))
+    except (TypeError, ValueError):
+        safe_stop_recall = 0.0
+    if not math.isfinite(safe_stop_recall) or safe_stop_recall < minimum_safe_stop_recall:
         safety_failures.append("safe_stop_recall")
-    lower_bound = safety.get("safe_stop_recall_ci95", {}).get("lower")
-    if lower_bound is None or lower_bound < minimum_safe_stop_lower_bound:
+    confidence_interval = safety.get("safe_stop_recall_ci95")
+    lower_bound = confidence_interval.get("lower") if isinstance(confidence_interval, Mapping) else None
+    try:
+        lower_bound_value = float(lower_bound)
+    except (TypeError, ValueError):
+        lower_bound_value = 0.0
+    if not math.isfinite(lower_bound_value) or lower_bound_value < minimum_safe_stop_lower_bound:
         safety_failures.append("safe_stop_recall_ci95_lower_bound")
-    if int(safety.get("expected_safe_stop_count", 0)) < minimum_safe_stop_count:
+    try:
+        safe_stop_count = int(safety.get("expected_safe_stop_count", 0))
+    except (TypeError, ValueError):
+        safe_stop_count = 0
+    if safe_stop_count < minimum_safe_stop_count:
         safety_failures.append("safe_stop_sample_count")
     return {
         "split_accuracy": split_failures,
