@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.80.0
+현재 버전: 1.81.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -656,3 +656,29 @@ human label은 여전히 `0`이며, 다음 단계는 남은 HOLD 문장의 독�
 따라서 checkpoint 선택은 test fixture를 보고 임의로 고른 것이 아니라 validation
 동률과 OOD 보조 ablation을 함께 기록한 best-effort 결과다. 여전히 OOD target은
 synthetic이고 human label은 `0`이므로 production 99% 주장으로 승격하지 않는다.
+
+### v1.81.0 Qwen hard-negative human review pack
+
+Qwen `qwen38fn` draft가 붙은 hard-negative 500쌍/1,000행을 human review pack으로
+내보냈다. queue SHA는
+`f88cec23d06b1bae9c688bcc5f3cea4dc3b68912980b43e98c8d72fd986e5f0d`, Qwen draft
+SHA는 `e8d7c15c526169109dbc7e552dde15d9f2a10a609e326b66aec1b2e9b62e17d4`다.
+pack은 1,001 lines(Manifest 1 + item 1,000), raw `state/question`만 포함하고
+synthetic `target`과 queue `labels`는 제외했다. `uncertain_first` 우선순위로
+counterfactual group 500개와 collision group 167개(334 items)를 추적한다.
+
+사람 검수는 다음 한 세션에서 진행한다.
+
+```bash
+uv run hyperjev control review-session \
+  --review-pack /tmp/control-qwen-hard-review-pack.jsonl \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --feedback-output /tmp/control-qwen-hard-feedback.jsonl \
+  --reviewer human-control-1 \
+  --deduplicate-exact
+```
+
+세션은 `state`, `question`, Qwen draft를 보여주고 reviewer가 후보 value를
+선택/수정한다. Qwen/Gemma draft는 human label을 자동 대체하지 않는다. 현재
+human label은 `0/1,000`이고, 이 단계의 stop condition은 reviewer가 모든 row를
+확인한 뒤 `control materialize`와 `--require-human-labels`가 통과하는 것이다.

@@ -2422,3 +2422,33 @@ model-only OOD를 높이기 위한 추가 ablation도 같은 40개 fixture에서
 v1.80의 integrated fast path + Student + safety는 OOD `40/40 (100%)`, STOP
 recall `5/5 (100%)`를 유지한다. 이 수치는 rule 포함 통합 경로이며 모델 단독
 정확도와 혼동하지 않는다.
+
+### 14.59 Qwen hard-negative human review pack (v1.81.0)
+
+사람이 실제로 state/question을 보고 검수할 수 있도록 Qwen hard-negative draft를
+review pack으로 생성했다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/control-qwen-hard-review-pack.jsonl \
+  --allow-raw --prioritize
+```
+
+| 항목 | 결과 |
+| --- | --- |
+| pack lines | `1,001` (manifest 1 + item 1,000) |
+| queue SHA-256 | `f88cec23d06b1bae9c688bcc5f3cea4dc3b68912980b43e98c8d72fd986e5f0d` |
+| Qwen draft SHA-256 | `e8d7c15c526169109dbc7e552dde15d9f2a10a609e326b66aec1b2e9b62e17d4` |
+| provider/model | `qwen / qwen38fn` |
+| priority | `uncertain_first` |
+| counterfactual groups | `500` |
+| collision groups/items | `167 / 334` |
+| synthetic target in pack | 제외 |
+| human labels | `0/1,000` |
+
+pack item에는 raw `state/question`, Qwen draft, task 후보만 있고 synthetic target과
+queue labels는 없다. 따라서 reviewer가 Qwen 답을 참고하더라도 직접 선택해야
+human source가 된다. 아직 feedback이 생성되지 않았으므로 production accuracy와
+99% gate는 미측정이다.

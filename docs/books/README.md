@@ -183,6 +183,12 @@ boundary/seed/class-balanced 학습은 v1.79 best `97.5%`를 넘지 못해 승�
 않았다. 이 단계에서도 human label이 없으므로 합성 OOD와 통합 rule 경로의 수치를
 상용 모델 정확도로 부르지 않는다.
 
+v1.81.0에서는 Qwen hard-negative 1,000행을 human review pack으로 준비했다.
+pack은 synthetic target을 숨기고 state/question과 Qwen draft만 보여주며, 500개
+counterfactual group과 167개 collision group을 uncertain-first로 정렬한다. 이제
+정확도를 더 올리는 가장 중요한 입력은 새 synthetic 문장이 아니라 reviewer의
+typed human label이다.
+
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
 100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지

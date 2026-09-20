@@ -3,6 +3,20 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — Qwen hard-negative human review pack (v1.81.0)
+
+- Qwen `qwen38fn` draft가 있는 hard-negative 500쌍/1,000행을 review pack으로
+  만들었다. pack은 1,001 lines이며 queue/draft SHA를 manifest에 고정했다.
+- `uncertain_first` 정렬 결과 counterfactual group 500개, collision group
+  167개/334 items를 추적한다.
+- raw state/question은 local review를 위해 포함하지만 synthetic target과 queue
+  labels는 제외했다. reviewer는 `control review-session`에서 typed value를
+  직접 선택한다.
+- human labels는 `0/1,000`; Qwen/Gemma draft는 human evidence가 아니므로
+  production gate는 여전히 false다.
+- 검증: review-pack manifest, target/labels leakage scan, existing full suite와
+  Ruff (v1.80 evidence).
+
 ## 2026-09-21 — normal-action precision fast path (v1.80.0)
 
 - `target is close and directly ahead` compound signal을 APPROACH fast path에
