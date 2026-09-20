@@ -28,6 +28,11 @@ def _load_scenarios(path: Path) -> list[dict[str, Any]]:
         scenarios.append(raw)
     if not scenarios:
         raise ValueError(f"scenario file is empty: {path}")
+    scenario_ids = [scenario.get("scenario_id") for scenario in scenarios]
+    if any(not isinstance(scenario_id, str) or not scenario_id.strip() for scenario_id in scenario_ids):
+        raise ValueError(f"{path}: every scenario must have a non-empty scenario_id")
+    if len(set(scenario_ids)) != len(scenario_ids):
+        raise ValueError(f"{path}: scenario_id values must be unique")
     return scenarios
 
 

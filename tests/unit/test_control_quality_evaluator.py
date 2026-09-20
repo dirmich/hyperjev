@@ -1,4 +1,5 @@
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from evaluate_control_quality import (
     _annotate_split_report,
     _binomial_interval,
     _human_label_status,
+    _load_scenarios,
     _quality_gate_failures,
     _skill_report,
 )
@@ -17,6 +19,17 @@ from hyperjev.registry import TaskRegistry
 
 
 class ControlQualityEvaluatorTests(unittest.TestCase):
+    def test_scenario_loader_rejects_duplicate_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "duplicate.jsonl"
+            path.write_text(
+                '{"scenario_id":"same","observation":{},"now_ms":0}\n'
+                '{"scenario_id":"same","observation":{},"now_ms":0}\n',
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "scenario_id values must be unique"):
+                _load_scenarios(path)
+
     def test_skill_report_exposes_accepted_metrics_and_intervals(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
         report = _skill_report(

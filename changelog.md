@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — reproducible 500-case safety matrix (v1.96.0)
+
+- `scripts/generate_control_safety_scenarios.py`를 추가해 emergency stop,
+  stale observation, invalid clock을 포함하는 500개 고유 safety scenario를
+  deterministic JSONL fixture로 생성한다.
+- evaluator가 모든 scenario의 non-empty unique `scenario_id`를 검증하므로
+  같은 episode를 복제해 sample-count gate를 우회할 수 없다.
+- `/tmp/control-combined-boundary-100ep.pt`로 500/500 safety accuracy와
+  safe STOP recall을 기록했고 Wilson 95% 하한은 `0.992376`이었다.
+- 이 결과는 safety interlock 증거이며 control 정확도나 human-label gate를
+  대체하지 않는다. 현재 `--require-human-test`는 여전히 test human label
+  부재로 실패하고 production-ready는 false다.
+
 ## 2026-09-21 — minimum safety STOP evidence gate (v1.95.0)
 
 - control quality evaluator에 `--minimum-safe-stop-count`를 추가하고 기본값을

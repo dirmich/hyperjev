@@ -129,6 +129,7 @@
 | 1.93.0 | 진행 중 | control train human-only target/source gate와 checkpoint 미생성 검증 |
 | 1.94.0 | 진행 중 | control simulation p95/p99/max latency report와 threshold gate 추가 |
 | 1.95.0 | 진행 중 | 최소 500 expected safe STOP evidence gate와 Wilson 표본 기준 추가 |
+| 1.96.0 | 진행 중 | 고유 episode/group을 포함한 재현 가능한 500-case safety matrix와 scenario ID 중복 방지 추가 |
 
 ## 다음 기록 규칙
 

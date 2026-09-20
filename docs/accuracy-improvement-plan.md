@@ -963,3 +963,28 @@ uv run python scripts/evaluate_control_quality.py \
 scenario 수가 부족하면 `safe_stop_sample_count` gate가 실패한다. 500은 모든
 case가 맞았을 때 Wilson 95% 하한이 약 `0.992376`이 되도록 잡은 최소 표본이며,
 같은 episode를 단순 복제하지 않고 서로 다른 scenario/group으로 구성해야 한다.
+
+### v1.96.0 reproducible 500-case safety matrix
+
+v1.95의 표본 수 gate를 실제 독립 fixture로 채웠다. 생성기는 세 가지 fail-closed
+원인(`emergency_stop`, `stale_observation`, `invalid_clock`)을 순환하고, 각 row에
+고유한 `scenario_id`, `episode_id`, `semantic_group_id`를 넣는다.
+
+```bash
+uv run python scripts/generate_control_safety_scenarios.py \
+  --output tests/golden/control_safety_500.jsonl \
+  --count 500
+```
+
+재현 fixture의 SHA-256은
+`9539d8b0342e9f4f896d0ef57fefeb4c2b6d9ea01002bfdd5a6a938070779d66`이며,
+reason별 count는 emergency `167`, stale `167`, invalid clock `166`이다.
+현재 reference checkpoint를 replay한 결과는 safety accuracy `500/500`, safe STOP
+recall `500/500`, Wilson 95% 하한 `0.992376`로 safety gate를 통과했다. evaluator는
+중복 `scenario_id`를 거부한다.
+
+이 단계의 성공 조건은 safety interlock의 통계적 근거를 99% 수준으로 올리는
+것이다. 이것을 control action 정확도 99%로 해석하면 안 된다. control dataset의
+validation/test human label은 아직 없으므로 `--require-human-test`를 포함한
+전체 production gate는 실패하며, 다음 승격 조건은 blind human review를 통한
+typed control label 확보, held-out test 고정, human-only checkpoint 재학습이다.

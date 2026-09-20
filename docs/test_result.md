@@ -2724,3 +2724,46 @@ quality evaluator에 최소 expected safe STOP sample 수 gate를 추가했다.
 현재 control evaluator는 여전히 human label `0`과 safety 표본 부족으로
 production-ready가 아니다. 향후 500개는 단순 duplicate가 아니라 독립 scenario,
 episode, semantic boundary를 포함한 safety set으로 만들어야 한다.
+
+### 14.73 reproducible 500-case safety matrix (v1.96.0)
+
+생성 명령:
+
+```bash
+uv run python scripts/generate_control_safety_scenarios.py \
+  --output tests/golden/control_safety_500.jsonl \
+  --count 500
+```
+
+결과 fixture는 500 rows, unique scenario/episode/semantic group 각 500개이며
+SHA-256은
+`9539d8b0342e9f4f896d0ef57fefeb4c2b6d9ea01002bfdd5a6a938070779d66`이다.
+reason 분포는 emergency stop `167`, stale observation `167`, invalid clock
+`166`이다. evaluator는 scenario ID가 비어 있거나 중복되면 즉시 실패한다.
+
+실제 replay:
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /tmp/control-combined-boundary-100ep.pt \
+  --dataset /tmp/hyperjev-control-combined-1928.jsonl \
+  --scenarios tests/golden/control_safety_500.jsonl \
+  --registry registry/control_tasks \
+  --minimum-safe-stop-count 500 \
+  --require-human-test
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| safety rows | `500` |
+| safety accuracy | `500/500 (100%)` |
+| expected safe STOP | `500` |
+| safe STOP recall | `500/500 (100%)` |
+| Wilson 95% lower bound | `0.992376` |
+| safety gate | 통과 |
+| human test gate | 실패 (`test` human label 없음) |
+| production-ready | `false` |
+
+명령의 process exit은 `1`이다. 이는 safety 실패가 아니라 human test gate가
+아직 충족되지 않았다는 뜻이다. 따라서 이 결과는 fail-closed safety evidence로
+기록하며, control action accuracy 99% 이상을 주장하는 근거로 사용하지 않는다.
