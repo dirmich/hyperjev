@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.82.0
+현재 버전: 1.83.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -726,3 +726,28 @@ v1.82의 agreement gate는 reviewer consistency gate이지 정확도 gate가 아
 측정·주장하지 않는다. 다음 승격 조건은 이 workflow로 독립 human benchmark를
 완성한 뒤, accepted accuracy와 raw Student-head accuracy, safety STOP recall을
 각각 confidence interval과 함께 보고하는 것이다.
+
+### v1.83.0 raw/accepted/safety evaluator hardening
+
+production 숫자의 의미가 섞이지 않도록 `scripts/evaluate_control_quality.py`를
+강화했다. `raw_student_head`는 deterministic rule을 적용하지 않은 Student
+head의 split/skill/risk-coverage를 담고, `safety_policy`는 별도 safety scenario
+경로로 보고한다. 각 split에는 raw accuracy와 accepted accuracy의 Wilson 95%
+interval이 포함된다.
+
+새 gate는 다음을 모두 요구한다.
+
+- raw split accuracy `>= 0.99`
+- per-skill accuracy `>= 0.99`
+- accepted accuracy `>= 0.995`
+- accepted coverage `>= 0.99`
+- safety scenario accuracy와 point STOP recall `100%`
+- STOP recall Wilson 95% 하한 `>= 0.99`
+- human label gate 통과 후에만 `production_ready`
+
+최신 synthetic reference checkpoint를 재생한 결과는 validation/test 모두
+`180/180 (100%)`, accepted coverage `100%`였지만 safety STOP은 `2/2`뿐이라
+Wilson 하한 `0.342380`으로 실패했다. 따라서 evaluator exit code는 `1`이고,
+현재 모델을 상용 안전 판단기로 승격하지 않는다. 다음 작업은 blind human
+benchmark 표본을 채우고, raw Student-head와 integrated fast path를 같은
+human-only held-out set에서 따로 측정하는 것이다.

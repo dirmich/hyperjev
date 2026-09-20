@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — raw/accepted/safety evaluator hardening (v1.83.0)
+
+- control quality report에 `raw_student_head`, `safety_policy`,
+  `gate_failures`를 추가해 Student 정확도와 rule/safety 경로를 분리했다.
+- accepted accuracy와 accepted coverage를 별도 gate로 추가했다.
+- raw/safety 정확도와 STOP recall에 Wilson 95% interval을 기록하고, STOP
+  recall 하한 기준을 만족하지 못하면 evaluator가 실패하도록 했다.
+- 최신 synthetic checkpoint는 validation/test `180/180`과 coverage `100%`지만
+  STOP `2/2` 하한 `0.342380`으로 exit `1`이다. human benchmark 전에는
+  production ready로 승격하지 않는다.
+
 ## 2026-09-21 — teacher-blind control dual review gate (v1.82.0)
 
 - `docs/control_labeling.md`에 STOP 우선순위, 8개 control skill 판정 기준,

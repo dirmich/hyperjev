@@ -2487,3 +2487,36 @@ uv run hyperjev control materialize \
 그 후 human-only held-out test를 고정하고 raw Student-head, safety policy,
 integrated fast path를 분리 평가한다. synthetic OOD `40/40`은 이 human gate를
 대체하지 않는다.
+
+### 14.61 raw/accepted/safety evaluator hardening (v1.83.0)
+
+v1.82 critic 지적에 따라 raw Student-head, accepted route, safety policy를
+분리하고 작은 표본의 과도한 `100%` 해석을 막는 Wilson 95% interval gate를
+추가했다.
+
+재현 명령:
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /tmp/control-combined-boundary-100ep.pt \
+  --dataset /tmp/hyperjev-control-combined-1928.jsonl \
+  --scenarios tests/golden/control_scenarios.jsonl \
+  --registry registry/control_tasks
+```
+
+| metric | 결과 |
+| --- | ---: |
+| raw Student validation | `180/180 (100%)` |
+| raw Student test | `180/180 (100%)` |
+| accepted coverage validation/test | `100% / 100%` |
+| safety scenario accuracy | `4/4 (100%)` |
+| STOP recall | `2/2 (100%)` |
+| STOP recall Wilson 95% lower bound | `0.342380` |
+| evaluator exit | `1` (gate 실패) |
+| production ready | `false` |
+
+point accuracy만 보면 전부 100%지만 STOP 사례가 2개라 confidence 하한이 매우
+낮다. 새 report의 `raw_student_head`, `safety_policy`, `gate_failures` 필드로
+이 차이를 고정하며, 실제 human benchmark가 생기기 전에는 synthetic 결과를
+상용 정확도로 보고하지 않는다. evaluator 자체의 targeted test는 `3 passed`,
+전체 suite는 version bump 후 다시 실행한다.

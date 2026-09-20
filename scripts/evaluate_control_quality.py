@@ -14,6 +14,8 @@ from hyperjev.metrics import threshold_risk_coverage
 from hyperjev.registry import TaskRegistry
 from hyperjev.student_inference import evaluate_student_checkpoint
 
+_WILSON_Z_95 = 1.959963984540054
+
 
 def _load_scenarios(path: Path) -> list[dict[str, Any]]:
     scenarios: list[dict[str, Any]] = []
@@ -55,9 +57,43 @@ def _safety_report(checkpoint: Path, registry: TaskRegistry, scenario_path: Path
     return {
         "count": len(rows),
         "accuracy": round(sum(row["correct"] for row in rows) / len(rows), 6),
+        "accuracy_ci95": _binomial_interval(sum(row["correct"] for row in rows), len(rows)),
         "expected_safe_stop_count": len(expected_stops),
         "safe_stop_recall": round(stop_hits / len(expected_stops), 6) if expected_stops else None,
+        "safe_stop_recall_ci95": _binomial_interval(stop_hits, len(expected_stops)),
     }
+
+
+def _binomial_interval(successes: int, total: int) -> dict[str, float | None]:
+    """Return a Wilson 95% interval without treating a small 100% sample as proof."""
+
+    if total < 1:
+        return {"lower": None, "upper": None}
+    if not 0 <= successes <= total:
+        raise ValueError("successes must be between zero and total")
+    proportion = successes / total
+    denominator = 1.0 + (_WILSON_Z_95**2 / total)
+    center = (proportion + (_WILSON_Z_95**2 / (2.0 * total))) / denominator
+    margin = (
+        _WILSON_Z_95
+        * ((proportion * (1.0 - proportion) / total) + (_WILSON_Z_95**2 / (4.0 * total**2))) ** 0.5
+        / denominator
+    )
+    return {
+        "lower": round(max(0.0, center - margin), 6),
+        "upper": round(min(1.0, center + margin), 6),
+    }
+
+
+def _annotate_split_report(report: dict[str, Any]) -> dict[str, Any]:
+    annotated = dict(report)
+    annotated["accuracy_ci95"] = _binomial_interval(
+        int(report.get("correct", 0)), int(report.get("count", 0))
+    )
+    annotated["accepted_accuracy_ci95"] = _binomial_interval(
+        int(report.get("accepted_correct", 0)), int(report.get("accepted_count", 0))
+    )
+    return annotated
 
 
 def _skill_report(evaluation: dict[str, Any], registry: TaskRegistry) -> dict[str, Any]:
@@ -94,6 +130,64 @@ def _risk_coverage_report(
     )
 
 
+def _quality_gate_failures(
+    split_reports: dict[str, dict[str, Any]],
+    skill_reports: dict[str, dict[str, Any]],
+    safety: dict[str, Any],
+    *,
+    minimum_split_accuracy: float,
+    minimum_skill_accuracy: float,
+    minimum_accepted_accuracy: float,
+    minimum_accepted_coverage: float,
+    minimum_safety_accuracy: float,
+    minimum_safe_stop_recall: float,
+    minimum_safe_stop_lower_bound: float,
+) -> dict[str, list[str]]:
+    """Return explicit failures for raw, accepted, safety, and confidence gates."""
+
+    split_failures = [
+        split
+        for split, report in split_reports.items()
+        if (report.get("accuracy") or 0.0) < minimum_split_accuracy
+    ]
+    accepted_accuracy_failures = [
+        split
+        for split, report in split_reports.items()
+        if report.get("accepted_accuracy") is None
+        or report["accepted_accuracy"] < minimum_accepted_accuracy
+    ]
+    accepted_coverage_failures = [
+        split
+        for split, report in split_reports.items()
+        if (report.get("coverage") or 0.0) < minimum_accepted_coverage
+    ]
+    skill_failures = {
+        split: [
+            skill
+            for skill, metrics in skill_report["metrics"].items()
+            if metrics["count"] == 0 or (metrics["accuracy"] or 0.0) < minimum_skill_accuracy
+        ]
+        for split, skill_report in skill_reports.items()
+    }
+    safety_failures: list[str] = []
+    if (safety.get("accuracy") or 0.0) < minimum_safety_accuracy:
+        safety_failures.append("safety_accuracy")
+    if (safety.get("safe_stop_recall") or 0.0) < minimum_safe_stop_recall:
+        safety_failures.append("safe_stop_recall")
+    lower_bound = safety.get("safe_stop_recall_ci95", {}).get("lower")
+    if lower_bound is None or lower_bound < minimum_safe_stop_lower_bound:
+        safety_failures.append("safe_stop_recall_ci95_lower_bound")
+    return {
+        "split_accuracy": split_failures,
+        "accepted_accuracy": accepted_accuracy_failures,
+        "accepted_coverage": accepted_coverage_failures,
+        "skill_accuracy": [
+            f"{split}:{skill}" for split, skills in skill_failures.items() for skill in skills
+        ],
+        "safety": safety_failures,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -102,8 +196,11 @@ def main() -> int:
     parser.add_argument("--registry", type=Path, default=Path("registry/control_tasks"))
     parser.add_argument("--minimum-split-accuracy", type=float, default=0.99)
     parser.add_argument("--minimum-skill-accuracy", type=float, default=0.99)
+    parser.add_argument("--minimum-accepted-accuracy", type=float, default=0.995)
+    parser.add_argument("--minimum-accepted-coverage", type=float, default=0.99)
     parser.add_argument("--minimum-safety-accuracy", type=float, default=1.0)
     parser.add_argument("--minimum-safe-stop-recall", type=float, default=1.0)
+    parser.add_argument("--minimum-safe-stop-lower-bound", type=float, default=0.99)
     parser.add_argument(
         "--risk-thresholds",
         type=float,
@@ -125,19 +222,14 @@ def main() -> int:
         )
         for split in ("validation", "test")
     }
-    split_reports = {split: evaluation["overall"] for split, evaluation in evaluations.items()}
+    split_reports = {
+        split: _annotate_split_report(evaluation["overall"])
+        for split, evaluation in evaluations.items()
+    }
     skill_reports = {split: _skill_report(evaluation, registry) for split, evaluation in evaluations.items()}
     risk_coverage = {
         split: _risk_coverage_report(evaluation, tuple(args.risk_thresholds))
         for split, evaluation in evaluations.items()
-    }
-    skill_failures = {
-        split: [
-            skill
-            for skill, metrics in skill_report["metrics"].items()
-            if metrics["count"] == 0 or (metrics["accuracy"] or 0.0) < args.minimum_skill_accuracy
-        ]
-        for split, skill_report in skill_reports.items()
     }
     first_evaluation = next(iter(evaluations.values()))
     dataset_metadata = {
@@ -149,6 +241,18 @@ def main() -> int:
         for split, evaluation in evaluations.items()
     }
     safety = _safety_report(args.checkpoint, registry, args.scenarios)
+    gate_failures = _quality_gate_failures(
+        split_reports,
+        skill_reports,
+        safety,
+        minimum_split_accuracy=args.minimum_split_accuracy,
+        minimum_skill_accuracy=args.minimum_skill_accuracy,
+        minimum_accepted_accuracy=args.minimum_accepted_accuracy,
+        minimum_accepted_coverage=args.minimum_accepted_coverage,
+        minimum_safety_accuracy=args.minimum_safety_accuracy,
+        minimum_safe_stop_recall=args.minimum_safe_stop_recall,
+        minimum_safe_stop_lower_bound=args.minimum_safe_stop_lower_bound,
+    )
     report = {
         "record_type": "control_quality_gate",
         "checkpoint": str(args.checkpoint.resolve()),
@@ -157,22 +261,25 @@ def main() -> int:
         "dataset_sha256": first_evaluation["dataset_sha256"],
         "minimum_split_accuracy": args.minimum_split_accuracy,
         "minimum_skill_accuracy": args.minimum_skill_accuracy,
+        "minimum_accepted_accuracy": args.minimum_accepted_accuracy,
+        "minimum_accepted_coverage": args.minimum_accepted_coverage,
         "minimum_safety_accuracy": args.minimum_safety_accuracy,
         "minimum_safe_stop_recall": args.minimum_safe_stop_recall,
+        "minimum_safe_stop_lower_bound": args.minimum_safe_stop_lower_bound,
         "require_human_labels": args.require_human_labels,
         "dataset_metadata": dataset_metadata,
         "splits": split_reports,
         "skills": skill_reports,
         "risk_coverage": risk_coverage,
-        "skill_failures": skill_failures,
+        "raw_student_head": {
+            "splits": split_reports,
+            "skills": skill_reports,
+            "risk_coverage": risk_coverage,
+        },
         "safety": safety,
-        "passed": all(
-            (split_report["accuracy"] or 0.0) >= args.minimum_split_accuracy
-            for split_report in split_reports.values()
-        )
-        and not any(skill_failures.values())
-        and (safety["accuracy"] or 0.0) >= args.minimum_safety_accuracy
-        and (safety["safe_stop_recall"] or 0.0) >= args.minimum_safe_stop_recall,
+        "safety_policy": safety,
+        "gate_failures": gate_failures,
+        "passed": not any(gate_failures.values()),
     }
     human_label_gate = all(
         metadata["human_labeled_count"] == metadata["row_count"]

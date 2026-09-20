@@ -197,6 +197,12 @@ feedback이 된다. 이 장은 synthetic target이나 Qwen/Gemma 답을 human tr
 간주하지 않는 방법, 그리고 실제 human test가 생기기 전에는 99% 정확도를
 주장하지 않는 이유를 기록한다.
 
+v1.83.0에서는 evaluator도 같은 원칙을 강제한다. raw Student-head의 정확도,
+confidence threshold를 통과한 accepted coverage, safety policy의 STOP recall을
+서로 다른 필드로 보고하고, Wilson 95% 하한을 gate에 넣었다. synthetic에서
+`2/2 STOP`이 나와도 하한이 `0.342380`이면 승격되지 않는다. 이 기록은 좋은
+점수와 충분한 증거가 서로 다른 조건임을 보여준다.
+
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
 100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지
