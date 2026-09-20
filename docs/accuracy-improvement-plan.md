@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.52.0
+현재 버전: 1.53.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -111,6 +111,36 @@ merge는 sample ID 중복과 결합 후 cross-split exact/episode/semantic-group
 leakage를 다시 검사한다. 두 입력 중 하나라도 미검수면
 `--require-human-labels`에서 실패하므로, synthetic seed와 human golden이
 실수로 production training set에 섞이지 않는다.
+
+control 검수는 generic memory registry를 사용하지 않고 control registry를
+명시한다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue runs/control/control-review-queue.jsonl \
+  --draft runs/control/qwen-control-draft.jsonl \
+  --output runs/control/control-review-pack.jsonl \
+  --allow-raw
+uv run hyperjev control review-session \
+  --review-pack runs/control/control-review-pack.jsonl \
+  --queue runs/control/control-review-queue.jsonl \
+  --feedback-output runs/control/control-feedback.jsonl \
+  --reviewer <reviewer-id> \
+  --deduplicate-exact
+uv run hyperjev control apply-feedback \
+  --queue runs/control/control-review-queue.jsonl \
+  --feedback runs/control/control-feedback.jsonl \
+  --output runs/control/control-reviewed.jsonl
+uv run hyperjev control materialize \
+  --input runs/control/control-reviewed.jsonl \
+  --output runs/control/control-human-target.jsonl
+```
+
+session은 state와 question을 표시하고 `a`(draft 수락), `e`(typed value만
+입력), `n/p`(다음/이전), `s`(보류), `q`(저장 후 종료)를 지원한다. `e`에서
+control 후보 밖의 값은 거부된다. reviewer가 teacher draft를 그대로 수락해도
+그 기록은 human feedback으로 남지만, 실제 운영에서는 위험 pair와
+teacher-disagreement를 우선 독립 확인한다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적

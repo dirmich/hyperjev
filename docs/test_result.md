@@ -1643,3 +1643,32 @@ accepted coverage `100%`, safety action `4/4 (100%)`, safe STOP recall
 `2/2 (100%)`였다. dataset human label은 validation/test 모두 `0`이므로
 synthetic research gate만 통과하고 `production_ready=false`다. rule의 phrase
 coverage를 실제 simulator/human test의 일반화로 해석하지 않는다.
+
+### 14.31 control human review CLI (v1.53.0)
+
+control registry를 사용하는 review pack/session/apply 경로를 추가했다. 기존
+generic `golden review`는 memory task registry를 읽으므로 control queue에
+직접 사용하지 않도록 분리했다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue runs/control/control-review-queue.jsonl \
+  --draft runs/control/qwen-control-draft.jsonl \
+  --output runs/control/control-review-pack.jsonl \
+  --allow-raw
+uv run hyperjev control review-session \
+  --review-pack runs/control/control-review-pack.jsonl \
+  --queue runs/control/control-review-queue.jsonl \
+  --feedback-output runs/control/control-feedback.jsonl \
+  --reviewer reviewer-1
+uv run hyperjev control apply-feedback \
+  --queue runs/control/control-review-queue.jsonl \
+  --feedback runs/control/control-feedback.jsonl \
+  --output runs/control/control-reviewed.jsonl
+```
+
+8개 control row temporary smoke에서 review pack 9 records(manifest+8 items),
+session `reviewed_count=8`, feedback 8건, apply `ready=true`를 확인했다.
+이제 각 row에서 state/question을 보고 `e`로 `STOP` 같은 value만 입력할 수
+있고, next/previous 이동과 재검수가 가능하다. 이는 human label을 수집하는
+경로의 회귀 증거이며, 아직 실제 control 1,000개 golden 결과는 아니다.

@@ -419,6 +419,40 @@ def _control_merge(args: argparse.Namespace) -> int:
     return 0
 
 
+def _control_review_pack(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = export_review_pack(
+        args.queue,
+        args.draft,
+        args.output,
+        registry,
+        include_raw=args.allow_raw,
+    )
+    print(json.dumps(report["manifest"], ensure_ascii=False))
+    return 0
+
+
+def _control_review_session(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = run_review_session(
+        args.review_pack,
+        args.queue,
+        args.feedback_output,
+        registry,
+        reviewer=args.reviewer,
+        deduplicate_exact=args.deduplicate_exact,
+    )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _control_apply_feedback(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = apply_golden_feedback(args.queue, args.feedback, args.output, registry)
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
 def _control_decide(args: argparse.Namespace) -> int:
     registry = TaskRegistry.load(args.registry)
     observation = ControlObservation.from_dict(json.loads(Path(args.observation).read_text(encoding="utf-8")))
@@ -860,6 +894,29 @@ def build_parser() -> argparse.ArgumentParser:
     control_merge.add_argument("--output", required=True)
     control_merge.add_argument("--require-human-labels", action="store_true")
     control_merge.set_defaults(handler=_control_merge)
+    control_review_pack = control_subparsers.add_parser("review-pack")
+    control_review_pack.add_argument("--registry", default="registry/control_tasks")
+    control_review_pack.add_argument("--queue", required=True)
+    control_review_pack.add_argument("--draft", required=True)
+    control_review_pack.add_argument("--output", required=True)
+    control_review_pack.add_argument(
+        "--allow-raw", action="store_true", required=True, help="include state/question for local review"
+    )
+    control_review_pack.set_defaults(handler=_control_review_pack)
+    control_review_session = control_subparsers.add_parser("review-session")
+    control_review_session.add_argument("--registry", default="registry/control_tasks")
+    control_review_session.add_argument("--review-pack", required=True)
+    control_review_session.add_argument("--queue", required=True)
+    control_review_session.add_argument("--feedback-output", required=True)
+    control_review_session.add_argument("--reviewer", required=True)
+    control_review_session.add_argument("--deduplicate-exact", action="store_true")
+    control_review_session.set_defaults(handler=_control_review_session)
+    control_apply_feedback = control_subparsers.add_parser("apply-feedback")
+    control_apply_feedback.add_argument("--registry", default="registry/control_tasks")
+    control_apply_feedback.add_argument("--queue", required=True)
+    control_apply_feedback.add_argument("--feedback", required=True)
+    control_apply_feedback.add_argument("--output", required=True)
+    control_apply_feedback.set_defaults(handler=_control_apply_feedback)
     control_train = control_subparsers.add_parser("train")
     control_train.add_argument("--registry", default="registry/control_tasks")
     control_train.add_argument("--dataset", required=True)

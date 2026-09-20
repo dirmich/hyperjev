@@ -86,6 +86,7 @@
 | 1.50.0 | 진행 중 | hard-negative token training의 100% synthetic 결과와 human gate 기록 |
 | 1.51.0 | 진행 중 | human typed label을 학습 target으로 materialize하는 control CLI |
 | 1.52.0 | 진행 중 | seed+hard-negative merge와 explicit STOP safety rule 검증 |
+| 1.53.0 | 진행 중 | control registry 기반 human review pack/session/apply CLI |
 
 ## 다음 기록 규칙
 

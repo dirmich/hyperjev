@@ -34,6 +34,16 @@
   explicit STOP safety rule 후 safety action accuracy `4/4`, STOP recall
   `2/2`가 됐다. human label은 0이라 production-ready는 아니다.
 
+## 2026-09-21 — control human review CLI (v1.53.0)
+
+- `control review-pack`, `control review-session`, `control apply-feedback`를
+  추가해 control registry로 state/question을 검수한다.
+- session은 accept, value-only edit, next/previous, skip, save-and-quit을
+  지원하며 feedback은 append-only로 남는다. apply 후 materialize해야 human
+  target training dataset이 된다.
+- 8개 temporary row smoke에서 pack 8 items, reviewed 8/8, feedback 8건,
+  apply `ready=true`를 확인했다. 실제 golden accuracy는 아직 산정하지 않았다.
+
 ## 2026-09-21 — control counterfactual hard-negative queue (v1.49.0)
 
 - `hyperjev control hard-negative`가 STOP↔RETREAT, MOVE↔APPROACH,
