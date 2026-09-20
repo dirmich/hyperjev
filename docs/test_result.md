@@ -2642,3 +2642,20 @@ sibling은 함께 유지한다.
 
 focus item 수는 teacher 선택 기반의 검수 순서 지표이며 human accuracy가 아니다.
 최종 target은 여전히 blind human correction과 adjudication으로만 만든다.
+
+### 14.68 manifest-driven action focus (v1.91.0)
+
+dual-review manifest의 `label_agreement_by_action`을 직접 읽어 agreement rate가
+threshold 미만인 action을 focus set으로 만든다. CLI의 명시적 focus action과
+자동 focus set은 합집합으로 적용한다.
+
+| 검증 항목 | 결과 |
+| --- | --- |
+| threshold example | `0.98` |
+| manifest target access | 없음 |
+| explicit + automatic focus | 합집합 |
+| empty comparable action | 기존 priority로 fallback |
+| targeted review-pack test | `21 passed` |
+
+이 단계는 review throughput을 개선할 뿐이며 human label, model accuracy,
+production gate를 자동으로 바꾸지 않는다.

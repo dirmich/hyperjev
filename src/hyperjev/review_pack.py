@@ -590,6 +590,31 @@ def format_control_review_action_summary(manifest: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def load_control_review_focus_actions(
+    manifest_path: str | Path,
+    *,
+    maximum_agreement: float = 0.98,
+) -> set[str]:
+    """Load low-agreement actions from a target-free dual-review manifest."""
+
+    if not 0.0 <= maximum_agreement <= 1.0:
+        raise ValueError("maximum_agreement must be between 0 and 1")
+    records = _read_records(Path(manifest_path))
+    manifest = records[0]
+    if manifest.get("record_type") != "control_dual_review_manifest":
+        raise ValueError("focus manifest must be a control dual-review manifest")
+    action_stats = manifest.get("label_agreement_by_action", {})
+    if not isinstance(action_stats, dict):
+        raise TypeError("focus manifest action agreement is invalid")
+    return {
+        str(action)
+        for action, stats in action_stats.items()
+        if isinstance(stats, dict)
+        and stats.get("agreement_rate") is not None
+        and float(stats["agreement_rate"]) < maximum_agreement
+    }
+
+
 def finalize_control_reviews(
     queue_path: str | Path,
     agreement_path: str | Path,

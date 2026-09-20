@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — manifest-driven action focus (v1.91.0)
+
+- `review-pack --agreement-manifest`가 dual-review manifest의 action별 agreement
+  rate를 읽어 threshold 미만 action을 자동 focus한다.
+- 명시적 `--focus-action`과 manifest-driven action은 합집합으로 적용하며, pack
+  전체와 sibling adjacency를 유지한다.
+- target/teacher를 정답으로 승격하지 않고 review ordering에만 사용한다.
+- targeted review-pack 테스트 `21 passed`; 전체 suite와 Ruff를 version bump 후
+  다시 실행한다.
+
 ## 2026-09-21 — action focus review ordering (v1.90.0)
 
 - `control review-pack --focus-action ACTION --prioritize`를 추가해 낮은

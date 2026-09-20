@@ -40,6 +40,7 @@ from .review_pack import (
     export_review_pack,
     finalize_control_reviews,
     format_control_review_action_summary,
+    load_control_review_focus_actions,
     run_adjudication_session,
     run_review_session,
 )
@@ -454,6 +455,14 @@ def _control_merge(args: argparse.Namespace) -> int:
 
 def _control_review_pack(args: argparse.Namespace) -> int:
     registry = TaskRegistry.load(args.registry)
+    focus_actions = set(args.focus_action or [])
+    if args.agreement_manifest:
+        focus_actions.update(
+            load_control_review_focus_actions(
+                args.agreement_manifest,
+                maximum_agreement=args.max_action_agreement,
+            )
+        )
     report = export_review_pack(
         args.queue,
         args.draft,
@@ -463,7 +472,7 @@ def _control_review_pack(args: argparse.Namespace) -> int:
         prioritize=args.prioritize,
         student_checkpoint=args.student_checkpoint,
         student_device=args.student_device,
-        focus_actions=set(args.focus_action) if args.focus_action else None,
+        focus_actions=focus_actions or None,
     )
     print(json.dumps(report["manifest"], ensure_ascii=False))
     return 0
@@ -1040,6 +1049,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         metavar="ACTION",
         help="prioritize teacher-selected action; repeat for multiple actions",
+    )
+    control_review_pack.add_argument(
+        "--agreement-manifest",
+        help="focus actions whose dual-review agreement is below the threshold",
+    )
+    control_review_pack.add_argument(
+        "--max-action-agreement",
+        type=float,
+        default=0.98,
+        help="maximum action agreement rate for manifest-driven focus (default: 0.98)",
     )
     control_review_pack.set_defaults(handler=_control_review_pack)
     control_review_session = control_subparsers.add_parser("review-session")

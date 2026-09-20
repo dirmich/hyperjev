@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.90.0
+현재 버전: 1.91.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -882,3 +882,21 @@ Student prediction은 추가하지 않는다. counterfactual sibling은 계속 �
 경계의 양쪽을 함께 검수한다. 이 기능은 low-agreement action을 먼저 보는
 active-review 도구이며, teacher 선택이 틀릴 수 있으므로 전체 sample coverage와
 blind human correction을 유지해야 한다.
+
+이미 만든 dual-review manifest에서 focus action을 자동으로 읽으려면 threshold를
+명시한다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/control-focus-review-pack.jsonl \
+  --allow-raw --prioritize \
+  --agreement-manifest /tmp/control-agreement.jsonl \
+  --max-action-agreement 0.98
+```
+
+명시적 `--focus-action`과 manifest에서 선택된 action은 합쳐진다. manifest가
+없거나 comparable action이 없으면 자동 focus는 비어 있으며 기존 priority만
+동작한다. 이 자동화도 human correction을 만들지 않으므로 99% 정확도나
+production readiness의 증거가 아니다.

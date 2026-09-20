@@ -15,6 +15,7 @@ from hyperjev.review_pack import (
     export_review_pack,
     finalize_control_reviews,
     format_control_review_action_summary,
+    load_control_review_focus_actions,
     run_adjudication_session,
     run_review_session,
 )
@@ -78,6 +79,27 @@ class ReviewPackTests(unittest.TestCase):
         self.assertLess(summary.index("APPROACH"), summary.index("STOP"))
         self.assertIn("diagnostic only; not accuracy", summary)
 
+    def test_manifest_driven_focus_uses_only_low_agreement_actions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "agreement.jsonl"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "record_type": "control_dual_review_manifest",
+                        "label_agreement_by_action": {
+                            "APPROACH": {"agreement_rate": 0.75},
+                            "STOP": {"agreement_rate": 1.0},
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                load_control_review_focus_actions(manifest, maximum_agreement=0.98),
+                {"APPROACH"},
+            )
+
     def test_control_review_pack_exposes_student_priority_flags(self) -> None:
         args = build_parser().parse_args(
             [
@@ -121,6 +143,28 @@ class ReviewPackTests(unittest.TestCase):
             ]
         )
         self.assertEqual(args.focus_action, ["APPROACH", "HOLD"])
+
+    def test_control_review_pack_exposes_manifest_focus_flags(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-pack",
+                "--queue",
+                "queue.jsonl",
+                "--draft",
+                "draft.jsonl",
+                "--output",
+                "pack.jsonl",
+                "--allow-raw",
+                "--prioritize",
+                "--agreement-manifest",
+                "agreement.jsonl",
+                "--max-action-agreement",
+                "0.9",
+            ]
+        )
+        self.assertEqual(args.agreement_manifest, "agreement.jsonl")
+        self.assertEqual(args.max_action_agreement, 0.9)
 
     def test_golden_review_pack_exposes_priority_flag(self) -> None:
         args = build_parser().parse_args(
