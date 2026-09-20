@@ -37,6 +37,7 @@
 | 1.14.0 | `87a77d5` | calibration manifest CLI |
 | 1.14.1 | `8b2d067` | parent LLM/rule/mock 성능 결과 문서화 |
 | 1.15.0 | `0d32acd` | training/calibration/checkpoint 기반 model manifest |
+| 1.15.1 | `72d6a77` | model manifest milestone 원고 기록 |
 
 ## 다음 기록 규칙
 
