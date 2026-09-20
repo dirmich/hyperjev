@@ -31,6 +31,15 @@ synthetic 연구용이고 production gate는 여전히 false다.
 - 실제 1,000행 replay에서 target/labels leakage가 없고 pack item에 Student
   prediction이 복사되지 않음을 확인했다. confidence `<0.90`은 `0`개였다.
 
+## 2026-09-21 — Student–teacher disagreement active review (v1.87.0)
+
+- Student confidence가 높아도 Qwen draft와 typed prediction이 다르면 reviewer
+  화면에 노출하지 않고 최우선 review 순서로 올린다.
+- hard-negative 1,000행 replay에서 disagreement `171`건을 검출했고,
+  target/labels leakage와 prediction 복사를 확인하지 못했다.
+- disagreement는 teacher truth가 아니라 overconfident error 후보이며,
+  adjudicated human label만 학습 target으로 승격한다.
+
 ## 2026-09-21 — raw/accepted/safety evaluator hardening (v1.83.0)
 
 - control quality report에 `raw_student_head`, `safety_policy`,

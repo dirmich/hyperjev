@@ -2581,3 +2581,20 @@ uv run hyperjev control review-pack \
 
 현재 checkpoint confidence가 높아 정렬 변화는 없었지만, human review가 쌓인 뒤
 불확실한 semantic group을 먼저 검수하는 active-review 경로가 재현 가능해졌다.
+
+### 14.65 Student–teacher disagreement active review (v1.87.0)
+
+confidence가 높은 Student 오류를 놓치지 않도록 Student prediction과 Qwen draft의
+불일치를 reviewer에게 숨긴 채 최우선 정렬 신호로 추가했다.
+
+| 항목 | 결과 |
+| --- | --- |
+| priority order | `student_disagreement_then_uncertainty_then_teacher` |
+| Student–Qwen disagreement | `171/1,000` |
+| Student confidence < 0.90 | `0/1,000` |
+| target/labels leakage | 없음 |
+| prediction copied into pack item | 아니오 |
+
+불일치는 teacher 정답률이 아니라 human 검수 우선순위 신호다. 따라서
+`review-finalize`와 adjudication을 거친 human label만 학습 target으로
+사용한다.

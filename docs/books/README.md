@@ -215,6 +215,10 @@ v1.86.0에서는 Student confidence를 human reviewer에게 숨긴 채 review �
 사용한다. 이 active-review 방식은 불확실한 semantic group을 먼저 검수하면서도
 모델 예측으로 human label이 오염되는 anchoring을 막는다.
 
+v1.87.0에서는 confidence가 높아도 Student와 Qwen이 다르면 먼저 검수한다.
+이 disagreement는 정답이 아니라 overconfident error 후보이며, adjudicated human
+label이 확정되기 전에는 학습 target으로 사용하지 않는다.
+
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
 100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지

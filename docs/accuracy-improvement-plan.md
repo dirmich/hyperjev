@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.86.0
+현재 버전: 1.87.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -816,3 +816,24 @@ uv run hyperjev control review-pack \
 `0.90` 미만 사례가 `0`개라 순서 변화는 없었지만, human label이 들어온 뒤
 Student가 불확실한 semantic group을 먼저 검수할 수 있다. Student prediction은
 pack item에 복사하지 않으므로 blind review anchoring을 만들지 않는다.
+
+### v1.87.0 Student–teacher disagreement active review
+
+Student confidence가 높아도 Qwen draft와 typed prediction이 다르면 overconfident
+error 후보로 먼저 검수한다. 이 불일치 신호도 reviewer 화면에는 노출하지 않고
+정렬 순서에만 사용한다. 최종 human label은 여전히 blind reviewer가 직접 입력하며,
+teacher와 Student 중 어느 쪽도 자동 정답으로 승격하지 않는다.
+
+실제 hard-negative 1,000행 replay에서 다음이 확인됐다.
+
+| 항목 | 결과 |
+| --- | --- |
+| priority order | `student_disagreement_then_uncertainty_then_teacher` |
+| Student–Qwen disagreement | `171/1,000` |
+| Student confidence < 0.90 | `0/1,000` |
+| target/labels leakage | 없음 |
+
+이 우선순위는 confidence만으로 놓치는 overconfident 오류를 human 검수 앞에
+올리는 active-learning 입력이다. disagreement 수 자체는 teacher 정확도를
+의미하지 않으므로, adjudicated human result로 확인한 뒤에만 학습 데이터에
+반영한다.

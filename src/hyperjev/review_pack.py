@@ -79,6 +79,18 @@ def _teacher_signature(item: dict[str, Any]) -> tuple[str, Any] | None:
     return None
 
 
+def _student_signature(prediction: dict[str, Any]) -> tuple[str, Any] | None:
+    rendered = prediction.get("prediction") or {}
+    result_type = rendered.get("type")
+    if result_type == "boolean" and isinstance(rendered.get("value"), bool):
+        return (result_type, rendered["value"])
+    if result_type == "choice" and rendered.get("selected"):
+        return (result_type, str(rendered["selected"]))
+    if result_type == "score" and isinstance(rendered.get("value"), (int, float)):
+        return (result_type, round(float(rendered["value"]), 6))
+    return None
+
+
 def _is_teacher_collision(items: list[dict[str, Any]]) -> bool:
     signatures = [_teacher_signature(item) for item in items]
     return len(signatures) > 1 and signatures[0] is not None and len(set(signatures)) == 1
@@ -88,6 +100,7 @@ def _prioritize_review_items(
     items: list[dict[str, Any]],
     *,
     student_confidence: dict[str, float] | None = None,
+    student_disagreement: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Order uncertain items while keeping counterfactual siblings adjacent.
 
@@ -107,6 +120,10 @@ def _prioritize_review_items(
         group_order,
         key=lambda group_id: (
             0 if _is_teacher_collision(groups[group_id]) else 1,
+            0
+            if student_disagreement is not None
+            and any(str(item.get("sample_id", "")) in student_disagreement for item in groups[group_id])
+            else 1,
             min(
                 student_confidence.get(str(item.get("sample_id", "")), 1.0)
                 for item in groups[group_id]
@@ -182,6 +199,8 @@ def export_review_pack(
         raise ValueError(f"draft is missing {len(missing)} queue samples")
 
     student_confidence: dict[str, float] | None = None
+    student_disagreement: set[str] | None = None
+    student_predictions: dict[str, dict[str, Any]] | None = None
     student_checkpoint_sha256: str | None = None
     if student_checkpoint is not None:
         from .student_inference import evaluate_student_checkpoint
@@ -198,6 +217,9 @@ def export_review_pack(
         student_confidence = {
             str(row["sample_id"]): float(row["confidence"])
             for row in evaluation["predictions"]
+        }
+        student_predictions = {
+            str(row["sample_id"]): row for row in evaluation["predictions"]
         }
         if set(student_confidence) != {sample.sample_id for sample in samples}:
             raise ValueError("student evaluation does not cover every review sample")
@@ -274,11 +296,30 @@ def export_review_pack(
     if prioritize:
         pack_manifest["priority_stats"] = _priority_stats(output_records[1:])
         if student_confidence is not None:
+            student_disagreement = {
+                str(item["sample_id"])
+                for item in output_records[1:]
+                if (
+                    _teacher_signature(item) is not None
+                    and student_predictions is not None
+                    and _student_signature(student_predictions[str(item["sample_id"])])
+                    != _teacher_signature(item)
+                )
+            }
             pack_manifest["priority_stats"]["student_uncertain_item_count"] = sum(
                 confidence < 0.90 for confidence in student_confidence.values()
             )
+            pack_manifest["priority_stats"]["student_teacher_disagreement_item_count"] = len(
+                student_disagreement
+            )
+            if student_disagreement:
+                pack_manifest["priority_order"] = (
+                    "student_disagreement_then_uncertainty_then_teacher"
+                )
         output_records[1:] = _prioritize_review_items(
-            output_records[1:], student_confidence=student_confidence
+            output_records[1:],
+            student_confidence=student_confidence,
+            student_disagreement=student_disagreement,
         )
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)

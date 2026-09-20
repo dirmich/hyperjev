@@ -120,6 +120,7 @@
 | 1.84.0 | 진행 중 | held-out test human label gate와 split별 human status report |
 | 1.85.0 | 진행 중 | per-skill accepted accuracy/coverage/confidence interval과 confusion 진단 |
 | 1.86.0 | 진행 중 | Student uncertainty active review ordering, prediction/target leakage 방지 |
+| 1.87.0 | 진행 중 | Student–Qwen disagreement 우선순위로 overconfident 오류 수집 |
 
 ## 다음 기록 규칙
 

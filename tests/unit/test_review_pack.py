@@ -171,6 +171,35 @@ class ReviewPackTests(unittest.TestCase):
         )
         self.assertNotIn("prediction", ordered[0])
 
+    def test_student_teacher_disagreement_precedes_confidence_order(self) -> None:
+        items = [
+            {
+                "sample_id": "student-uncertain",
+                "source": {"counterfactual_group_id": "uncertain"},
+                "teacher": {
+                    "schema_valid": True,
+                    "normalized_result": {"type": "choice", "selected": "MOVE"},
+                },
+            },
+            {
+                "sample_id": "student-disagrees",
+                "source": {"counterfactual_group_id": "disagrees"},
+                "teacher": {
+                    "schema_valid": True,
+                    "normalized_result": {"type": "choice", "selected": "STOP"},
+                },
+            },
+        ]
+        ordered = _prioritize_review_items(
+            items,
+            student_confidence={"student-uncertain": 0.51, "student-disagrees": 0.99},
+            student_disagreement={"student-disagrees"},
+        )
+        self.assertEqual(
+            [item["sample_id"] for item in ordered],
+            ["student-disagrees", "student-uncertain"],
+        )
+
     def test_prioritized_pack_keeps_counterfactual_pair_adjacent_without_target(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
         with tempfile.TemporaryDirectory() as directory:
