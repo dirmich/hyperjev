@@ -231,6 +231,87 @@ class ReviewPackTests(unittest.TestCase):
         self.assertTrue(report["stopped"])
         self.assertEqual(report["saved_in_session"], 0)
 
+    def test_review_session_can_propagate_exact_duplicate_labels(self) -> None:
+        config = load_config(ROOT / "configs" / "phase0.toml")
+        registry = TaskRegistry.load(config.registry_path)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            draft = root / "draft.jsonl"
+            pack = root / "review-pack.jsonl"
+            feedback = root / "feedback.jsonl"
+            generate_review_queue(queue, registry, count=1, seed=7)
+            first = json.loads(queue.read_text(encoding="utf-8"))
+            duplicate = dict(first)
+            duplicate["sample_id"] = "phase0-synthetic-0002"
+            queue.write_text(
+                "\n".join(json.dumps(sample) for sample in (first, duplicate)) + "\n",
+                encoding="utf-8",
+            )
+            queue_sha256 = __import__("hashlib").sha256(queue.read_bytes()).hexdigest()
+            draft_records = [
+                {
+                    "record_type": "golden_teacher_draft_manifest",
+                    "queue_sha256": queue_sha256,
+                    "provider": "qwen",
+                    "model": "qwen38fn",
+                    "prompt_version": 2,
+                }
+            ]
+            for sample_id in (first["sample_id"], duplicate["sample_id"]):
+                draft_records.append(
+                    {
+                        "record_type": "golden_teacher_draft",
+                        "sample_id": sample_id,
+                        "provider": "qwen",
+                        "model": "qwen38fn",
+                        "normalized_result": {
+                            "type": "boolean",
+                            "value": True,
+                            "probability": 0.95,
+                            "abstained": False,
+                        },
+                        "schema_valid": True,
+                        "status": "completed",
+                        "error": None,
+                        "response_sha256": "hash",
+                    }
+                )
+            draft.write_text(
+                "\n".join(json.dumps(record) for record in draft_records) + "\n",
+                encoding="utf-8",
+            )
+            export_review_pack(queue, draft, pack, registry, include_raw=True)
+            answers = iter(["a"])
+            report = run_review_session(
+                pack,
+                queue,
+                feedback,
+                registry,
+                reviewer="tester",
+                input_fn=lambda _prompt: next(answers),
+                output_fn=lambda _message: None,
+                deduplicate_exact=True,
+            )
+            reviewed = root / "reviewed.jsonl"
+            from hyperjev.golden import apply_golden_feedback
+
+            applied = apply_golden_feedback(queue, feedback, reviewed, registry)
+            feedback_lines = feedback.read_text(encoding="utf-8").splitlines()
+            reviewed_records = [
+                json.loads(line) for line in reviewed.read_text(encoding="utf-8").splitlines()
+            ]
+
+        self.assertEqual(report["reviewed_count"], 2)
+        self.assertEqual(report["pending_count"], 0)
+        self.assertEqual(report["saved_in_session"], 2)
+        self.assertEqual(report["decisions_in_session"], 1)
+        self.assertEqual(report["review_group_count"], 1)
+        self.assertTrue(report["deduplicated_exact"])
+        self.assertEqual(applied["human_reviewed_count"], 2)
+        self.assertEqual(len(feedback_lines), 2)
+        self.assertTrue(all(record["labels"]["human"]["value"] for record in reviewed_records))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -223,6 +223,7 @@ def _golden_review_session(args: argparse.Namespace) -> int:
         feedback,
         registry,
         reviewer=args.reviewer,
+        deduplicate_exact=args.deduplicate_exact,
     )
     print(json.dumps(report, ensure_ascii=False))
     return 0
@@ -523,6 +524,11 @@ def build_parser() -> argparse.ArgumentParser:
     golden_session.add_argument("--queue")
     golden_session.add_argument("--feedback-output")
     golden_session.add_argument("--reviewer", required=True)
+    golden_session.add_argument(
+        "--deduplicate-exact",
+        action="store_true",
+        help="review one item per exact task/language/domain/state/question group and propagate its label",
+    )
     golden_session.set_defaults(handler=_golden_review_session)
     golden_apply = golden_subparsers.add_parser("apply-feedback")
     _config_argument(golden_apply)

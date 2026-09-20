@@ -1000,3 +1000,38 @@ accuracy나 상용 release 승인 결과가 아니다.
 같은 31건에서 Qwen draft와 human correction의 의미상 일치율은 28/31
 (90.32%)였다. boolean은 11/11, choice는 15/15, score는 ±0.20 기준
 2/5였으므로 Qwen draft를 human label로 자동 승격하지 않는 정책이 타당하다.
+
+### 14.8 반복 synthetic sample의 exact-duplicate review
+
+실제 queue의 중복 구조를 측정한 결과, 1,000 records가 12개 질문 문구와
+36개의 고유한 `task + language + domain + state + question` 조합을 반복하고
+있었다. 따라서 질문만 다른지 확인하는 수준이 아니라, 원문 state까지 같은
+exact duplicate를 한 번만 검수하도록 review session에 선택형 grouping을
+추가했다.
+
+```bash
+uv run hyperjev golden review-session \
+  --review-pack runs/phase1/qwen-golden-review-pack.jsonl \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --feedback-output runs/phase0/golden-feedback.jsonl \
+  --reviewer dirmich \
+  --deduplicate-exact
+```
+
+임시 복사본 smoke 결과:
+
+| 항목 | 결과 |
+| --- | ---: |
+| 원본 records | 1,000 |
+| exact review groups | 36 |
+| 기존 direct feedback | 31 |
+| 기존 label의 exact duplicate 전파 | 612 |
+| 전파 후 충족된 group | 19/36 |
+| 남은 review group | 17 |
+
+grouping은 전체 queue를 무조건 1000개의 독립 human 판단으로 세지 않기 위한
+사용성 개선이다. 전파된 label은 같은 원문 조합의 파생 결과이므로,
+`golden validate`의 `human_labeled_count`가 늘더라도 production accuracy
+보고서에는 `unique_review_group_count`와 원본 데이터 다양성을 함께 기록해야
+한다. 실제 상용 golden은 반복 synthetic fixture가 아니라 다양한 원문에서
+구성해야 한다.

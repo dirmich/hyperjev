@@ -75,7 +75,8 @@ uv run hyperjev golden review-session \
   --review-pack runs/phase1/qwen-golden-review-pack.jsonl \
   --queue runs/phase0/phase0-review-queue.jsonl \
   --feedback-output runs/phase0/golden-feedback.jsonl \
-  --reviewer dirmich
+  --reviewer dirmich \
+  --deduplicate-exact
 ```
 
 키 입력은 `a`(draft 승인), `e`(값 수정), `n`(다음), `p`(이전),
@@ -83,3 +84,10 @@ uv run hyperjev golden review-session \
 이전에 저장된 item도 `p`로 돌아가 다시 수정할 수 있다.
 `e`를 누르면 boolean은 `true/false`, choice는 후보 문자열, score는 `0~1`
 숫자만 입력한다. JSON 전체를 작성할 필요가 없다.
+
+`--deduplicate-exact`를 사용하면 `task`, `language`, `domain`, `state`,
+`question`이 모두 같은 item을 한 그룹으로 표시한다. 대표 item을 승인하거나
+수정하면 같은 그룹의 sample IDs에도 동일한 typed feedback이 기록되므로,
+반복되는 synthetic sample을 다시 판단하지 않아도 된다. 이 전파 label은
+동일 원문에 대한 파생 label이지 독립 human sample이 아니므로, production
+golden 정확도 보고서에서는 unique group 수를 함께 표시해야 한다.

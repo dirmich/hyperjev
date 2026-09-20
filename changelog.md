@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — exact-duplicate review grouping (v1.31.0)
+
+- `golden review-session --deduplicate-exact`를 추가했다.
+- 동일한 `task + language + domain + state + question`은 한 review group으로
+  묶고, 한 번의 human 판단을 exact duplicate sample에 전파한다.
+- 현재 synthetic 1,000건 queue는 36개 exact group과 964개 중복 record로
+  구성되어 있다. 임시 복사본 smoke에서 기존 31개 feedback을 사용해
+  612개 label을 전파하고, 36개 group 중 19개를 자동 충족했다.
+- 전파된 label은 독립적인 1,000개 human 판단이 아니다. 실제 production
+  golden set의 정확도와 review sample 수는 unique group 수와 원본 데이터
+  다양성을 별도로 보고해야 한다.
+
 ## 2026-09-20 — partial human golden feedback applied (v1.30.0)
 
 - `golden-feedback.jsonl`에 저장된 실제 사람 검수 31건을 reviewed queue에

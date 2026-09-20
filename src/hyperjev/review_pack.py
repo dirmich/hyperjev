@@ -181,6 +181,15 @@ def _correction_from_value(item: dict[str, Any], raw_value: str, registry: TaskR
     raise ValueError(f"unsupported task output type: {task.output_type}")
 
 
+def _exact_review_group_key(item: dict[str, Any]) -> tuple[str, ...]:
+    """Return the immutable content key used for exact-duplicate review groups."""
+
+    return tuple(
+        str(item.get(field, ""))
+        for field in ("task", "language", "domain", "state", "question")
+    )
+
+
 def run_review_session(
     review_pack_path: str | Path,
     queue_path: str | Path,
@@ -190,6 +199,7 @@ def run_review_session(
     reviewer: str,
     input_fn: Any = input,
     output_fn: Any = print,
+    deduplicate_exact: bool = False,
 ) -> dict[str, Any]:
     """Review a pack in one resumable session with next/previous navigation.
 
@@ -213,20 +223,80 @@ def run_review_session(
         raise ValueError("review pack has no review items")
     feedback = Path(feedback_path)
     latest = _feedback_by_sample(feedback)
-    pending_ids = [str(item.get("sample_id")) for item in items if str(item.get("sample_id")) not in latest]
+    if deduplicate_exact:
+        grouped: dict[tuple[str, ...], list[dict[str, Any]]] = {}
+        for item in items:
+            grouped.setdefault(_exact_review_group_key(item), []).append(item)
+        groups = list(grouped.values())
+    else:
+        groups = [[item] for item in items]
+
+    propagated = 0
+    if deduplicate_exact:
+        for group in groups:
+            reviewed = [
+                str(item.get("sample_id"))
+                for item in group
+                if str(item.get("sample_id")) in latest
+            ]
+            if not reviewed or len(reviewed) == len(group):
+                continue
+            source_id = reviewed[-1]
+            correction = latest[source_id].get("correction")
+            if not isinstance(correction, dict):
+                raise TypeError(f"feedback correction is invalid for exact duplicate {source_id}")
+            for item in group:
+                sample_id = str(item.get("sample_id", ""))
+                if sample_id in latest:
+                    continue
+                record = append_golden_feedback(
+                    queue,
+                    feedback,
+                    registry,
+                    sample_id=sample_id,
+                    correction=correction,
+                    reviewer=reviewer,
+                    reason=f"interactive review: propagated exact duplicate of {source_id}",
+                )
+                latest[sample_id] = {
+                    "sample_id": sample_id,
+                    "correction": correction,
+                    "created_at": record.get("created_at"),
+                }
+                propagated += 1
+            output_fn(
+                f"Propagated human label from {source_id} to {len(group) - 1} exact duplicate(s)."
+            )
+
     index = next(
-        (position for position, item in enumerate(items) if str(item.get("sample_id")) in pending_ids),
+        (
+            position
+            for position, group in enumerate(groups)
+            if not all(str(item.get("sample_id")) in latest for item in group)
+        ),
         0,
     )
     saved = 0
+    decisions = 0
     stopped = False
 
-    while 0 <= index < len(items):
-        item = items[index]
+    while 0 <= index < len(groups):
+        group = groups[index]
+        item = group[0]
         sample_id = str(item.get("sample_id", ""))
         teacher = item.get("teacher", {})
         output_fn("")
-        output_fn(f"[{index + 1}/{len(items)}] {sample_id}  {item.get('task')}")
+        if deduplicate_exact:
+            group_ids = [str(member.get("sample_id", "")) for member in group]
+            output_fn(
+                f"[group {index + 1}/{len(groups)}] {item.get('task')} "
+                f"exact_duplicates={len(group)}"
+            )
+            output_fn("sample_ids: " + ", ".join(group_ids[:5]))
+            if len(group_ids) > 5:
+                output_fn(f"... and {len(group_ids) - 5} more")
+        else:
+            output_fn(f"[{index + 1}/{len(items)}] {sample_id}  {item.get('task')}")
         output_fn(f"state: {item.get('state')}")
         output_fn(f"question: {item.get('question')}")
         output_fn(
@@ -250,7 +320,7 @@ def run_review_session(
             stopped = True
             break
         if command in {"n", "next", "s", "skip"}:
-            if index < len(items) - 1:
+            if index < len(groups) - 1:
                 index += 1
             else:
                 output_fn("Already at the last item.")
@@ -283,27 +353,33 @@ def run_review_session(
                 output_fn(f"Invalid value: {exc}")
                 continue
             reason = "interactive review: reviewer entered correction"
+        affected = group if deduplicate_exact else [item]
+        if deduplicate_exact and len(affected) > 1:
+            reason += f"; applied to {len(affected)} exact duplicate samples"
         try:
-            record = append_golden_feedback(
-                queue,
-                feedback,
-                registry,
-                sample_id=sample_id,
-                correction=correction,
-                reviewer=reviewer,
-                reason=reason,
-            )
+            for affected_item in affected:
+                affected_id = str(affected_item.get("sample_id", ""))
+                record = append_golden_feedback(
+                    queue,
+                    feedback,
+                    registry,
+                    sample_id=affected_id,
+                    correction=correction,
+                    reviewer=reviewer,
+                    reason=reason,
+                )
+                latest[affected_id] = {
+                    "sample_id": affected_id,
+                    "correction": correction,
+                    "created_at": record.get("created_at"),
+                }
+                saved += 1
         except (TypeError, ValueError) as exc:
             output_fn(f"Correction rejected: {exc}")
             continue
-        latest[sample_id] = {
-            "sample_id": sample_id,
-            "correction": correction,
-            "created_at": record.get("created_at"),
-        }
-        saved += 1
-        output_fn("Saved. Moving to the next item.")
-        if index < len(items) - 1:
+        decisions += 1
+        output_fn(f"Saved {len(affected)} label(s). Moving to the next review group.")
+        if index < len(groups) - 1:
             index += 1
         else:
             break
@@ -313,5 +389,9 @@ def run_review_session(
         "reviewed_count": reviewed_count,
         "pending_count": len(items) - reviewed_count,
         "saved_in_session": saved,
+        "decisions_in_session": decisions,
+        "review_group_count": len(groups),
+        "deduplicated_exact": deduplicate_exact,
+        "propagated_count": propagated,
         "stopped": stopped,
     }
