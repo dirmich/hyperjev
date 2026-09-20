@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — held-out split review pack (v1.101.0)
+
+- `control review-pack --split train|validation|test`를 추가했다.
+- 실제 hard-negative queue에서 target-free test-only pack 100개를 생성했다.
+- pack SHA-256은 `78b237c3bb22f5d3ba85f9ed4563e762bf78dee210f2f1272b3d987195869822`이며,
+  test pending은 review-status와 동일하게 `100`이다.
+- split 분리는 human label을 자동 생성하지 않으며, test-first blind review를
+  통해 held-out gate를 채우기 위한 운영 기반이다.
+
 ## 2026-09-21 — 500-case safety latency replay (v1.100.0)
 
 - 500개 safety matrix를 `control simulate`로 실제 replay했다.

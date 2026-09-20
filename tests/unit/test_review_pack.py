@@ -338,6 +338,85 @@ class ReviewPackTests(unittest.TestCase):
         )
         self.assertEqual(args.focus_action, ["APPROACH", "HOLD"])
 
+    def test_control_review_pack_exposes_split_filter(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-pack",
+                "--queue",
+                "queue.jsonl",
+                "--draft",
+                "draft.jsonl",
+                "--output",
+                "pack.jsonl",
+                "--allow-raw",
+                "--split",
+                "test",
+            ]
+        )
+        self.assertEqual(args.split, "test")
+
+    def test_control_review_pack_can_export_only_test_split(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            draft = root / "draft.jsonl"
+            output = root / "review-pack.jsonl"
+            generate_control_review_queue(queue, registry, count_per_skill=1, seed=7)
+            samples = [json.loads(line) for line in queue.read_text(encoding="utf-8").splitlines()]
+            queue_sha256 = __import__("hashlib").sha256(queue.read_bytes()).hexdigest()
+            candidates = tuple(CONTROL_SKILLS)
+            draft_records = [
+                {
+                    "record_type": "golden_teacher_draft_manifest",
+                    "queue_sha256": queue_sha256,
+                    "provider": "qwen",
+                    "model": "qwen38fn",
+                    "prompt_version": 2,
+                }
+            ]
+            for sample in samples:
+                draft_records.append(
+                    {
+                        "record_type": "golden_teacher_draft",
+                        "sample_id": sample["sample_id"],
+                        "provider": "qwen",
+                        "model": "qwen38fn",
+                        "normalized_result": {
+                            "type": "choice",
+                            "selected": "STOP",
+                            "probabilities": {
+                                candidate: float(candidate == "STOP") for candidate in candidates
+                            },
+                            "abstained": False,
+                        },
+                        "schema_valid": True,
+                        "status": "completed",
+                        "error": None,
+                        "response_sha256": "hash",
+                    }
+                )
+            draft.write_text(
+                "\n".join(json.dumps(record) for record in draft_records) + "\n",
+                encoding="utf-8",
+            )
+            report = export_review_pack(
+                queue,
+                draft,
+                output,
+                registry,
+                include_raw=True,
+                review_split="test",
+            )
+            pack_text = output.read_text(encoding="utf-8")
+            records = [json.loads(line) for line in pack_text.splitlines()]
+
+        self.assertEqual(report["records"], 1)
+        self.assertEqual(records[0]["review_split"], "test")
+        self.assertEqual(records[1]["split"], "test")
+        self.assertNotIn('"target"', pack_text)
+
     def test_control_review_pack_exposes_manifest_focus_flags(self) -> None:
         args = build_parser().parse_args(
             [

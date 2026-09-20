@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.100.0
+현재 버전: 1.101.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1077,3 +1077,26 @@ p99 `0.001503 ms`, max `0.022800 ms`였고 5ms p95/p99 gate를 통과했다. 이
 local CPU 순차 replay이므로 DGX Spark 동시성, memory context, teacher fallback을
 포함한 production latency 증거로 승격하지 않는다. 다만 safety recall과 bounded
 latency를 같은 500-case matrix에서 동시에 회귀 검증할 수 있는 기준선이 생겼다.
+
+### v1.101.0 held-out split review pack
+
+human test gate를 먼저 채울 수 있도록 control review pack 생성기에 `--split`
+필터를 추가했다. queue의 synthetic target과 labels는 여전히 pack에서 제외되며,
+선택된 split의 raw `state/question`과 teacher draft metadata만 들어간다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/control-qwen-hard-test-pack.jsonl \
+  --allow-raw \
+  --prioritize \
+  --split test
+```
+
+실제 test-only pack은 100 rows, counterfactual group 50개, collision group 17개로
+생성됐고 SHA-256은
+`78b237c3bb22f5d3ba85f9ed4563e762bf78dee210f2f1272b3d987195869822`이다. 다음은
+이 pack을 `--blind`로 검수하는 것이며, test 100개가 모두 label되기 전에는
+`--require-human-test`를 통과시키지 않는다. split filter는 정확도를 자동으로
+올리지 않지만, train label과 held-out test label이 섞이는 실수를 차단한다.

@@ -475,6 +475,7 @@ def _control_review_pack(args: argparse.Namespace) -> int:
         student_checkpoint=args.student_checkpoint,
         student_device=args.student_device,
         focus_actions=focus_actions or None,
+        review_split=args.split,
     )
     print(json.dumps(report["manifest"], ensure_ascii=False))
     return 0
@@ -1087,6 +1088,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=0.98,
         help="maximum action agreement rate for manifest-driven focus (default: 0.98)",
+    )
+    control_review_pack.add_argument(
+        "--split",
+        choices=("train", "validation", "test"),
+        help="export only one provenance split for focused human review",
     )
     control_review_pack.set_defaults(handler=_control_review_pack)
     control_review_status_parser = control_subparsers.add_parser("review-status")

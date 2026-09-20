@@ -177,6 +177,7 @@ def export_review_pack(
     student_checkpoint: str | Path | None = None,
     student_device: str = "cpu",
     focus_actions: set[str] | None = None,
+    review_split: str | None = None,
 ) -> dict[str, Any]:
     """Join queue text and a teacher draft for explicit local human review.
 
@@ -191,9 +192,18 @@ def export_review_pack(
         raise ValueError("student checkpoint priority requires prioritize=True")
     if focus_actions and not prioritize:
         raise ValueError("action focus priority requires prioritize=True")
+    if review_split is not None and review_split not in {"train", "validation", "test"}:
+        raise ValueError("review_split must be train, validation, or test")
     queue = Path(queue_path)
     draft = Path(draft_path)
-    samples = load_jsonl(queue, registry)
+    all_samples = load_jsonl(queue, registry)
+    samples = [
+        sample
+        for sample in all_samples
+        if review_split is None or sample.provenance.get("split") == review_split
+    ]
+    if not samples:
+        raise ValueError(f"review pack has no samples for split: {review_split}")
     queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
     draft_sha256 = hashlib.sha256(draft.read_bytes()).hexdigest()
     draft_records = _read_records(draft)
@@ -254,6 +264,7 @@ def export_review_pack(
         "model": manifest.get("model"),
         "prompt_version": manifest.get("prompt_version"),
         "sample_count": len(samples),
+        "review_split": review_split,
         "raw_inputs_included": True,
         "target_excluded": True,
         "priority_order": (
@@ -296,6 +307,7 @@ def export_review_pack(
                     )
                     if field in sample.source
                 },
+                "split": sample.provenance.get("split"),
                 "teacher": {
                     "provider": draft_record.get("provider"),
                     "model": draft_record.get("model"),

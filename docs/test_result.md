@@ -2863,3 +2863,31 @@ uv run hyperjev control simulate \
 
 이 결과는 safety interlock과 latency의 회귀 기준선이다. human control accuracy와
 DGX Spark 동시성 성능을 증명하지 않는다.
+
+### 14.78 held-out split review pack (v1.101.0)
+
+실행 명령:
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/control-qwen-hard-test-pack.jsonl \
+  --allow-raw \
+  --prioritize \
+  --split test
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| source queue | `1,000` |
+| exported test pack | `100` |
+| counterfactual groups | `50` |
+| collision groups | `17` |
+| target/labels in pack | 없음 |
+| pack SHA-256 | `78b237c3bb22f5d3ba85f9ed4563e762bf78dee210f2f1272b3d987195869822` |
+| review-status test pending | `100` |
+| test-ready | `false` |
+
+이 pack은 이제 `control review-session --blind --offset 0 --limit 50`으로 두 번
+검수할 수 있다. 실제 human label이 생기기 전에는 정확도 수치를 산출하지 않는다.
