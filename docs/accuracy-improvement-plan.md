@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.61.0
+현재 버전: 1.62.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -250,6 +250,21 @@ uv run hyperjev control draft \
 출력이 완벽했다고 처리하지 않은 것이다. Qwen latency는 p50 `2188.502ms`,
 p95 `2357.121ms`, max `2596.726ms`이므로 motor loop가 아니라 비동기 draft,
 fallback, review queue에서만 사용한다. 여전히 human label은 자동 생성하지 않는다.
+
+teacher 결과는 다음 evaluator로 재현한다.
+
+```bash
+uv run python scripts/evaluate_control_teacher_draft.py \
+  --queue /tmp/hyperjev-control-seed-800.jsonl \
+  --draft /tmp/qwen-control-seed-800.jsonl \
+  --output /tmp/qwen-control-seed-800-quality.json
+```
+
+이 report는 synthetic target match와 schema/latency만 측정하고 `human_label_gate`
+및 `production_ready`를 별도로 남긴다. 따라서 Qwen이 synthetic queue에서
+100%를 기록해도 human reviewer가 state/question을 확인하기 전에는 training
+target이나 production accuracy로 쓰지 않는다. hard-negative report도 동일한
+경계와 per-skill 계산을 사용한다.
 
 v1.46.0부터 production-style evaluator는 다음 조건을 모두 요구한다.
 

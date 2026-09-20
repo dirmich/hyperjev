@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — teacher draft quality evaluator (v1.62.0)
+
+- `scripts/evaluate_control_teacher_draft.py`가 queue/draft SHA, completed/schema
+  coverage, synthetic target accuracy, per-skill metrics, repaired count,
+  latency p50/p95/p99/max를 재계산한다.
+- Qwen seed 800 report는 schema-valid `800/800`, synthetic accuracy `800/800`,
+  repair `2`, human `0`, `production_ready=false`였다.
+- evaluator는 teacher synthetic 결과와 human production gate를 분리해, teacher
+  100%를 human 정확도로 잘못 승격하지 못하게 한다.
+- 검증: 전체 suite `121 passed, 1 skipped`, Ruff 통과.
+
 ## 2026-09-21 — Qwen control draft completion and bounded repair (v1.61.0)
 
 - qwen38fn 800건 resumable control draft를 완료했다: `800/800 completed`,

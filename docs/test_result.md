@@ -1873,3 +1873,32 @@ synthetic seed pattern에 대한 teacher 초안 일치율이다. p95 약 2.36초
 real-time motor loop의 deadline을 위반하며, Qwen은 data generation/fallback/
 review queue의 비동기 경로로 제한한다. Gemma는 교차검증/judge 역할을 유지하고
 모터 주기에서 기다리지 않는다.
+
+### 14.40 teacher draft quality evaluator (v1.62.0)
+
+Qwen/Gemma draft를 같은 방식으로 재측정할 수 있도록 queue/draft SHA를 확인하는
+evaluator를 추가했다.
+
+```bash
+uv run python scripts/evaluate_control_teacher_draft.py \
+  --queue /tmp/hyperjev-control-seed-800.jsonl \
+  --draft /tmp/qwen-control-seed-800.jsonl \
+  --output /tmp/qwen-control-seed-800-quality.json
+```
+
+Qwen seed report:
+
+| 항목 | 결과 |
+| --- | ---: |
+| sample/record | 800 / 800 |
+| schema-valid coverage | 800/800 (100%) |
+| synthetic target accuracy | 800/800 (100%) |
+| schema repaired | 2 |
+| latency p50/p95/p99/max | 2188.502 / 2357.121 / 2393.505 / 2596.726 ms |
+| human labels | 0/800 |
+| production ready | false |
+
+report의 `synthetic_reference_only=true`와 `human_label_gate=false`를 함께
+확인한다. hard-negative queue도 같은 evaluator에 넣어 STOP↔non-STOP 혼동을
+task별로 비교하며, teacher 초안이 맞아도 사람 검수 전에는 human target으로
+materialize하지 않는다.

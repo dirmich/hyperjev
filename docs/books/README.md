@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.61.0까지 진행되어 있다. Python 테스트 120개와
+현재 `main`은 origin에 push될 1.62.0까지 진행되어 있다. Python 테스트 121개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -76,6 +76,10 @@ v1.61.0에서는 Qwen 800건 control draft를 완료했다. synthetic target은
 800/800이었지만 2건은 확률합 repair가 필요했고, p95 2.36초라 실시간 motor
 loop가 아니라 비동기 teacher 경로로 분리했다. teacher의 100% 결과는 human
 golden 정확도 증거가 아니다.
+
+v1.62.0에서는 teacher draft를 반복 측정하는 evaluator를 추가했다. queue와
+draft hash를 고정하고 synthetic match, schema repair, latency, human gate를
+분리하므로 Qwen 초안의 100%를 production 정확도로 오해하지 않는다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
