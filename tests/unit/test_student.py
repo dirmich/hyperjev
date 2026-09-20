@@ -16,6 +16,7 @@ from hyperjev.student import (
     head_specs,
     student_manifest,
 )
+from hyperjev.student_inference import evaluate_student_checkpoint
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -56,6 +57,58 @@ class StudentContractTests(unittest.TestCase):
         for task_id in self.registry.ids():
             output = model(task_id, input_ids, attention)
             self.assertIn(output["type"], {"boolean", "choice", "score"})
+
+    def test_student_evaluation_reports_accuracy_and_guarded_coverage(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint_path = Path(directory) / "student.pt"
+            dataset_path = Path(directory) / "dataset.jsonl"
+            dataset_path.write_text(
+                json.dumps(
+                    {
+                        "sample_id": "sample-bool",
+                        "task_id": "memory.remember_worthy",
+                        "task_version": 1,
+                        "state": "stable deployment decision",
+                        "question": "is this worth long-term memory?",
+                        "target": True,
+                        "language": "en",
+                        "domain": "test",
+                        "source": {"kind": "synthetic"},
+                        "labels": {"human": None},
+                        "provenance": {
+                            "prompt_version": 1,
+                            "split": "test",
+                            "privacy_raw_inputs_stored": False,
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            config = StudentConfig(model_id="eval-test", precision="fp32")
+            model = build_torch_model(self.registry, config)
+            torch.save(
+                {
+                    "student": student_manifest(self.registry, config),
+                    "model_state_dict": model.state_dict(),
+                },
+                checkpoint_path,
+            )
+            report = evaluate_student_checkpoint(
+                checkpoint_path,
+                dataset_path,
+                self.registry,
+                minimum_confidence=1.0,
+            )
+
+        self.assertEqual(report["overall"]["count"], 1)
+        self.assertIn("accuracy", report["overall"])
+        self.assertIn("coverage", report["overall"])
+        self.assertEqual(report["overall"]["accepted_count"], 0)
 
 
 class CalibrationTests(unittest.TestCase):

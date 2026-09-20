@@ -39,3 +39,16 @@
 `coverage`를 분리 측정하는 guarded evaluation, task별 threshold, 그리고
 사람 golden set을 연결하는 것이다.
 
+## 2026-09-20 — guarded Student evaluator (v1.18.0)
+
+- `hyperjev student evaluate` 추가
+- 전체 정확도와 다음 값을 동시에 출력:
+  - `accepted_accuracy`
+  - `coverage`
+  - `fallback_count`
+  - task별 결과
+- 기존 reference checkpoint 재평가:
+  - 전체: 28/36 = 77.78%
+  - confidence 0.95 자동 수락: 0/36
+  - 결론: 현재 Student는 production 자동 수락 기준을 충족하지 않으며,
+    이 결과가 다음 모델 개선의 regression baseline이다.

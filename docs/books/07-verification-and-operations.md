@@ -23,6 +23,10 @@ uv run hyperjev golden --help
 1개 skip이다. Golden review, metric, training validator, reference torch
 checkpoint, calibration manifest gate가 포함되어 있다.
 
+1.18.0부터 `hyperjev student evaluate`가 checkpoint 품질을 전체 정확도와
+자동 수락 정확도로 분리한다. 자동 수락 정확도만 99%를 넘긴 경우에도
+coverage와 fallback count를 함께 보지 않으면 제품 품질을 과대평가하게 된다.
+
 Parent LLM과 HyperJev 경계의 실제 성능 측정은 [`docs/test_result.md`](../test_result.md)에
 기록했다. Qwen endpoint는 6개 smoke에서 HTTP 6/6, typed schema 5/6,
 p50 1,127.542ms였고, 30개 synthetic 확장에서는 schema 27/30, p50

@@ -25,6 +25,7 @@ from .model_registry import STATUSES, ModelRegistry, build_model_manifest
 from .registry import RegistryError, TaskRegistry
 from .routing import DecisionRouter
 from .student import StudentConfig, student_manifest
+from .student_inference import evaluate_student_checkpoint, write_student_evaluation
 from .teachers import probe_teacher
 from .training import (
     TrainingConfig,
@@ -238,6 +239,24 @@ def _student_manifest(args: argparse.Namespace) -> int:
         ),
     )
     print(json.dumps(manifest, ensure_ascii=False))
+    return 0
+
+
+def _student_evaluate(args: argparse.Namespace) -> int:
+    _, registry = _load(args.config)
+    report = evaluate_student_checkpoint(
+        args.checkpoint,
+        args.dataset,
+        registry,
+        split=args.split,
+        minimum_confidence=args.minimum_confidence,
+        allow_score=args.allow_score,
+        score_tolerance=args.score_tolerance,
+        device=args.device,
+    )
+    if args.output:
+        write_student_evaluation(report, args.output)
+    print(json.dumps(report, ensure_ascii=False))
     return 0
 
 
@@ -468,6 +487,17 @@ def build_parser() -> argparse.ArgumentParser:
     student_manifest_parser.add_argument("--max-sequence-length", type=int, default=1024)
     student_manifest_parser.add_argument("--precision", choices=("fp32", "fp16", "bf16"), default="bf16")
     student_manifest_parser.set_defaults(handler=_student_manifest)
+    student_evaluate_parser = student_subparsers.add_parser("evaluate")
+    _config_argument(student_evaluate_parser)
+    student_evaluate_parser.add_argument("--checkpoint", required=True)
+    student_evaluate_parser.add_argument("--dataset", required=True)
+    student_evaluate_parser.add_argument("--split", choices=("all", "train", "validation", "test"), default="all")
+    student_evaluate_parser.add_argument("--minimum-confidence", type=float, default=0.95)
+    student_evaluate_parser.add_argument("--allow-score", action="store_true")
+    student_evaluate_parser.add_argument("--score-tolerance", type=float, default=0.10)
+    student_evaluate_parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    student_evaluate_parser.add_argument("--output")
+    student_evaluate_parser.set_defaults(handler=_student_evaluate)
 
     training = subparsers.add_parser("train")
     training_subparsers = training.add_subparsers(dest="training_command", required=True)

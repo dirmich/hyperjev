@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.17.3까지 진행되어 있다. Python 테스트 64개와
+현재 `main`은 origin에 push될 1.18.0까지 진행되어 있다. Python 테스트 65개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, parent LLM 대 HyperJev
 경계의 성능 시험 기록까지 완료됐다. training plan·calibration·checkpoint를
