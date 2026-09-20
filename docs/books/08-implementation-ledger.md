@@ -94,6 +94,7 @@
 | 1.58.0 | 진행 중 | control threshold별 risk-coverage report와 safety 분리 gate |
 | 1.59.0 | 진행 중 | held-out control logits calibration manifest와 human gate |
 | 1.60.0 | 진행 중 | runtime calibration binding과 checkpoint hash guard |
+| 1.61.0 | 진행 중 | Qwen 800 control draft와 bounded probability repair |
 
 ## 다음 기록 규칙
 

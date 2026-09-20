@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.60.0
+현재 버전: 1.61.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -230,6 +230,26 @@ task별 temperature를 적용한다. `control decide --calibration` 또는
 `HYPERJEV_STUDENT_CALIBRATION`으로 경로를 지정하며, 기본값은 calibration을
 사용하지 않는다. 따라서 잘못된 checkpoint와 calibration을 조용히 조합하는
 실수를 막고, 기존 Student 경로의 argmax와 latency 계약을 보존한다.
+
+Qwen seed draft 800건은 다음 단계의 teacher 운영 증거로 고정했다.
+
+```bash
+uv run hyperjev control draft \
+  --config configs/phase0.toml \
+  --registry registry/control_tasks \
+  --queue /tmp/hyperjev-control-seed-800.jsonl \
+  --provider qwen \
+  --output /tmp/qwen-control-seed-800.jsonl \
+  --max-tokens 256 --timeout 30 --resume
+```
+
+최종 manifest는 `completed=800`, `schema_valid=800`, synthetic target 일치
+`800/800`, task별 100%였다. 2건은 Qwen이 선택값은 맞게 냈지만 확률합을
+`0.95`로 반올림해 contract를 위반했으며, ingestion이 모든 후보·비음수·합
+범위를 재검증한 뒤에만 정규화하고 `schema_repaired=2`로 기록했다. 원본 teacher
+출력이 완벽했다고 처리하지 않은 것이다. Qwen latency는 p50 `2188.502ms`,
+p95 `2357.121ms`, max `2596.726ms`이므로 motor loop가 아니라 비동기 draft,
+fallback, review queue에서만 사용한다. 여전히 human label은 자동 생성하지 않는다.
 
 v1.46.0부터 production-style evaluator는 다음 조건을 모두 요구한다.
 

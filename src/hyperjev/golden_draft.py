@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,45 @@ from .teachers import TeacherClient, parse_json_object, response_hash
 
 GOLDEN_DRAFT_VERSION = "golden-teacher-draft-v1"
 GOLDEN_ADJUDICATION_VERSION = "golden-teacher-adjudication-v1"
+
+
+def _repair_choice_probabilities(raw: Any, task: Any) -> dict[str, Any] | None:
+    """Normalize a rounded teacher choice distribution with explicit provenance."""
+
+    if not isinstance(raw, dict) or raw.get("type") != "choice":
+        return None
+    probabilities = raw.get("probabilities")
+    candidates = [str(candidate) for candidate in task.output.get("candidates", [])]
+    if not isinstance(probabilities, dict) or set(probabilities) != set(candidates):
+        return None
+    parsed: dict[str, float] = {}
+    for candidate in candidates:
+        value = probabilities[candidate]
+        if isinstance(value, bool):
+            return None
+        try:
+            parsed[candidate] = float(value)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(parsed[candidate]) or parsed[candidate] < 0.0:
+            return None
+    total = sum(parsed.values())
+    if total <= 0.0 or not math.isfinite(total) or abs(total - 1.0) <= 0.02:
+        return None
+    # A teacher that is far outside a probability distribution needs human review,
+    # not silent normalization. This range only covers rounded/quantized output.
+    if not 0.90 <= total <= 1.10:
+        return None
+    repaired = dict(raw)
+    normalized = {candidate: round(parsed[candidate] / total, 6) for candidate in candidates}
+    anchor = max(candidates, key=lambda candidate: (parsed[candidate], candidate))
+    normalized[anchor] = round(
+        normalized[anchor] + 1.0 - sum(normalized.values()), 6
+    )
+    if normalized[anchor] < 0.0:
+        return None
+    repaired["probabilities"] = normalized
+    return repaired
 
 
 def _utc_now() -> str:
@@ -87,7 +127,9 @@ def generate_teacher_draft(
         timezone.utc
     ).strftime("%Y%m%dT%H%M%SZ")
     records: list[dict[str, Any]] = [
-        existing_records[sample.sample_id] for sample in samples if sample.sample_id in existing_records
+        existing_records[sample.sample_id]
+        for sample in samples
+        if existing_records.get(sample.sample_id, {}).get("schema_valid") is True
     ]
     initial_manifest = {
         "record_type": "golden_teacher_draft_manifest",
@@ -109,7 +151,7 @@ def generate_teacher_draft(
     if not resume or not output.exists():
         _write_draft_file(output, initial_manifest, records)
     for sample in samples:
-        if sample.sample_id in existing_records:
+        if existing_records.get(sample.sample_id, {}).get("schema_valid") is True:
             continue
         task = registry.get(sample.task_id, sample.task_version)
         record: dict[str, Any] = {
@@ -127,6 +169,7 @@ def generate_teacher_draft(
             "response_sha256": None,
             "normalized_result": None,
             "schema_valid": None,
+            "schema_repaired": False,
             "error": None,
         }
         try:
@@ -140,13 +183,28 @@ def generate_teacher_draft(
                 }
             )
             try:
-                parsed = parse_decision_result(parse_json_object(completion.content))
+                raw_result = None
+                raw_result = parse_json_object(completion.content)
+                parsed = parse_decision_result(raw_result)
                 validate_result_for_task(task, parsed)
                 record["normalized_result"] = parsed.to_dict()
                 record["schema_valid"] = True
             except (ContractError, TypeError, ValueError) as exc:
-                record["schema_valid"] = False
-                record["error"] = f"{type(exc).__name__}: {exc}"
+                repaired_result = _repair_choice_probabilities(locals().get("raw_result"), task)
+                if repaired_result is None:
+                    record["schema_valid"] = False
+                    record["error"] = f"{type(exc).__name__}: {exc}"
+                else:
+                    try:
+                        parsed = parse_decision_result(repaired_result)
+                        validate_result_for_task(task, parsed)
+                    except (ContractError, TypeError, ValueError) as repair_exc:
+                        record["schema_valid"] = False
+                        record["error"] = f"{type(repair_exc).__name__}: {repair_exc}"
+                    else:
+                        record["normalized_result"] = parsed.to_dict()
+                        record["schema_valid"] = True
+                        record["schema_repaired"] = True
         except (OSError, TypeError, ValueError) as exc:
             record["status"] = "error"
             record["error"] = f"{type(exc).__name__}: {exc}"
@@ -166,6 +224,7 @@ def generate_teacher_draft(
         "max_tokens": max_tokens,
         "sample_count": len(samples),
         "schema_valid_count": sum(record["schema_valid"] is True for record in records),
+        "schema_repaired_count": sum(record.get("schema_repaired") is True for record in records),
         "completed_count": sum(record["status"] == "completed" for record in records),
         "error_count": sum(record["status"] == "error" for record in records),
         "resumable": True,

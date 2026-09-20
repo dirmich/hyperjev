@@ -1851,3 +1851,25 @@ calibration은 양의 temperature로 logits를 재스케일하므로 argmax skil
 않고 confidence와 abstain만 바꾼다. 이 단계에서도 synthetic calibration의
 `production_eligible=false`는 유지된다. 사람 golden calibration/test가 없는
 상태에서 runtime confidence를 조정하는 것만으로 정확도를 주장하지 않는다.
+
+### 14.39 Qwen control draft completion (v1.61.0)
+
+Qwen을 human labeler의 초안 생성기로 연결해 seed queue 800건을 resumable
+실행하고, 중단 후 resume 및 invalid record repair를 확인했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| provider/model | qwen / `qwen38fn` |
+| queue | 800 samples, SHA `db1eda2aed146091d2684f70a21984243966cc614d63ed1c6eedb7d75c041b04` |
+| completed / schema-valid | 800/800 / 800/800 |
+| synthetic target match | 800/800 (100%) |
+| task별 match | 8개 skill 모두 100% |
+| schema repair | 2건 (`probability sum=0.95` → bounded normalization) |
+| latency p50/p95/max | 2188.502 / 2357.121 / 2596.726 ms |
+
+repair는 `schema_repaired=true`와 `schema_repaired_count=2`로 기록되며,
+human label이나 adjudicated silver label로 승격되지 않는다. Qwen의 100%는
+synthetic seed pattern에 대한 teacher 초안 일치율이다. p95 약 2.36초이므로
+real-time motor loop의 deadline을 위반하며, Qwen은 data generation/fallback/
+review queue의 비동기 경로로 제한한다. Gemma는 교차검증/judge 역할을 유지하고
+모터 주기에서 기다리지 않는다.

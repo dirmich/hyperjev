@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — Qwen control draft completion and bounded repair (v1.61.0)
+
+- qwen38fn 800건 resumable control draft를 완료했다: `800/800 completed`,
+  `800/800 schema-valid`, synthetic target match `800/800`, task별 100%.
+- 2건의 choice probability 합 `0.95`는 bounded normalization 후에도
+  `schema_repaired=2`로 provenance를 남겼다. 외부 typed contract 자체는 느슨하게
+  바꾸지 않았다.
+- latency는 p50 `2188.502ms`, p95 `2357.121ms`, max `2596.726ms`로 motor
+  loop에 사용하지 않고 Qwen 비동기 labeler/fallback으로 제한한다.
+- 검증: invalid teacher record 재시도/repair unit을 포함한 전체 suite
+  `120 passed, 1 skipped`, Ruff 통과.
+
 ## 2026-09-21 — runtime calibration binding (v1.60.0)
 
 - `StudentClient`가 control calibration manifest를 로드해 task별 temperature를
