@@ -36,6 +36,11 @@ golden 검증 전에는 production quality 통과로 기록하지 않는다.
 connection error를 거쳐 human으로 fail-closed 되었다. 이 결과는 fallback
 계약의 smoke이지 human golden 정확도 결과가 아니다.
 
+1.22.0에서는 production accuracy의 정답 출처도 고정했다. human typed label이
+있으면 그 label로만 `correct`를 계산하고, synthetic target은 human label이
+없는 exploratory dataset에서만 사용한다. report의 `target_source`와
+`golden.human_labeled`를 함께 확인해야 한다.
+
 Parent LLM과 HyperJev 경계의 실제 성능 측정은 [`docs/test_result.md`](../test_result.md)에
 기록했다. Qwen endpoint는 6개 smoke에서 HTTP 6/6, typed schema 5/6,
 p50 1,127.542ms였고, 30개 synthetic 확장에서는 schema 27/30, p50

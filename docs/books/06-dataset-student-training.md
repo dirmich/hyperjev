@@ -116,6 +116,11 @@ production multilingual encoder가 아닌 deterministic byte-hash encoder를
 학습은 사람 검수 golden과 production multilingual tokenizer/backbone, optimizer
 loop, checkpoint storage가 준비된 뒤 다시 실행해야 한다.
 
+평가 시에는 `labels.human`이 존재하면 synthetic `target`을 정답으로 사용하지
+않는다. human typed result를 task schema로 다시 검증하고, report에
+`target_source=human`을 남긴다. human label이 없는 dataset의 수치는
+`target_source=sample.target`인 exploratory 결과로만 취급한다.
+
 ```text
 training plan
   → DGX tokenizer/backbone selection

@@ -160,6 +160,66 @@ class StudentContractTests(unittest.TestCase):
         self.assertIn(payload["type"], {"boolean", "choice", "score"})
         self.assertEqual(completion.model, "client-test")
 
+    def test_student_evaluation_uses_human_label_over_synthetic_target(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint_path = Path(directory) / "student.pt"
+            dataset_path = Path(directory) / "dataset.jsonl"
+            dataset_path.write_text(
+                json.dumps(
+                    {
+                        "sample_id": "human-overrides-target",
+                        "task_id": "memory.remember_worthy",
+                        "task_version": 1,
+                        "state": "stable deployment decision",
+                        "question": "is this worth long-term memory?",
+                        "target": True,
+                        "language": "en",
+                        "domain": "test",
+                        "source": {"kind": "synthetic"},
+                        "labels": {
+                            "human": {
+                                "type": "boolean",
+                                "value": False,
+                                "probability": 1.0,
+                                "abstained": False,
+                            }
+                        },
+                        "provenance": {
+                            "prompt_version": 1,
+                            "split": "test",
+                            "privacy_raw_inputs_stored": False,
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            config = StudentConfig(model_id="human-label-test", precision="fp32")
+            model = build_torch_model(self.registry, config)
+            torch.save(
+                {
+                    "student": student_manifest(self.registry, config),
+                    "model_state_dict": model.state_dict(),
+                },
+                checkpoint_path,
+            )
+            report = evaluate_student_checkpoint(
+                checkpoint_path,
+                dataset_path,
+                self.registry,
+                minimum_confidence=1.0,
+            )
+
+        prediction = report["predictions"][0]
+        self.assertEqual(prediction["target"], False)
+        self.assertEqual(prediction["target_source"], "human")
+        self.assertTrue(report["golden"]["human_labeled"])
+        self.assertNotIn("human_labels_required", report["quality_gate"]["reasons"])
+
 
 class CalibrationTests(unittest.TestCase):
     def test_temperature_fit_and_probability_are_deterministic(self) -> None:

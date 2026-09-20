@@ -715,3 +715,42 @@ smoke 한 건은 모델 정확도 benchmark가 아니다. synthetic 1,000개 str
 100% accepted accuracy와 human golden 0/1,000이라는 기존 제한은 그대로이며,
 `student evaluate --production-gate`는 human label이 채워질 때까지 실패해야
 한다.
+
+## 13. production 정확도 기준을 human label로 고정
+
+### 13.1 발견된 문제
+
+기존 evaluator는 `human_labels_required`를 gate 조건으로 확인하면서도,
+정작 `correct` 계산에는 dataset의 synthetic `target`을 사용했다. reviewer가
+synthetic target을 수정한 경우에도 synthetic 정답으로 99%를 계산할 수 있는
+구조였으므로 production quality evidence로 사용할 수 없었다.
+
+### 13.2 수정된 기준
+
+각 sample에 대해 다음 기준을 적용한다.
+
+| human label 상태 | 정확도 기준 | 의미 |
+| --- | --- | --- |
+| typed `labels.human` 존재 | human label의 value/selected/score | production 평가 기준 |
+| human label 없음 | `target` | synthetic/exploratory 결과, gate 미충족 |
+| human label이 schema 오류 | 평가 중단 | 잘못된 golden을 숨기지 않음 |
+| human label이 `abstained=true` | 평가 중단 | 정답으로 쓸 수 없는 review 상태 |
+
+report의 각 prediction에는 `target_source`를 기록한다. 따라서 전체 accuracy가
+높아도 `golden.human_labeled=false`이면 production gate가 통과하지 않는다.
+
+### 13.3 검증
+
+synthetic `target=true`와 human label `false`가 충돌하는 fixture를 추가했고,
+report가 `target=false`, `target_source=human`을 사용하는지 검증했다.
+
+```bash
+uv run ruff check src tests
+git diff --check
+uv run pytest -q
+```
+
+결과: **71 passed, 1 skipped**. 이 단계는 accuracy 숫자를 99%로 만드는
+작업이 아니라 99% 주장의 분모와 정답 출처를 올바르게 만드는 품질 gate
+수정이다. 실제 1,000개 human golden 라벨이 채워지기 전에는 production
+승격을 주장하지 않는다.

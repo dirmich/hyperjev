@@ -123,3 +123,18 @@
 - `ca49048`의 Student router 구현·테스트·smoke 증거를 구현 장부에 확정했다.
 - Python/Rust/lockfile version을 `1.21.1`로 동기화했다.
 - 기능 동작은 v1.21.0과 동일하며, production gate 상태도 변경하지 않았다.
+
+## 2026-09-20 — human golden label 기준 평가 (v1.22.0)
+
+- Student evaluator가 human typed label이 존재하면 synthetic `target` 대신
+  `labels.human`을 정확도 기준으로 사용하도록 수정했다.
+- human label은 task schema와 type을 다시 검증하고, abstain 라벨은 품질 기준으로
+  사용할 수 없게 거부한다.
+- human label이 없는 dataset은 기존처럼 `sample.target`을 사용하지만
+  `target_source=sample.target`로 명시되어 exploratory/synthetic 결과임을
+  구분한다.
+- regression test가 synthetic target과 다른 human correction을 넣었을 때
+  human 값을 실제 평가 기준으로 사용하는 것을 검증한다.
+- 검증: **71 passed, 1 skipped**, Ruff 통과.
+- 이 수정은 숫자를 인위적으로 높이지 않는다. 오히려 production gate가 실제
+  human 판정에 종속되도록 정확도를 정직하게 만든다.

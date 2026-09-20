@@ -7,7 +7,14 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .registry import TaskRegistry
+from .contracts import (
+    BooleanDecision,
+    ChoiceDecision,
+    ScoreDecision,
+    parse_decision_result,
+    validate_result_for_task,
+)
+from .registry import TaskDefinition, TaskRegistry
 from .rules import match_rule
 from .samples import CanonicalSample
 from .student import StudentConfig, StudentDependencyError, build_torch_model
@@ -41,13 +48,13 @@ def _student_config(raw: dict[str, Any]) -> StudentConfig:
 def _predict_sample(
     model: Any,
     sample: CanonicalSample,
-    registry: TaskRegistry,
+    task: TaskDefinition,
+    target: Any,
     *,
     torch: Any,
     device: str,
     score_tolerance: float,
 ) -> dict[str, Any]:
-    task = registry.get(sample.task_id, sample.task_version)
     config = model._hyperjev_student_config
     token_ids, attention = _encode_reference_sample(
         sample,
@@ -64,7 +71,7 @@ def _predict_sample(
         index = int(torch.argmax(output["logits"], dim=-1)[0].item())
         predicted: Any = bool(index)
         confidence = float(probabilities[index])
-        correct = predicted == bool(sample.target)
+        correct = predicted == bool(target)
         rendered = {"type": "boolean", "value": predicted, "probability": confidence}
     elif task.output_type == "choice":
         candidates = [str(candidate) for candidate in task.output.get("candidates", [])]
@@ -72,7 +79,7 @@ def _predict_sample(
         index = int(torch.argmax(output["logits"], dim=-1)[0].item())
         predicted = candidates[index]
         confidence = float(probabilities[index])
-        correct = predicted == str(sample.target)
+        correct = predicted == str(target)
         rendered = {
             "type": "choice",
             "selected": predicted,
@@ -87,18 +94,45 @@ def _predict_sample(
         width = float(torch.sigmoid(output["parameters"][0, 1]).detach().cpu().item()) * 0.5
         interval = (max(0.0, predicted - width), min(1.0, predicted + width))
         confidence = max(0.0, 1.0 - (interval[1] - interval[0]))
-        correct = abs(predicted - float(sample.target)) <= score_tolerance
+        correct = abs(predicted - float(target)) <= score_tolerance
         rendered = {"type": "score", "value": predicted, "interval_90": interval}
 
     return {
         "sample_id": sample.sample_id,
         "task_id": sample.task_id,
         "split": sample.provenance.get("split"),
-        "target": sample.target,
+        "target": target,
         "prediction": rendered,
         "confidence": round(confidence, 6),
         "correct": correct,
     }
+
+
+def _evaluation_target(
+    sample: CanonicalSample,
+    task: TaskDefinition,
+) -> tuple[Any, str]:
+    """Use a reviewed typed label when present; otherwise expose synthetic target."""
+
+    raw_human = sample.labels.get("human")
+    if raw_human is None:
+        return sample.target, "sample.target"
+    if not isinstance(raw_human, dict):
+        raise StudentInferenceError(f"{sample.sample_id}: human label must be an object")
+    try:
+        human_result = parse_decision_result(raw_human)
+        validate_result_for_task(task, human_result)
+    except (TypeError, ValueError) as exc:
+        raise StudentInferenceError(f"{sample.sample_id}: invalid human label: {exc}") from exc
+    if human_result.abstained:
+        raise StudentInferenceError(f"{sample.sample_id}: human label must not abstain")
+    if isinstance(human_result, BooleanDecision):
+        return human_result.value, "human"
+    if isinstance(human_result, ChoiceDecision):
+        return human_result.selected, "human"
+    if isinstance(human_result, ScoreDecision):
+        return human_result.value, "human"
+    raise StudentInferenceError(f"{sample.sample_id}: unsupported human label type")
 
 
 def _summary(predictions: list[dict[str, Any]]) -> dict[str, Any]:
@@ -175,17 +209,23 @@ def evaluate_student_checkpoint(
     ]
     if not samples:
         raise StudentInferenceError(f"dataset has no samples for split: {split}")
-    predictions = [
-        _predict_sample(
+    targets: dict[str, tuple[Any, str]] = {}
+    predictions = []
+    for sample in samples:
+        task = registry.get(sample.task_id, sample.task_version)
+        target, target_source = _evaluation_target(sample, task)
+        targets[sample.sample_id] = (target, target_source)
+        prediction = _predict_sample(
             model,
             sample,
-            registry,
+            task,
+            target,
             torch=torch,
             device=device,
             score_tolerance=score_tolerance,
         )
-        for sample in samples
-    ]
+        prediction["target_source"] = target_source
+        predictions.append(prediction)
     for row in predictions:
         output_type = registry.get(row["task_id"]).output_type
         row["accepted"] = (
@@ -207,14 +247,17 @@ def evaluate_student_checkpoint(
             rule_covered += 1
             rule_result = rule.result.to_dict()
             if task.output_type == "boolean":
-                rule_correct_for_sample = bool(rule_result["value"]) == bool(sample.target)
+                expected_target = targets[sample.sample_id][0]
+                rule_correct_for_sample = bool(rule_result["value"]) == bool(expected_target)
                 confidence = float(rule_result["probability"])
             elif task.output_type == "choice":
-                rule_correct_for_sample = str(rule_result["selected"]) == str(sample.target)
+                expected_target = targets[sample.sample_id][0]
+                rule_correct_for_sample = str(rule_result["selected"]) == str(expected_target)
                 confidence = max(float(value) for value in rule_result["probabilities"].values())
             else:
+                expected_target = targets[sample.sample_id][0]
                 rule_correct_for_sample = (
-                    abs(float(rule_result["value"]) - float(sample.target)) <= score_tolerance
+                    abs(float(rule_result["value"]) - float(expected_target)) <= score_tolerance
                 )
                 confidence = 1.0
             rule_correct += int(rule_correct_for_sample)
