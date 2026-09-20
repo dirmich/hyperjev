@@ -36,6 +36,7 @@
 | 1.13.3 | `ac30dc9` | 구현 일지와 책 원고 ledger 정리 |
 | 1.14.0 | `87a77d5` | calibration manifest CLI |
 | 1.14.1 | `8b2d067` | parent LLM/rule/mock 성능 결과 문서화 |
+| 1.15.0 | `0d32acd` | training/calibration/checkpoint 기반 model manifest |
 
 ## 다음 기록 규칙
 
