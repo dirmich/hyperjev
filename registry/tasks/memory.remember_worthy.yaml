@@ -12,4 +12,4 @@ cost:
   false_positive: 2
   false_negative: 5
 languages: [ko, en]
-teacher_prompt_version: 1
+teacher_prompt_version: 2

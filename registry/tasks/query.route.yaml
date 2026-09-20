@@ -11,4 +11,4 @@ thresholds:
 cost:
   wrong_route: 3
 languages: [ko, en]
-teacher_prompt_version: 1
+teacher_prompt_version: 2

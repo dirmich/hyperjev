@@ -12,4 +12,4 @@ cost:
   missed_change: 5
   false_change: 2
 languages: [ko, en]
-teacher_prompt_version: 1
+teacher_prompt_version: 2

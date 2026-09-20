@@ -3,6 +3,13 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — choice probability prompt hardening (v1.25.0)
+
+- teacher prompt를 v2로 올려 choice 결과가 모든 후보를 포함하고 확률 합을
+  정확히 `1.0`으로 만들도록 명시했다.
+- registry의 모든 `teacher_prompt_version`을 2로 맞춰 prompt/data provenance를
+  분리했다.
+
 ## 2026-09-20 — Qwen golden draft live probe (v1.24.1)
 
 - `localhost:8081/v1`의 실제 `qwen38fn`으로 20개 draft를 실행했다.

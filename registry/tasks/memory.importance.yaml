@@ -12,4 +12,4 @@ thresholds:
 cost:
   absolute_error: 1
 languages: [ko, en]
-teacher_prompt_version: 1
+teacher_prompt_version: 2

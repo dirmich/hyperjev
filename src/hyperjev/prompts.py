@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2
 
 
 def system_prompt(provider: str) -> str:
@@ -19,7 +19,9 @@ def system_prompt(provider: str) -> str:
         "You are a deterministic HyperJev Phase 0 teacher. "
         f"{role} Return exactly one JSON object and no markdown. "
         "The object must match the requested typed result schema. "
-        "Use probability values in [0, 1] and abstain when uncertain."
+        "Use probability values in [0, 1] and abstain when uncertain. "
+        "For a choice result, include every candidate exactly once and make "
+        "the probabilities sum to exactly 1.0."
     )
 
 

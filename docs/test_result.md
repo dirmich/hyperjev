@@ -840,3 +840,8 @@ human label이나 Gemma cross-validation 결과가 아니므로 reviewer의 원�
 이 결과는 Qwen draft가 Gemma timeout을 우회할 수 있음을 보여주지만,
 synthetic target은 human label이 아니므로 상용 정확도나 99% gate의 증거가
 아니다. schema-invalid draft는 reviewer에게 표시하되 자동 승인하지 않는다.
+
+확률합 오류를 줄이기 위해 teacher prompt를 v2로 변경했다. choice 결과에
+모든 후보를 정확히 한 번씩 포함하고 확률 합을 정확히 `1.0`으로 만들라는
+제약을 추가했으며, registry의 `teacher_prompt_version`도 2로 갱신했다.
+변경 후 20건 재시험을 별도 실행해 schema-valid 개선 여부를 확인한다.

@@ -12,4 +12,4 @@ cost:
   wrong_update: 10
   wrong_contradict: 10
 languages: [ko, en]
-teacher_prompt_version: 1
+teacher_prompt_version: 2
