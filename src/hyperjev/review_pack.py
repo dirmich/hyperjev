@@ -84,8 +84,16 @@ def _is_teacher_collision(items: list[dict[str, Any]]) -> bool:
     return len(signatures) > 1 and signatures[0] is not None and len(set(signatures)) == 1
 
 
-def _prioritize_review_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Order uncertain items while keeping counterfactual siblings adjacent."""
+def _prioritize_review_items(
+    items: list[dict[str, Any]],
+    *,
+    student_confidence: dict[str, float] | None = None,
+) -> list[dict[str, Any]]:
+    """Order uncertain items while keeping counterfactual siblings adjacent.
+
+    Student confidence is used only for ordering. It is never copied into a
+    review item, so a blind reviewer cannot be anchored by the model prediction.
+    """
 
     groups: dict[str, list[dict[str, Any]]] = {}
     group_order: list[str] = []
@@ -99,6 +107,12 @@ def _prioritize_review_items(items: list[dict[str, Any]]) -> list[dict[str, Any]
         group_order,
         key=lambda group_id: (
             0 if _is_teacher_collision(groups[group_id]) else 1,
+            min(
+                student_confidence.get(str(item.get("sample_id", "")), 1.0)
+                for item in groups[group_id]
+            )
+            if student_confidence is not None
+            else 1.0,
             min(_teacher_priority(item) for item in groups[group_id]),
             group_id,
         ),
@@ -129,6 +143,8 @@ def export_review_pack(
     *,
     include_raw: bool = False,
     prioritize: bool = False,
+    student_checkpoint: str | Path | None = None,
+    student_device: str = "cpu",
 ) -> dict[str, Any]:
     """Join queue text and a teacher draft for explicit local human review.
 
@@ -139,6 +155,8 @@ def export_review_pack(
 
     if not include_raw:
         raise ValueError("review pack requires explicit include_raw=True")
+    if student_checkpoint is not None and not prioritize:
+        raise ValueError("student checkpoint priority requires prioritize=True")
     queue = Path(queue_path)
     draft = Path(draft_path)
     samples = load_jsonl(queue, registry)
@@ -163,6 +181,28 @@ def export_review_pack(
     if missing:
         raise ValueError(f"draft is missing {len(missing)} queue samples")
 
+    student_confidence: dict[str, float] | None = None
+    student_checkpoint_sha256: str | None = None
+    if student_checkpoint is not None:
+        from .student_inference import evaluate_student_checkpoint
+
+        checkpoint = Path(student_checkpoint)
+        evaluation = evaluate_student_checkpoint(
+            checkpoint,
+            queue,
+            registry,
+            split="all",
+            minimum_confidence=0.0,
+            device=student_device,
+        )
+        student_confidence = {
+            str(row["sample_id"]): float(row["confidence"])
+            for row in evaluation["predictions"]
+        }
+        if set(student_confidence) != {sample.sample_id for sample in samples}:
+            raise ValueError("student evaluation does not cover every review sample")
+        student_checkpoint_sha256 = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+
     pack_manifest = {
         "record_type": "golden_review_pack_manifest",
         "review_pack_version": REVIEW_PACK_VERSION,
@@ -177,8 +217,18 @@ def export_review_pack(
         "sample_count": len(samples),
         "raw_inputs_included": True,
         "target_excluded": True,
-        "priority_order": "uncertain_first" if prioritize else "queue_order",
+        "priority_order": (
+            "student_uncertainty_then_teacher"
+            if student_confidence is not None
+            else "uncertain_first"
+            if prioritize
+            else "queue_order"
+        ),
         "priority_stats": None,
+        "student_checkpoint": str(Path(student_checkpoint).resolve())
+        if student_checkpoint is not None
+        else None,
+        "student_checkpoint_sha256": student_checkpoint_sha256,
     }
     output_records: list[dict[str, Any]] = [pack_manifest]
     for sample in samples:
@@ -223,7 +273,13 @@ def export_review_pack(
         )
     if prioritize:
         pack_manifest["priority_stats"] = _priority_stats(output_records[1:])
-        output_records[1:] = _prioritize_review_items(output_records[1:])
+        if student_confidence is not None:
+            pack_manifest["priority_stats"]["student_uncertain_item_count"] = sum(
+                confidence < 0.90 for confidence in student_confidence.values()
+            )
+        output_records[1:] = _prioritize_review_items(
+            output_records[1:], student_confidence=student_confidence
+        )
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8") as handle:

@@ -20,7 +20,16 @@
 - confusion matrix를 함께 유지해 `HOLD → STOP`, `APPROACH → MOVE` 같은 경계를
   human test에서 바로 추적할 수 있게 했다.
 - targeted evaluator tests `5 passed`; human label이 없으므로 현재 지표는
-  synthetic 연구용이고 production gate는 여전히 false다.
+synthetic 연구용이고 production gate는 여전히 false다.
+
+## 2026-09-21 — Student uncertainty active review (v1.86.0)
+
+- control review pack이 optional Student checkpoint의 confidence를 reviewer에게
+  노출하지 않고 순서에만 사용한다.
+- counterfactual group adjacency와 teacher collision priority를 유지하면서
+  Student uncertainty를 함께 정렬한다.
+- 실제 1,000행 replay에서 target/labels leakage가 없고 pack item에 Student
+  prediction이 복사되지 않음을 확인했다. confidence `<0.90`은 `0`개였다.
 
 ## 2026-09-21 — raw/accepted/safety evaluator hardening (v1.83.0)
 

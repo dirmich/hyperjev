@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.85.0
+현재 버전: 1.86.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -792,3 +792,27 @@ accuracy, accepted coverage, Wilson 95% interval을 추가했다. human test가
 4. 한 skill의 human-only test lower bound가 기준 미달이면 해당 skill만 train
    augmentation하는 것이 아니라 episode/group이 겹치지 않는 새 human examples를
    추가한다.
+
+### v1.86.0 Student uncertainty active review
+
+review pack 생성 시 `--student-checkpoint`를 주면 raw Student confidence를
+reviewer 노출 없이 순서에만 사용한다. counterfactual group은 계속 인접하게
+유지하고, teacher collision/teacher uncertainty와 Student uncertainty를 함께
+우선순위에 반영한다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/control-student-priority-review-pack.jsonl \
+  --allow-raw --prioritize \
+  --student-checkpoint /tmp/control-combined-boundary-100ep.pt \
+  --student-device cpu
+```
+
+실제 1,000행 replay에서 manifest는
+`student_uncertainty_then_teacher`, `target_excluded=true`,
+`labels_excluded=true`를 기록했다. 현재 checkpoint는 해당 queue에서 confidence
+`0.90` 미만 사례가 `0`개라 순서 변화는 없었지만, human label이 들어온 뒤
+Student가 불확실한 semantic group을 먼저 검수할 수 있다. Student prediction은
+pack item에 복사하지 않으므로 blind review anchoring을 만들지 않는다.

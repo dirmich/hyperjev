@@ -2552,3 +2552,32 @@ targeted evaluator test는 `5 passed`였다. 실제 human benchmark가 들어오
 표를 기준으로 `STOP` false negative, `STOP` false positive, `HOLD`/`MOVE`/
 `APPROACH` 경계와 low-coverage skill을 각각 보강한다. 현재는 human label이
 없으므로 이 진단도 synthetic 연구용이며 production 정확도 근거가 아니다.
+
+### 14.64 Student uncertainty active review (v1.86.0)
+
+Student checkpoint confidence를 reviewer에게 보여주지 않고 review pack의
+순서에만 사용하도록 했다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/control-student-priority-review-pack.jsonl \
+  --allow-raw --prioritize \
+  --student-checkpoint /tmp/control-combined-boundary-100ep.pt \
+  --student-device cpu
+```
+
+실제 1,000행 replay 결과:
+
+| 항목 | 결과 |
+| --- | --- |
+| priority order | `student_uncertainty_then_teacher` |
+| pack samples | `1,000` |
+| Student confidence < 0.90 | `0` |
+| target excluded | `true` |
+| labels excluded | `true` |
+| Student prediction in item | 제외 |
+
+현재 checkpoint confidence가 높아 정렬 변화는 없었지만, human review가 쌓인 뒤
+불확실한 semantic group을 먼저 검수하는 active-review 경로가 재현 가능해졌다.

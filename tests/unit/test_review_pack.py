@@ -39,6 +39,29 @@ class ReviewPackTests(unittest.TestCase):
         )
         self.assertTrue(args.prioritize)
 
+    def test_control_review_pack_exposes_student_priority_flags(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-pack",
+                "--queue",
+                "queue.jsonl",
+                "--draft",
+                "draft.jsonl",
+                "--output",
+                "pack.jsonl",
+                "--allow-raw",
+                "--prioritize",
+                "--student-checkpoint",
+                "checkpoint.pt",
+                "--student-device",
+                "cpu",
+            ]
+        )
+        self.assertTrue(args.prioritize)
+        self.assertEqual(args.student_checkpoint, "checkpoint.pt")
+        self.assertEqual(args.student_device, "cpu")
+
     def test_golden_review_pack_exposes_priority_flag(self) -> None:
         args = build_parser().parse_args(
             [
@@ -124,6 +147,29 @@ class ReviewPackTests(unittest.TestCase):
         ]
         ordered = _prioritize_review_items(low + collision)
         self.assertEqual([item["sample_id"] for item in ordered], ["collision-a", "collision-b", "low"])
+
+    def test_student_uncertainty_priority_orders_without_copying_prediction(self) -> None:
+        items = [
+            {
+                "sample_id": "student-confident",
+                "source": {"counterfactual_group_id": "confident"},
+                "teacher": {"schema_valid": True, "normalized_result": {}},
+            },
+            {
+                "sample_id": "student-uncertain",
+                "source": {"counterfactual_group_id": "uncertain"},
+                "teacher": {"schema_valid": True, "normalized_result": {}},
+            },
+        ]
+        ordered = _prioritize_review_items(
+            items,
+            student_confidence={"student-confident": 0.99, "student-uncertain": 0.51},
+        )
+        self.assertEqual(
+            [item["sample_id"] for item in ordered],
+            ["student-uncertain", "student-confident"],
+        )
+        self.assertNotIn("prediction", ordered[0])
 
     def test_prioritized_pack_keeps_counterfactual_pair_adjacent_without_target(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
