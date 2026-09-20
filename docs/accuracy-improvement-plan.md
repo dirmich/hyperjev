@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.64.0
+현재 버전: 1.65.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -150,6 +150,13 @@ typed confidence가 낮은 결과를 배치한다. 같은 등급에서는 sample
 manifest의 `priority_order=uncertain_first`로 사용된 정렬을 추적할 수 있다.
 이는 사람의 제한된 검수 시간을 오류 가능성이 높은 row에 먼저 쓰기 위한 운영
 개선이지, human label을 대신하는 자동 판정은 아니다.
+
+v1.65.0부터 hard-negative의 `counterfactual_group_id`를 priority group으로
+사용한다. pair 한쪽이 낮은 confidence이면 반대편의 confidence가 높아도 두
+항목을 함께 앞에 배치한다. review item에는 `kind`, `episode_id`,
+`semantic_group_id`, `counterfactual_group_id`, `pair_side`만 복사하고 target과
+labels는 복사하지 않는다. 따라서 사람이 두 상태/question을 연속으로 비교할 수
+있지만 synthetic 정답을 보거나 pair의 정답을 추론하도록 유도하지 않는다.
 
 Qwen/Gemma를 모두 실행한 뒤에는 합의 결과만 silver 후보로 표시한다.
 

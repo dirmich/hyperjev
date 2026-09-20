@@ -58,6 +58,39 @@ def _teacher_priority(item: dict[str, Any]) -> tuple[int, float, str]:
     return (2, confidence, str(item.get("sample_id", "")))
 
 
+def _counterfactual_group(item: dict[str, Any]) -> str:
+    source = item.get("source")
+    if isinstance(source, dict):
+        group = source.get("counterfactual_group_id") or source.get("semantic_group_id")
+        if group:
+            return str(group)
+    return str(item.get("sample_id", ""))
+
+
+def _prioritize_review_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Order uncertain items while keeping counterfactual siblings adjacent."""
+
+    groups: dict[str, list[dict[str, Any]]] = {}
+    group_order: list[str] = []
+    for item in items:
+        group_id = _counterfactual_group(item)
+        if group_id not in groups:
+            groups[group_id] = []
+            group_order.append(group_id)
+        groups[group_id].append(item)
+    ordered_groups = sorted(
+        group_order,
+        key=lambda group_id: (
+            min(_teacher_priority(item) for item in groups[group_id]),
+            group_id,
+        ),
+    )
+    ordered: list[dict[str, Any]] = []
+    for group_id in ordered_groups:
+        ordered.extend(sorted(groups[group_id], key=_teacher_priority))
+    return ordered
+
+
 def export_review_pack(
     queue_path: str | Path,
     draft_path: str | Path,
@@ -130,6 +163,18 @@ def export_review_pack(
                 "question": sample.question,
                 "language": sample.language,
                 "domain": sample.domain,
+                "source": {
+                    field: sample.source[field]
+                    for field in (
+                        "kind",
+                        "scenario_id",
+                        "episode_id",
+                        "semantic_group_id",
+                        "counterfactual_group_id",
+                        "pair_side",
+                    )
+                    if field in sample.source
+                },
                 "teacher": {
                     "provider": draft_record.get("provider"),
                     "model": draft_record.get("model"),
@@ -146,7 +191,7 @@ def export_review_pack(
             }
         )
     if prioritize:
-        output_records[1:] = sorted(output_records[1:], key=_teacher_priority)
+        output_records[1:] = _prioritize_review_items(output_records[1:])
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8") as handle:

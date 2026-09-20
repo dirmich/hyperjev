@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from hyperjev.config import load_config
+from hyperjev.control_data import generate_control_hard_negative_queue
 from hyperjev.golden import generate_review_queue
 from hyperjev.registry import TaskRegistry
 from hyperjev.review_pack import _teacher_priority, export_review_pack, run_review_session
@@ -40,6 +41,58 @@ class ReviewPackTests(unittest.TestCase):
         }
         ordered = sorted([high, low, repaired, invalid], key=_teacher_priority)
         self.assertEqual([item["sample_id"] for item in ordered], ["invalid", "repaired", "low", "high"])
+
+    def test_prioritized_pack_keeps_counterfactual_pair_adjacent_without_target(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "hard.jsonl"
+            draft = root / "draft.jsonl"
+            output = root / "review-pack.jsonl"
+            generate_control_hard_negative_queue(queue, registry, pair_count=2, seed=7)
+            samples = [json.loads(line) for line in queue.read_text(encoding="utf-8").splitlines()]
+            queue_sha256 = __import__("hashlib").sha256(queue.read_bytes()).hexdigest()
+            draft_records = [
+                {
+                    "record_type": "golden_teacher_draft_manifest",
+                    "queue_sha256": queue_sha256,
+                    "provider": "qwen",
+                    "model": "qwen38fn",
+                    "prompt_version": 2,
+                }
+            ]
+            for index, sample in enumerate(samples):
+                confidence = 0.55 if index == 0 else 0.99
+                draft_records.append(
+                    {
+                        "record_type": "golden_teacher_draft",
+                        "sample_id": sample["sample_id"],
+                        "provider": "qwen",
+                        "model": "qwen38fn",
+                        "normalized_result": {
+                            "type": "choice",
+                            "selected": sample["target"],
+                            "probabilities": {"STOP": confidence, "MOVE": 1.0 - confidence},
+                        },
+                        "schema_valid": True,
+                        "status": "completed",
+                        "error": None,
+                        "response_sha256": "hash",
+                    }
+                )
+            draft.write_text(
+                "\n".join(json.dumps(record) for record in draft_records) + "\n", encoding="utf-8"
+            )
+            export_review_pack(queue, draft, output, registry, include_raw=True, prioritize=True)
+            output_text = output.read_text(encoding="utf-8")
+            records = [json.loads(line) for line in output_text.splitlines()]
+
+        items = records[1:]
+        group_ids = [item["source"]["counterfactual_group_id"] for item in items]
+        self.assertEqual(group_ids[:2], [group_ids[0], group_ids[0]])
+        self.assertEqual(group_ids[2:], [group_ids[2], group_ids[2]])
+        self.assertEqual(records[0]["priority_order"], "uncertain_first")
+        self.assertNotIn('"target"', output_text)
 
     def test_pack_includes_context_but_excludes_target(self) -> None:
         config = load_config(ROOT / "configs" / "phase0.toml")

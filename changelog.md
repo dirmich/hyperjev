@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — counterfactual pair-aware review ordering (v1.65.0)
+
+- review pack이 hard-negative의 `counterfactual_group_id`, `pair_side` 등
+  target이 아닌 provenance만 보존하도록 했다.
+- `--prioritize`를 사용하면 pair의 가장 불확실한 항목을 기준으로 group 전체를
+  정렬하고, 같은 pair의 두 항목은 연속해서 검수된다.
+- source provenance에는 target/labels를 복사하지 않아 review pack의 target
+  leakage 경계를 유지한다.
+- 검증: pair 인접성·target 비노출 review 테스트 7개, Ruff, diff check 통과.
+
 ## 2026-09-21 — uncertainty-first human review queue (v1.64.0)
 
 - `control review-pack --prioritize`를 추가해 invalid schema, repaired teacher

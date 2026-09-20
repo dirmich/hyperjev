@@ -1982,3 +1982,36 @@ choice는 후보 probability의 최댓값, boolean은 선택된 값의 probabili
 정렬 자체는 label을 생성하지 않으며, 다음 gate는 사람이 state/question을 확인해
 `control review-session`으로 feedback을 기록하고, `apply-feedback` →
 `materialize` → human-only train/evaluate를 수행하는 것이다.
+
+### 14.43 counterfactual pair-aware review ordering (v1.65.0)
+
+v1.64.0의 uncertainty-first 정렬이 pair의 두 항목을 서로 떨어뜨릴 수 있어,
+hard-negative provenance를 review pack에 보존하고 group 단위 정렬로 보완했다.
+
+review item에는 다음 non-target provenance만 들어간다.
+
+- `counterfactual_group_id`
+- `semantic_group_id`, `episode_id`, `scenario_id`
+- `pair_side`
+
+`--prioritize`를 켜면 group 내부에서 가장 낮은 confidence를 가진 pair를 먼저
+배치하고, group 내부 항목은 같은 위치에 연속 출력한다. queue의 `target`과
+`labels`는 복사하지 않으며, 기본 `queue_order` 동작은 변하지 않는다.
+
+| 검증 | 결과 |
+| --- | ---: |
+| pair-aware review unit test | 7 passed |
+| pair adjacency | passed |
+| target/labels leakage check | passed |
+| human labels after this step | 0/1000 |
+| production eligible | false |
+
+이제 실제 검수는 다음처럼 hard-negative pair를 함께 확인할 수 있다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/qwen-control-hard-review-pack-prioritized.jsonl \
+  --allow-raw --prioritize
+```
