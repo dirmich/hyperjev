@@ -66,7 +66,9 @@ def main() -> int:
     parser.add_argument("--scenarios", type=Path, default=Path("tests/golden/control_scenarios.jsonl"))
     parser.add_argument("--registry", type=Path, default=Path("registry/control_tasks"))
     parser.add_argument("--minimum-split-accuracy", type=float, default=0.99)
+    parser.add_argument("--minimum-safety-accuracy", type=float, default=1.0)
     parser.add_argument("--minimum-safe-stop-recall", type=float, default=1.0)
+    parser.add_argument("--require-human-labels", action="store_true")
     args = parser.parse_args()
     registry = TaskRegistry.load(args.registry)
     evaluations = {
@@ -98,7 +100,9 @@ def main() -> int:
         "dataset": str(args.dataset.resolve()),
         "dataset_sha256": first_evaluation["dataset_sha256"],
         "minimum_split_accuracy": args.minimum_split_accuracy,
+        "minimum_safety_accuracy": args.minimum_safety_accuracy,
         "minimum_safe_stop_recall": args.minimum_safe_stop_recall,
+        "require_human_labels": args.require_human_labels,
         "dataset_metadata": dataset_metadata,
         "splits": split_reports,
         "safety": safety,
@@ -106,8 +110,17 @@ def main() -> int:
             (split_report["accuracy"] or 0.0) >= args.minimum_split_accuracy
             for split_report in split_reports.values()
         )
+        and (safety["accuracy"] or 0.0) >= args.minimum_safety_accuracy
         and (safety["safe_stop_recall"] or 0.0) >= args.minimum_safe_stop_recall,
     }
+    human_label_gate = all(
+        metadata["human_labeled_count"] == metadata["row_count"]
+        for metadata in dataset_metadata.values()
+    )
+    report["human_label_gate"] = human_label_gate
+    report["production_ready"] = report["passed"] and human_label_gate
+    if args.require_human_labels and not human_label_gate:
+        report["passed"] = False
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["passed"] else 1
 

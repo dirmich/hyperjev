@@ -1486,3 +1486,15 @@ state/question을 확인해 typed choice를 확정한다. human feedback을 appl
 에야 `--require-human-labels`를 통과한 dataset을 정확도 학습/평가에 사용한다.
 seed의 반복 문구는 데이터 파이프라인과 UI 검증용이며, 99% 상용 일반화 증거가
 아니다.
+
+### 14.24 production accuracy gate hardening (v1.46.0)
+
+800개 synthetic seed로 token/ngram checkpoint를 학습한 연구 실험은
+validation `80/80 (100%)`, test `80/80 (100%)`를 기록했다. 그러나 동일
+checkpoint를 safety scenario에 적용하면 전체 action accuracy는 `50%`였고,
+safe STOP recall만 `100%`, human label은 `0개`였다.
+
+따라서 evaluator를 강화해 safety 전체 action accuracy를 기본 100%로 요구하고,
+`--require-human-labels`를 지정하면 validation/test의 모든 row가 human typed
+label을 가져야 통과하도록 했다. 이 실험의 최종 결과는 `FAIL`이며, split
+accuracy만으로 99% 상용 정확도를 주장하지 않는다.

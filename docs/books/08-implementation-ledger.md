@@ -79,6 +79,7 @@
 | 1.43.0 | 진행 중 | accuracy evaluator, split metadata, reference token encoder 실험 |
 | 1.44.0 | 진행 중 | control dataset provenance와 cross-split leakage validator |
 | 1.45.0 | 진행 중 | 균형 잡힌 human-review control seed generator와 CLI |
+| 1.46.0 | 진행 중 | safety action accuracy와 human-label production gate 강화 |
 
 ## 다음 기록 규칙
 

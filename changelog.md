@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — production accuracy gate hardening (v1.46.0)
+
+- control quality evaluator가 split accuracy와 STOP recall만 보지 않고 전체
+  safety scenario action accuracy도 기본 100%로 요구한다.
+- `--require-human-labels`를 사용하면 validation/test 모든 row에 human typed
+  label이 있어야 `passed`가 된다. report에 `human_label_gate`와
+  `production_ready`를 분리해 기록한다.
+- 800개 synthetic seed checkpoint는 validation/test `80/80 (100%)`였지만
+  safety action accuracy `50%`, human label `0`이라 최종 gate `FAIL`이다.
+  이전 evaluator가 이 결과를 통과시킬 수 있었던 허점을 수정했다.
+
 ## 2026-09-20 — human-review control seed generator (v1.45.0)
 
 - `hyperjev control seed`가 8개 control skill을 균형 있게 생성하고,

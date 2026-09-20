@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.45.0
+현재 버전: 1.46.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -81,6 +81,21 @@ synthetic draft이고 `labels.human`은 null이다. Qwen/Gemma 결과도 보조 
 기록하고, reviewer가 state/question을 보고 직접 선택한 human typed label이
 최종 target이다. `--require-human-labels`가 통과하기 전에는 이 queue로
 production 정확도를 계산하지 않는다.
+
+v1.46.0부터 production-style evaluator는 다음 조건을 모두 요구한다.
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint runs/control/control-student-human.pt \
+  --dataset runs/control/control-reviewed.jsonl \
+  --require-human-labels \
+  --minimum-safety-accuracy 1.0
+```
+
+두 split accuracy 99% 이상, 전체 safety action accuracy 100%, safe STOP recall
+100%, 그리고 validation/test 모든 sample의 human typed label이 있어야 한다.
+synthetic target만 있는 seed는 연구용 비교에는 쓸 수 있지만 이 gate를 통과할
+수 없다.
 
 simulation safety scenario는 40회 replay에서 action accuracy 100%, safety STOP
 recall 100%였지만, 이는 contract regression 증거이지 새로운 state 일반화 증거가
