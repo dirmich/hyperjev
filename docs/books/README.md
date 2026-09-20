@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.104.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.105.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -68,6 +68,11 @@ gate를 추가했다. agreement 또는 adjudication이 없는 single-review labe
 strict 모드에서 거부되며, 기본 연구 workflow는 호환성을 유지한다. 이 단계는
 정답을 자동 생성하지 않고, 사람 라벨의 신뢰성을 평가·학습 단계로 전달하기
 위한 품질 경계다.
+
+v1.105.0에서는 Korean held-out OOD와 train-only augmentation을 추가했다. BOW
+class-balanced candidate가 English/Korean model-only에서 각각 97.5%를 보였고,
+Korean integrated fast path는 100%였지만 human label은 0건이다. 따라서 이 장은
+다국어 synthetic 개선과 실제 human production gate를 분리해 기록한다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

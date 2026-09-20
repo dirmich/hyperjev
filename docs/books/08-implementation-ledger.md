@@ -138,6 +138,7 @@
 | 1.102.0 | 진행 중 | Gemma control draft의 60s/300s timeout boundary 측정과 비동기 judge 격리 결정 |
 | 1.103.0 | 진행 중 | control simulation 중복 scenario ID 차단과 500-case 고유 safety replay 검증 |
 | 1.104.0 | 진행 중 | production materialize의 선택적 strict dual-review provenance gate |
+| 1.105.0 | 진행 중 | Korean OOD/augmentation, BOW 후보 비교, multilingual fast path 검증 |
 
 ## 다음 기록 규칙
 

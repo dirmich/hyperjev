@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.104.0
+현재 버전: 1.105.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1147,3 +1147,40 @@ strict gate는 `review.status=reviewed`, reviewer 식별자, 그리고
 feedback은 연구용 기본 materialize에서는 허용되지만 strict production 후보에서는
 거부된다. 이 gate는 model accuracy를 자동으로 올리는 장치가 아니라, 잘못된
 label이 99% 평가와 학습을 오염시키지 않게 하는 전제조건이다.
+
+### v1.105.0 multilingual Korean control track
+
+English synthetic OOD가 높아도 Korean/다국어 상태 표현에서 같은 성능이 나온다는
+보장은 없다. 이를 분리 측정하기 위해 human label과 분리된 40개 Korean held-out
+fixture와 train-only 64개 Korean augmentation queue를 추가했다.
+
+```bash
+uv run hyperjev control korean \
+  --output /tmp/control-korean-training.jsonl --seed 17
+uv run hyperjev control merge \
+  --input /tmp/hyperjev-control-combined-1928.jsonl \
+  --input /tmp/control-korean-training.jsonl \
+  --output /tmp/hyperjev-control-combined-korean.jsonl
+uv run hyperjev control train \
+  --dataset /tmp/hyperjev-control-combined-korean.jsonl \
+  --output /tmp/control-combined-korean-bow-balanced.pt \
+  --backbone reference-bow-encoder --class-balanced \
+  --epochs 100 --batch-size 64 --learning-rate 0.01 \
+  --precision fp32 --device cpu --seed 7
+```
+
+후보 선택 결과는 다음과 같다.
+
+| 후보 | English model-only OOD | Korean model-only OOD | 판정 |
+| --- | ---: | ---: | --- |
+| 기존 boundary token checkpoint | `39/40 (97.5%)` | `11/40 (27.5%)` | Korean baseline |
+| Korean token augmentation | `36/40 (90%)` | `25/40 (62.5%)` | English regression으로 폐기 |
+| Korean token + class-balanced | `40/40 (100%)` | `26/40 (65%)` | Korean 부족으로 폐기 |
+| Korean BOW + class-balanced | `39/40 (97.5%)` | `39/40 (97.5%)` | 현재 synthetic 연구 후보 |
+
+BOW 후보의 independent synthetic validation/test는 각각 `180/180 (100%)`,
+500-case safety replay는 accuracy/STOP recall 모두 `500/500`이었다. Korean
+integrated fast path도 `40/40`, STOP recall `5/5`였다. 그러나 human label이
+없고 Korean model-only p99가 `5.386ms`이므로 production 승격은 보류한다.
+다음 단계는 Korean human golden을 dual-review로 확보하고, BOW/typed-head의
+DGX Spark GPU latency를 다시 측정하는 것이다.

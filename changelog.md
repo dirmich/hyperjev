@@ -3,6 +3,23 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — Korean multilingual control accuracy track (v1.105.0)
+
+- Korean held-out OOD fixture 40개와 train-only Korean augmentation 64개를
+  추가했다. fixture SHA-256은 `be474f554cc99c69fb33bb0e3231da66781d5777947d75425d01b0e62ae56ff2`다.
+- token encoder Korean 후보는 Korean model-only `25/40 (62.5%)`, English
+  `36/40 (90%)`로 regression이 있어 폐기했다. class-balanced token 후보도
+  Korean `26/40 (65%)`로 채택하지 않았다.
+- BOW + class-balanced 후보 SHA-256
+  `3ae6df70072feca352bd0c6ae959a04323ec27ce5b9569bec43c0a2506e9b0a6`는
+  English model-only `39/40 (97.5%)`, Korean `39/40 (97.5%)`를 보였다.
+- Korean phrase-level fast path를 추가해 integrated Korean fixture는
+  `40/40`, STOP recall `5/5`가 됐다. 이는 rule 포함 결과이며 model-only와
+  분리해 기록한다.
+- human label은 여전히 `0/1000`이고 모든 OOD target은 synthetic이므로
+  production accuracy 99%로 승격하지 않았다. Korean model-only p99 `5.386ms`
+  는 5ms 목표를 넘어 별도 latency 최적화 대상으로 남겼다.
+
 ## 2026-09-21 — strict dual-review materialization gate (v1.104.0)
 
 - `control materialize --require-dual-review`를 추가해 single-review label이

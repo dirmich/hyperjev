@@ -322,6 +322,89 @@ _CONTROL_BOUNDARY_TRAIN_TEMPLATES = {
     ),
 }
 
+_CONTROL_KOREAN_COMPOSITIONAL_TRAIN_TEMPLATES = {
+    "STOP": (
+        "전방 센서가 충돌 직전의 위험을 감지했다",
+        "장애물이 제동 거리 안에 있어 즉시 멈춰야 한다",
+        "앞의 벽에 닿기 전에 주행을 중단한다",
+        "안전 여유가 사라져 계속 진행할 수 없다",
+        "현재 경로에 즉각적인 접촉 위험이 있다",
+        "비상 충돌 신호가 들어와 차량을 세운다",
+        "앞쪽 위험 때문에 브레이크를 작동한다",
+        "충돌을 피하려면 지금 정지해야 한다",
+    ),
+    "HOLD": (
+        "안정된 자세를 유지하며 새 명령을 기다린다",
+        "센서가 갱신될 때까지 현재 위치에 머문다",
+        "주변에 위험이 없어 잠시 움직이지 않는다",
+        "다음 지시가 올 때까지 웨이포인트에서 대기한다",
+        "목표가 아직 행동 가능하지 않아 위치를 지킨다",
+        "조용한 장면에서 현재 자세를 보존한다",
+        "전진하지 않고 다음 관측을 기다린다",
+        "안전한 상태이므로 로봇을 그대로 둔다",
+    ),
+    "MOVE": (
+        "막힘 없는 복도를 따라 앞으로 전진한다",
+        "열린 경로를 따라 다음 지점으로 이동한다",
+        "앞의 자유 공간에서 정상 주행을 계속한다",
+        "장애물 없는 통로를 곧장 통과한다",
+        "주행 차선이 비어 있어 계속 나아간다",
+        "다음 웨이포인트까지 직선으로 진행한다",
+        "바닥이 열린 구간을 지나 앞으로 간다",
+        "안전한 빈 공간을 따라 전진할 수 있다",
+    ),
+    "ROTATE": (
+        "다음 복도를 향해 로봇의 방향을 돌린다",
+        "교차로에서 웨이포인트 쪽으로 회전한다",
+        "계속 주행하기 전에 헤딩을 바꾼다",
+        "목표 방향에 맞도록 제자리에서 선회한다",
+        "다음 갈림길을 바라보도록 자세를 조정한다",
+        "직진하지 않고 방향만 먼저 교정한다",
+        "오른쪽 통로에 맞춰 플랫폼을 돌린다",
+        "새 경로를 향해 회전할 공간이 충분하다",
+    ),
+    "APPROACH": (
+        "눈앞의 표지판까지 거리를 줄인다",
+        "선택된 물체에 가까워지도록 이동한다",
+        "보이는 목적지가 아직 멀어 접근을 계속한다",
+        "안전하게 목표와의 간격을 줄인다",
+        "고정된 대상 쪽으로 가까이 간다",
+        "도달할 물체를 향해 한 걸음 더 나아간다",
+        "식별된 웨이포인트까지 남은 거리를 줄인다",
+        "앞에 있는 목표에 천천히 접근한다",
+    ),
+    "RETREAT": (
+        "다가오는 장애물에서 멀어지도록 후진한다",
+        "위험과의 거리를 늘리기 위해 뒤로 간다",
+        "뒤쪽의 안전 구역으로 물러난다",
+        "막힌 앞쪽을 피해 후방으로 이동한다",
+        "위험에서 벗어나기 위해 뒤로 물러난다",
+        "앞의 위협이 가까워져 후퇴한다",
+        "비어 있는 뒤쪽 경로를 이용해 멀어진다",
+        "전방 위험 구역을 빠져나오며 후진한다",
+    ),
+    "INTERACT": (
+        "손이 닿는 조명 버튼을 누른다",
+        "정렬된 손잡이를 잡는다",
+        "로봇 옆의 스위치를 작동한다",
+        "접근 가능한 물체를 만진다",
+        "선택된 물건을 집어 든다",
+        "가까운 걸쇠를 열기 위해 조작한다",
+        "팔이 닿는 제어판을 사용한다",
+        "표시된 도구를 잡아 올린다",
+    ),
+    "RECOVER": (
+        "자세 추정이 실패해 시스템을 재초기화한다",
+        "넘어진 뒤 로봇의 균형을 회복한다",
+        "위치 추적이 끊겨 복구 절차를 시작한다",
+        "탐색 오류를 재설정한다",
+        "불안정한 상태에서 로봇을 안정화한다",
+        "위치를 잃은 뒤 다시 좌표를 확보한다",
+        "동작 제어 오류에서 복귀한다",
+        "실패한 동작을 정리하고 복구를 재개한다",
+    ),
+}
+
 
 def _normalise_text(value: str) -> str:
     return _WHITESPACE.sub(" ", value.casefold()).strip()
@@ -614,6 +697,65 @@ def generate_control_boundary_training_queue(
         "skill_counts": {skill: len(_CONTROL_BOUNDARY_TRAIN_TEMPLATES[skill]) for skill in CONTROL_SKILLS},
         "seed": seed,
         "split": "train",
+        "human_labeled": False,
+    }
+
+
+def generate_control_korean_training_queue(
+    output_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    seed: int = 7,
+) -> dict[str, Any]:
+    """Create balanced Korean train-only paraphrases for multilingual control."""
+
+    registry.get("control.skill", 1)
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    index = 0
+    with output.open("w", encoding="utf-8") as handle:
+        for skill_index, skill in enumerate(CONTROL_SKILLS):
+            for variant, base_state in enumerate(_CONTROL_KOREAN_COMPOSITIONAL_TRAIN_TEMPLATES[skill]):
+                index += 1
+                sample = {
+                    "sample_id": f"control-korean-train-{index:05d}",
+                    "task_id": "control.skill",
+                    "task_version": 1,
+                    "state": f"{base_state}; 한국어 학습 변형 {variant:04d}",
+                    "question": "다음 안전한 고수준 제어 skill을 선택하라",
+                    "target": skill,
+                    "language": "ko",
+                    "domain": "control-korean-compositional-training",
+                    "source": {
+                        "kind": "synthetic-korean-compositional-training",
+                        "scenario_id": f"control-korean-scenario-{index:05d}",
+                        "episode_id": f"control-korean-episode-{index:05d}",
+                        "semantic_group_id": f"control-korean-group-{index:05d}",
+                        "seed": seed,
+                        "skill_index": skill_index,
+                    },
+                    "labels": {"qwen": None, "gemma": None, "human": None},
+                    "review": {"status": "pending", "reviewer": None},
+                    "provenance": {
+                        "prompt_version": 1,
+                        "generator": "control-korean-compositional-training-v1",
+                        "split": "train",
+                        "privacy_raw_inputs_stored": False,
+                        "target_source": "synthetic_korean_compositional_only",
+                    },
+                }
+                handle.write(json.dumps(sample, ensure_ascii=False, sort_keys=True) + "\n")
+    return {
+        "record_type": "control_korean_training_queue",
+        "output_path": str(output.resolve()),
+        "sample_count": index,
+        "skill_counts": {
+            skill: len(_CONTROL_KOREAN_COMPOSITIONAL_TRAIN_TEMPLATES[skill])
+            for skill in CONTROL_SKILLS
+        },
+        "seed": seed,
+        "split": "train",
+        "language": "ko",
         "human_labeled": False,
     }
 

@@ -7,6 +7,7 @@ from hyperjev.control_data import (
     generate_control_boundary_training_queue,
     generate_control_compositional_training_queue,
     generate_control_hard_negative_queue,
+    generate_control_korean_training_queue,
     generate_control_review_queue,
     materialize_control_human_dataset,
     merge_control_datasets,
@@ -177,6 +178,19 @@ class ControlDatasetQualityTests(unittest.TestCase):
         path = Path(directory.name) / "control-boundary.jsonl"
         generation = generate_control_boundary_training_queue(path, self.registry, seed=13)
         self.assertEqual(generation["sample_count"], 64)
+        self.assertEqual(set(generation["skill_counts"].values()), {8})
+        report = validate_control_dataset(path, self.registry)
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["split_counts"], {"train": 64})
+        self.assertEqual(report["human_labeled_count"], 0)
+
+    def test_korean_training_queue_is_train_only_and_balanced(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "control-korean-training.jsonl"
+        generation = generate_control_korean_training_queue(path, self.registry, seed=17)
+        self.assertEqual(generation["sample_count"], 64)
+        self.assertEqual(generation["language"], "ko")
         self.assertEqual(set(generation["skill_counts"].values()), {8})
         report = validate_control_dataset(path, self.registry)
         self.assertTrue(report["passed"])

@@ -2962,3 +2962,34 @@ production accuracy 후보에 single-review label이 섞이지 않도록
 따라서 이 단계의 산출물은 정확도 수치가 아니라 human label 품질 gate다. 실제
 dual-review와 adjudication이 완료되기 전에는 99% production accuracy를 주장하지
 않는다.
+
+### 14.82 Korean multilingual control track (v1.105.0)
+
+Korean 상태 표현을 별도 held-out fixture로 고정했다.
+
+| artifact | SHA-256 / count |
+| --- | ---: |
+| Korean OOD fixture | `be474f554cc99c69fb33bb0e3231da66781d5777947d75425d01b0e62ae56ff2` / 40 |
+| Korean train-only queue | `234ad32aba6683d243ef503aef2b847a2d64b5dd6d4a6df67841e4983f4a0c93` / 64 |
+| merged dataset | `a2a9fb9ca7a61c9b8502ddcdcc9f21f06c2c8c08a95f3a55e9b524cb94f147af` / 1,992 |
+| selected BOW checkpoint | `3ae6df70072feca352bd0c6ae959a04323ec27ce5b9569bec43c0a2506e9b0a6` |
+
+model-only 후보 비교:
+
+| checkpoint | English OOD | Korean OOD | 비고 |
+| --- | ---: | ---: | --- |
+| 기존 `reference-token-encoder` | `39/40 (97.5%)` | `11/40 (27.5%)` | Korean baseline |
+| Korean token augmentation | `36/40 (90%)` | `25/40 (62.5%)` | 폐기 |
+| Korean token + class-balanced | `40/40 (100%)` | `26/40 (65%)` | 폐기 |
+| Korean BOW + class-balanced | `39/40 (97.5%)` | `39/40 (97.5%)` | synthetic best candidate |
+
+BOW 후보의 Korean model-only latency는 p95 `4.223ms`, p99 `5.386ms`였고,
+English는 p95 `4.302ms`, p99 `4.715ms`였다. Korean integrated fast path는
+`40/40 (100%)`, STOP recall `5/5 (100%)`, p95 `3.745ms`, p99 `4.338ms`였다.
+rule 포함 integrated 결과와 model-only 결과를 섞지 않는다.
+
+추가로 500개 고유 safety matrix에서 BOW 후보는 accuracy `500/500`, safe STOP
+recall `500/500`, p95 `0.000960ms`, p99 `0.001312ms`로 gate를 통과했다.
+다만 quality evaluator의 safety sample은 4건이라 Wilson 하한 gate는 별도
+실패하며, human label은 `0/1000`이다. 따라서 이 단계는 다국어 synthetic
+generalization 개선이지 상용 99% accuracy 증명이 아니다.

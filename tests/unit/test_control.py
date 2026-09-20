@@ -167,6 +167,28 @@ class ControlContractTests(unittest.TestCase):
                     assert action is not None
                     self.assertEqual(action.skill, expected)
 
+    def test_control_fast_path_covers_korean_compositional_phrases(self) -> None:
+        cases = {
+            "STOP": ("전방 장애물이 제동 거리 안으로 들어왔다", "충돌할 위험이 있다"),
+            "HOLD": ("자세가 안정되어 현재 위치를 그대로 유지한다", "위험이 없어 다음 명령을 기다린다"),
+            "MOVE": ("앞쪽 통로가 비어 있어 직진한다", "열린 경로를 따라 계속 앞으로 이동한다"),
+            "ROTATE": ("다음 복도를 향해 로봇의 방향을 돌린다", "목표 방향에 맞도록 제자리에서 회전한다"),
+            "APPROACH": ("눈앞의 표지판까지 거리를 줄인다", "선택된 물체에 가까워지도록 이동한다"),
+            "RETREAT": ("다가오는 장애물에서 멀어지도록 후진한다", "뒤쪽의 안전 구역으로 물러난다"),
+            "INTERACT": ("손이 닿는 버튼을 눌러 장치를 작동한다", "정렬된 손잡이를 잡는다"),
+            "RECOVER": ("위치 추적이 끊겨 복구 절차를 시작한다", "넘어진 뒤 균형을 되찾아야 한다"),
+        }
+        for expected, states in cases.items():
+            for state in states:
+                with self.subTest(expected=expected, state=state):
+                    if expected == "STOP":
+                        self.assertTrue(explicit_stop_signal(state))
+                        continue
+                    action = deterministic_control_action(state)
+                    self.assertIsNotNone(action)
+                    assert action is not None
+                    self.assertEqual(action.skill, expected)
+
     def test_low_confidence_and_long_ttl_are_rejected(self) -> None:
         policy = ControlSafetyPolicy(minimum_confidence=0.95, max_action_ttl_ms=100)
         low_confidence = ControlAction(skill="MOVE", confidence=0.8, ttl_ms=50)
