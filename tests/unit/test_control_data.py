@@ -6,6 +6,7 @@ from pathlib import Path
 from hyperjev.control_data import (
     generate_control_hard_negative_queue,
     generate_control_review_queue,
+    materialize_control_human_dataset,
     validate_control_dataset,
 )
 from hyperjev.registry import TaskRegistry
@@ -155,6 +156,56 @@ class ControlDatasetQualityTests(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertEqual(report["unique_semantic_group_count"], 12)
         self.assertEqual(report["leaks"]["semantic_group"], [])
+
+    def test_materialize_replaces_synthetic_target_with_human_choice(self) -> None:
+        source = self._write(
+            [
+                self._record(
+                    "reviewed-1",
+                    "train",
+                    state="emergency hazard",
+                    episode_id="ep-1",
+                    semantic_group_id="sg-1",
+                    human={
+                        "type": "choice",
+                        "selected": "STOP",
+                        "probabilities": {
+                            "STOP": 1.0,
+                            "HOLD": 0.0,
+                            "MOVE": 0.0,
+                            "ROTATE": 0.0,
+                            "APPROACH": 0.0,
+                            "RETREAT": 0.0,
+                            "INTERACT": 0.0,
+                            "RECOVER": 0.0,
+                        },
+                        "abstained": False,
+                    },
+                )
+            ]
+        )
+        output = source.with_name("materialized.jsonl")
+        report = materialize_control_human_dataset(source, output, self.registry)
+        materialized = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(report["human_labeled_count"], 1)
+        self.assertEqual(materialized["target"], "STOP")
+        self.assertEqual(materialized["provenance"]["target_source"], "human_review")
+        self.assertEqual(materialized["provenance"]["materialized_from_target"], "MOVE")
+
+    def test_materialize_rejects_pending_queue(self) -> None:
+        source = self._write(
+            [
+                self._record(
+                    "pending-1",
+                    "train",
+                    state="clear path",
+                    episode_id="ep-1",
+                    semantic_group_id="sg-1",
+                )
+            ]
+        )
+        with self.assertRaises(ValueError):
+            materialize_control_human_dataset(source, source.with_name("materialized.jsonl"), self.registry)
 
 
 if __name__ == "__main__":

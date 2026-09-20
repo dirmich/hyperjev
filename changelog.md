@@ -14,6 +14,16 @@
   scene 일반화를 혼동하지 않도록 다음 단계는 seed+hard-negative 결합과
   human independent test다.
 
+## 2026-09-21 — human target materialization (v1.51.0)
+
+- `hyperjev control materialize`가 reviewed control queue의 typed
+  `labels.human`을 검증하고 synthetic `target`을 human target으로 교체한다.
+- 원본 queue는 보존하고, materialized row에 `target_source=human_review`와
+  이전 target을 기록한다. 미검수/abstain/invalid choice는 기본 거부한다.
+- 8개 temporary reviewed row smoke에서 `human_labeled_count=8`과
+  `target_source=human_review`를 확인했다. 이는 데이터 경계 검증이지 실제
+  일반화 정확도 결과가 아니다.
+
 ## 2026-09-21 — control counterfactual hard-negative queue (v1.49.0)
 
 - `hyperjev control hard-negative`가 STOP↔RETREAT, MOVE↔APPROACH,

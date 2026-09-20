@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.50.0
+현재 버전: 1.51.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -81,6 +81,21 @@ synthetic draft이고 `labels.human`은 null이다. Qwen/Gemma 결과도 보조 
 기록하고, reviewer가 state/question을 보고 직접 선택한 human typed label이
 최종 target이다. `--require-human-labels`가 통과하기 전에는 이 queue로
 production 정확도를 계산하지 않는다.
+
+사람 검수가 끝난 queue는 synthetic `target`을 그대로 학습하지 않도록
+materialize한다.
+
+```bash
+uv run hyperjev control materialize \
+  --input runs/control/control-reviewed.jsonl \
+  --output runs/control/control-human-target.jsonl
+```
+
+이 명령은 각 `labels.human` typed result를 control registry로 다시 검증하고,
+`target`을 사람이 선택한 scalar로 교체하며 `provenance.target_source`를
+`human_review`로 기록한다. 미검수 row, abstain, 후보에 없는 skill, 확률 합계
+오류는 기본 거부한다. 따라서 evaluator만 human label을 참고하고 trainer는
+synthetic target을 계속 학습하는 경로를 차단한다.
 
 v1.46.0부터 production-style evaluator는 다음 조건을 모두 요구한다.
 

@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from collections import defaultdict
 from collections.abc import Mapping
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from .contracts import (
+    BooleanDecision,
+    ChoiceDecision,
+    ScoreDecision,
+    parse_decision_result,
+    validate_result_for_task,
+)
 from .registry import TaskRegistry
 from .samples import CanonicalSample, load_jsonl
 
@@ -326,6 +335,85 @@ def generate_control_hard_negative_queue(
         "sample_count": pair_count * 2,
         "seed": seed,
         "human_labeled": False,
+    }
+
+
+def _human_target(sample: CanonicalSample, registry: TaskRegistry) -> Any:
+    """Return a validated scalar target from one typed human correction."""
+
+    raw = sample.labels.get("human")
+    if not isinstance(raw, dict):
+        raise TypeError(f"{sample.sample_id}: human label is required")
+    task = registry.get(sample.task_id, sample.task_version)
+    try:
+        result = parse_decision_result(raw)
+        validate_result_for_task(task, result)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{sample.sample_id}: invalid human label: {exc}") from exc
+    if result.abstained:
+        raise ValueError(f"{sample.sample_id}: human label must not abstain")
+    if isinstance(result, BooleanDecision):
+        return result.value
+    if isinstance(result, ChoiceDecision):
+        return result.selected
+    if isinstance(result, ScoreDecision):
+        return result.value
+    raise ValueError(f"{sample.sample_id}: unsupported human label type")
+
+
+def materialize_control_human_dataset(
+    input_path: str | Path,
+    output_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    require_human_labels: bool = True,
+) -> dict[str, Any]:
+    """Copy a control queue while replacing synthetic targets with typed human labels.
+
+    The source queue remains immutable. This creates the only dataset form that
+    the control training command should use for a production accuracy claim.
+    """
+
+    source = Path(input_path)
+    output = Path(output_path)
+    if source.resolve() == output.resolve():
+        raise ValueError("materialized output must differ from the source queue")
+    samples = load_jsonl(source, registry)
+    validation = validate_control_dataset(source, registry, require_human_labels=require_human_labels)
+    if not validation["passed"]:
+        raise ValueError(f"control dataset is not ready for materialization: {validation['errors'][:3]}")
+    raw_records = [
+        json.loads(line)
+        for line in source.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    by_id = {sample.sample_id: sample for sample in samples}
+    materialized: list[dict[str, Any]] = []
+    for raw in raw_records:
+        sample = by_id[str(raw["sample_id"])]
+        record = deepcopy(raw)
+        record["target"] = _human_target(sample, registry)
+        provenance = dict(record.get("provenance", {}))
+        provenance["target_source"] = "human_review"
+        provenance["materialized_from_target"] = raw.get("target")
+        record["provenance"] = provenance
+        materialized.append(record)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", encoding="utf-8") as handle:
+        for record in materialized:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    output_validation = validate_control_dataset(output, registry, require_human_labels=require_human_labels)
+    if not output_validation["passed"]:
+        raise ValueError(f"materialized control dataset failed validation: {output_validation['errors'][:3]}")
+    return {
+        "record_type": "control_human_materialized_dataset",
+        "input_path": str(source.resolve()),
+        "output_path": str(output.resolve()),
+        "sample_count": len(materialized),
+        "human_labeled_count": output_validation["human_labeled_count"],
+        "target_source": "human_review",
+        "input_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "output_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
     }
 
 

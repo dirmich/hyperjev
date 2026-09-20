@@ -1590,3 +1590,24 @@ evaluator의 synthetic gate는 통과했지만 human label gate 때문에
 `production_ready=false`다. pair가 제한된 템플릿에서 생성되었으므로 이
 100%는 새 게임/로봇 scene의 100%가 아니다. 다음 단계는 seed+hard-negative
 혼합 학습과 독립 human test를 분리해 재현하는 것이다.
+
+### 14.29 human target materialization (v1.51.0)
+
+human review 결과가 평가에는 반영되지만 trainer가 원래의 synthetic `target`을
+읽을 수 있던 경로를 차단하기 위해 `control materialize`를 추가했다.
+
+```bash
+uv run hyperjev control materialize \
+  --input runs/control/control-reviewed.jsonl \
+  --output runs/control/control-human-target.jsonl
+```
+
+명령은 `labels.human`을 control registry의 choice schema로 검증하고, 선택값을
+새 dataset의 `target`으로 복사한다. 원본 queue는 변경하지 않으며, 새 row에는
+`provenance.target_source=human_review`와 `materialized_from_target`가 남는다.
+미검수 queue는 기본적으로 실패한다.
+
+8개 control skill seed를 사람이 검수한 temporary smoke에서 CLI 결과는
+`sample_count=8`, `human_labeled_count=8`, `target_source=human_review`였다.
+이는 label plumbing 회귀 증거이며 정확도 결과가 아니다. 실제 99% gate에는
+독립 semantic group의 human validation/test와 checkpoint 재학습이 필요하다.
