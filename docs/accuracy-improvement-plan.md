@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.99.0
+현재 버전: 1.100.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1056,3 +1056,24 @@ uv run hyperjev control review-status \
 독립적으로 label하고, 전체 queue를 완료한 후에만 materialize와 human-only
 training으로 넘어간다. status 명령은 정확도를 대신하지 않으며, 단지 human gate의
 외부 상태를 재현 가능하게 관측한다.
+
+### v1.100.0 500-case safety latency replay
+
+v1.96에서 만든 500개 safety matrix를 `control simulate`에 직접 넣어 latency와
+fail-closed 동작을 동시에 검증했다.
+
+```bash
+uv run hyperjev control simulate \
+  --checkpoint /tmp/control-combined-boundary-100ep.pt \
+  --scenarios tests/golden/control_safety_500.jsonl \
+  --max-p95-ms 5 \
+  --max-p99-ms 5 \
+  --fail-on-mismatch \
+  --output /tmp/control-safety500-latency.json
+```
+
+실제 결과는 500/500 accuracy, safe STOP recall 500/500, p95 `0.000960 ms`,
+p99 `0.001503 ms`, max `0.022800 ms`였고 5ms p95/p99 gate를 통과했다. 이 수치는
+local CPU 순차 replay이므로 DGX Spark 동시성, memory context, teacher fallback을
+포함한 production latency 증거로 승격하지 않는다. 다만 safety recall과 bounded
+latency를 같은 500-case matrix에서 동시에 회귀 검증할 수 있는 기준선이 생겼다.

@@ -2834,3 +2834,32 @@ uv run hyperjev control review-status \
 
 이 결과는 현재 human-label 외부 상태를 명확히 고정한다. control action accuracy
 99%는 아직 측정되지 않았고, safety 500/500 결과만으로 대체하지 않는다.
+
+### 14.77 500-case safety latency replay (v1.100.0)
+
+실행 명령:
+
+```bash
+uv run hyperjev control simulate \
+  --checkpoint /tmp/control-combined-boundary-100ep.pt \
+  --scenarios tests/golden/control_safety_500.jsonl \
+  --max-p95-ms 5 \
+  --max-p99-ms 5 \
+  --fail-on-mismatch \
+  --output /tmp/control-safety500-latency.json
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| replay count | `500` |
+| action accuracy | `500/500 (100%)` |
+| expected safe STOP | `500` |
+| safe STOP recall | `500/500 (100%)` |
+| p50 / p95 / p99 / max | `0.000880 / 0.000960 / 0.001503 / 0.022800 ms` |
+| p95/p99 threshold | `5 / 5 ms` |
+| latency gate | 통과 |
+| process exit | `0` |
+| test type | local CPU sequential replay |
+
+이 결과는 safety interlock과 latency의 회귀 기준선이다. human control accuracy와
+DGX Spark 동시성 성능을 증명하지 않는다.

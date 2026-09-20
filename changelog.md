@@ -3,6 +3,14 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — 500-case safety latency replay (v1.100.0)
+
+- 500개 safety matrix를 `control simulate`로 실제 replay했다.
+- 결과는 accuracy `500/500`, safe STOP recall `500/500`, p95 `0.000960 ms`,
+  p99 `0.001503 ms`, max `0.022800 ms`였다.
+- local CPU sequential replay가 5ms p95/p99 gate를 통과했으며, DGX 동시성
+  production benchmark와는 구분해 기록했다.
+
 ## 2026-09-21 — review progress and held-out readiness status (v1.99.0)
 
 - `control review-status`를 추가해 feedback queue의 전체/분할별 coverage,
