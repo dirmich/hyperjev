@@ -2598,3 +2598,24 @@ confidence가 높은 Student 오류를 놓치지 않도록 Student prediction과
 불일치는 teacher 정답률이 아니라 human 검수 우선순위 신호다. 따라서
 `review-finalize`와 adjudication을 거친 human label만 학습 target으로
 사용한다.
+
+### 14.66 action별 dual-review agreement 진단 (v1.88.0)
+
+`compare_control_reviews` manifest를 `control-dual-review-v2`로 올리고
+`label_agreement_by_action`을 추가했다. 이 값은 synthetic target을 읽거나
+teacher prediction을 정답 처리하지 않고, 두 blind reviewer의 typed correction
+만 비교한다.
+
+예를 들어 한 pair에서 `STOP → STOP`과 `RETREAT → MOVE`가 발생하면 `STOP`에는
+agreement 1건, `RETREAT`와 `MOVE`에는 disagreement 1건씩 기록된다. 따라서
+다음 human review의 우선순위를 action boundary 단위로 잡을 수 있지만, 이 값은
+accuracy가 아니며 disagreement 양쪽 action에 중복 반영된다.
+
+| 검증 항목 | 결과 |
+| --- | --- |
+| manifest schema | `control-dual-review-v2` |
+| action별 지표 | reviewer count, comparable, agreement/disagreement, rate |
+| synthetic target 사용 | 없음 |
+| teacher output 사용 | 없음 |
+| targeted review-pack test | `15 passed` |
+| human label / production gate | `0` / `false` |

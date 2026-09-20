@@ -404,6 +404,7 @@ def compare_control_reviews(
     queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
     items: list[dict[str, Any]] = []
     pair_counts: dict[str, int] = {}
+    action_agreement: dict[str, dict[str, int]] = {}
     agreement_count = 0
     disagreement_count = 0
     missing_count = 0
@@ -426,6 +427,25 @@ def compare_control_reviews(
             second_value = str(second_correction.get("selected", second_correction.get("value", "")))
             pair = f"{first_value}->{second_value}"
             pair_counts[pair] = pair_counts.get(pair, 0) + 1
+            for action, reviewer_key in (
+                (first_value, "reviewer_a_count"),
+                (second_value, "reviewer_b_count"),
+            ):
+                stats = action_agreement.setdefault(
+                    action,
+                    {
+                        "reviewer_a_count": 0,
+                        "reviewer_b_count": 0,
+                        "agreement_count": 0,
+                        "disagreement_count": 0,
+                    },
+                )
+                stats[reviewer_key] += 1
+            if first_value == second_value:
+                action_agreement[first_value]["agreement_count"] += 1
+            else:
+                action_agreement[first_value]["disagreement_count"] += 1
+                action_agreement[second_value]["disagreement_count"] += 1
         items.append(
             {
                 "record_type": "control_dual_review_item",
@@ -461,7 +481,7 @@ def compare_control_reviews(
     comparable_count = agreement_count + disagreement_count
     manifest = {
         "record_type": "control_dual_review_manifest",
-        "review_version": "control-dual-review-v1",
+        "review_version": "control-dual-review-v2",
         "created_at": _utc_now(),
         "queue_path": str(queue.resolve()),
         "queue_sha256": queue_sha256,
@@ -483,6 +503,20 @@ def compare_control_reviews(
         ),
         "target_excluded": True,
         "label_pair_counts": dict(sorted(pair_counts.items())),
+        "label_agreement_by_action": {
+            action: {
+                **stats,
+                "comparable_count": stats["agreement_count"] + stats["disagreement_count"],
+                "agreement_rate": round(
+                    stats["agreement_count"]
+                    / (stats["agreement_count"] + stats["disagreement_count"]),
+                    6,
+                )
+                if stats["agreement_count"] + stats["disagreement_count"]
+                else None,
+            }
+            for action, stats in sorted(action_agreement.items())
+        },
     }
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)

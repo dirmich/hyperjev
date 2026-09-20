@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.87.0
+현재 버전: 1.88.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -837,3 +837,24 @@ teacher와 Student 중 어느 쪽도 자동 정답으로 승격하지 않는다.
 올리는 active-learning 입력이다. disagreement 수 자체는 teacher 정확도를
 의미하지 않으므로, adjudicated human result로 확인한 뒤에만 학습 데이터에
 반영한다.
+
+### v1.88.0 action별 dual-review agreement 진단
+
+blind dual review의 전체 agreement rate만으로는 어떤 control action 경계가
+검수자를 갈라놓는지 알 수 없다. `control review-agreement` manifest에
+`label_agreement_by_action`을 추가해 각 reviewer가 선택한 typed action별로
+다음 수치를 기록한다.
+
+- `reviewer_a_count`, `reviewer_b_count`: 해당 action을 선택한 횟수
+- `agreement_count`, `disagreement_count`: 해당 action이 포함된 comparable pair의
+  일치·불일치 횟수
+- `comparable_count`, `agreement_rate`: action별 검수 집중도
+
+이 통계는 blind reviewer 입력만으로 계산하며 synthetic `target`, Qwen/Gemma
+출력은 사용하지 않는다. 따라서 이것은 action boundary를 어디부터 human
+adjudication할지 정하는 active-review 지표이지 정확도·정답률·production gate가
+아니다. 한 disagreement pair는 양쪽 action의 `disagreement_count`에 모두
+반영되므로 전체 pair 수와 합산하지 않는다.
+
+다음 실제 human review에서는 이 표의 낮은 agreement action을 우선 표본화하고,
+adjudication이 끝난 뒤에만 materialized target과 held-out human test를 갱신한다.

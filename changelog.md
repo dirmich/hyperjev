@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — action별 dual-review agreement 진단 (v1.88.0)
+
+- `control review-agreement` manifest에 `label_agreement_by_action`을 추가해
+  reviewer가 선택한 action별 comparable/agreement/disagreement 수와 agreement
+  rate를 기록한다.
+- 이 지표는 synthetic target이나 teacher를 정답으로 사용하지 않는 blind review
+  집중도 진단이며, accuracy나 production gate로 해석하지 않는다.
+- 실제 human 라벨이 없는 상태의 production gate는 여전히 false다.
+- targeted review-pack 테스트 `15 passed`; 전체 suite와 Ruff를 version bump 후
+  다시 실행한다.
+
 ## 2026-09-21 — held-out human test gate (v1.84.0)
 
 - `evaluate_control_quality.py --require-human-test`를 추가해 held-out test의

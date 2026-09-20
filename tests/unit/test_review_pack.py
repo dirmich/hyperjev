@@ -721,6 +721,18 @@ class ReviewPackTests(unittest.TestCase):
         self.assertTrue(compared["manifest"]["agreement_gate"])
         self.assertEqual(compared["manifest"]["agreement_count"], 1)
         self.assertEqual(compared["manifest"]["disagreement_count"], 1)
+        self.assertEqual(
+            compared["manifest"]["label_agreement_by_action"]["STOP"]["agreement_rate"],
+            1.0,
+        )
+        self.assertEqual(
+            compared["manifest"]["label_agreement_by_action"]["RETREAT"]["disagreement_count"],
+            1,
+        )
+        self.assertEqual(
+            compared["manifest"]["label_agreement_by_action"]["MOVE"]["disagreement_count"],
+            1,
+        )
         self.assertEqual(adjudication_report["adjudicated_count"], 1)
         self.assertTrue(finalized["ready"])
         self.assertEqual(finalized["sample_count"], 2)
