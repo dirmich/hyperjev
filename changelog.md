@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — reproducible control fast-path evaluator (v1.74.0)
+
+- `scripts/evaluate_control_fast_path.py`를 추가해 queue SHA, resolved coverage,
+  source count, p50/p95/p99/max/mean latency, synthetic target, human target을
+  한 report로 재현한다.
+- hard-negative 1,000행 report는 coverage `100%`, synthetic match `100%`,
+  latency p50/p95/p99 `13.488/15.408/17.2µs`였다.
+- human label `0/1000`, `human_label_gate=false`, `production_ready=false`를
+  report에 고정했다. `--require-full-coverage`는 unresolved row를 실패시킨다.
+- 검증: 전체 `132 passed, 1 skipped`, Ruff, diff check, 실제 hard-negative
+  evaluator 실행.
+
 ## 2026-09-21 — control fast-path contradiction blockers (v1.73.0)
 
 - fast path의 substring 오탐을 줄이기 위해 skill별 contradiction blocker를

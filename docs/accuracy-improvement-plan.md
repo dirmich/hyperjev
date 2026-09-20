@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.73.0
+현재 버전: 1.74.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -254,6 +254,14 @@ blocker를 추가했다. 예를 들어 `no hazard is present`를 `hazard is pres
 앞에 있지만 안전하게 접근할 수 없다”와 “안정 자세지만 emergency hazard가 있다”
 반례가 model/safety 경로로 우회되는 회귀 테스트를 추가했다. 이 단계의 목적은
 coverage를 늘리는 것이 아니라 규칙 false-positive를 낮추는 것이다.
+
+v1.74.0에서는 `scripts/evaluate_control_fast_path.py`를 추가해 fast path의
+coverage, source별 처리량, p50/p95/p99/max/mean latency, synthetic target과
+human target을 분리한 report를 재현한다. hard-negative report는 queue SHA
+`f88cec23d06b1bae9c688bcc5f3cea4dc3b68912980b43e98c8d72fd986e5f0d`에서
+coverage `100%`, synthetic match `100%`, p50/p95/p99 `13.488/15.408/17.2µs`를
+기록했다. human label은 `0/1000`이고 `production_ready=false`이며, `--require-full-coverage`
+는 unresolved model row가 생기면 실패한다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적

@@ -2122,6 +2122,35 @@ skill별 blocker를 구체적인 contradiction phrase로 좁혔고, 다음 negat
 typed Student 또는 safety fallback이 판단하도록 남겨 false-positive 비용을
 낮춘다.
 
+### 14.52 reproducible fast-path evaluator (v1.74.0)
+
+ad-hoc Python 측정을 저장소 스크립트로 고정했다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --output /tmp/control-fast-path-report.json \
+  --require-full-coverage
+```
+
+| field | result |
+| --- | ---: |
+| queue SHA-256 | `f88cec23d06b1bae9c688bcc5f3cea4dc3b68912980b43e98c8d72fd986e5f0d` |
+| rows / resolved | 1,000 / 1,000 |
+| coverage | 100.00% |
+| source counts | `control-rule=750`, `safety-rule=250` |
+| synthetic target match | 1,000/1,000 (100.00%) |
+| latency p50 / p95 / p99 | 13.488 / 15.408 / 17.200µs |
+| latency max / mean | 28.032 / 11.142µs |
+| human labels | 0/1,000 |
+| human label gate / production | false / false |
+
+평가기는 target을 rule 입력으로 사용하지 않고 결과 검증에만 사용한다. human
+label이 있으면 synthetic target과 별도 metric으로 계산하며, human gate가 없으면
+항상 `production_ready=false`를 출력한다. 따라서 이 결과는 synthetic phrase
+queue의 deterministic coverage와 local CPU 비용을 재현하는 자료이지, 실제
+게임/로봇 장면의 99% 정확도 증거가 아니다.
+
 ### 14.46 pair-collision active review priority (v1.68.0)
 
 hard-negative Qwen 결과의 confidence 분포를 오류 여부와 분리해 분석했다.
