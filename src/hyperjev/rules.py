@@ -28,12 +28,22 @@ _COMMITMENT_TERMS = (
     "원한다",
     "기로",
     "prefer",
-    "want",
     "would like",
     "we decided",
     "will ",
     "must ",
     "remember",
+)
+_NEGATED_COMMITMENT_TERMS = (
+    "don't want",
+    "do not want",
+    "would not like",
+    "not prefer",
+    "원하지",
+    "싶지",
+    "않기로",
+    "하지 않기로",
+    "결정하지",
 )
 _GREETING_TERMS = ("안녕", "반가", "고마워", "감사", "hello", "hi", "thanks", "thank you")
 _STYLE_TERMS = ("제목", "title", "스타일", "style", "서식", "format", "공백", "spacing", "문법")
@@ -52,6 +62,12 @@ def match_rule(task: TaskDefinition, *, state: str, question: str) -> RuleMatch 
     text = state.strip()
     lowered = text.lower()
     if task.id == "memory.remember_worthy":
+        if any(term in lowered for term in _NEGATED_COMMITMENT_TERMS):
+            return RuleMatch(
+                rule_id="remember.explicit_rejection",
+                result=BooleanDecision(value=False, probability=0.97),
+                reason="explicit_request_not_to_retain_or_negated_commitment",
+            )
         if any(term in lowered for term in _GREETING_TERMS) and not any(
             term in lowered for term in _COMMITMENT_TERMS
         ) and len(text) <= 120:

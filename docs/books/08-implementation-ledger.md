@@ -70,6 +70,7 @@
 | 1.34.0 | 진행 중 | source group 부재 시 내용 기반 split으로 leakage 방지 |
 | 1.35.0 | 진행 중 | human-target checkpoint의 train/validation/test split 평가 기록 |
 | 1.36.0 | 진행 중 | Student unique exact-group 평가 CLI와 group 수 report |
+| 1.37.0 | 진행 중 | remember 부정/과거형 반례와 high-precision rule 회귀 테스트 |
 
 ## 다음 기록 규칙
 

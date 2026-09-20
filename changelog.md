@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — high-precision remember rule negatives (v1.37.0)
+
+- `want` 단독 substring을 commitment로 취급하지 않도록 제거했다. 과거
+  일회성 사건인 `I wanted noodles...`가 장기 기억으로 잘못 승격될 수 있기
+  때문이다.
+- `I don't want...`, `원하지...`, `싶지...`, `않기로...` 같은 명시적 거부는
+  `remember.explicit_rejection`으로 먼저 false 처리한다.
+- human unique-group 재평가는 계속 `36/36 correct`, accepted `29/29`였고,
+  부정/과거형 반례 회귀 테스트를 추가한 뒤 전체 테스트는 83 passed였다.
+
 ## 2026-09-20 — unique-group Student evaluation (v1.36.0)
 
 - `student evaluate --deduplicate-exact`를 추가해 exact semantic group당

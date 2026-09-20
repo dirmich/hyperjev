@@ -160,6 +160,23 @@ class RoutingTests(unittest.TestCase):
         self.assertTrue(preference.result.value)  # type: ignore[union-attr]
         self.assertIsNone(ephemeral)
 
+    def test_remember_rule_handles_explicit_rejection_before_commitment_terms(self) -> None:
+        task = self.registry.get("memory.remember_worthy", 1)
+        rejection = match_rule(
+            task,
+            state="I don't want this temporary note saved.",
+            question="Is this worth long-term memory?",
+        )
+        past_event = match_rule(
+            task,
+            state="I wanted noodles for lunch today.",
+            question="Is this worth long-term memory?",
+        )
+        self.assertIsNotNone(rejection)
+        self.assertEqual(rejection.rule_id, "remember.explicit_rejection")  # type: ignore[union-attr]
+        self.assertFalse(rejection.result.value)  # type: ignore[union-attr]
+        self.assertIsNone(past_event)
+
     def test_qwen_acceptance_does_not_call_gemma(self) -> None:
         qwen = _FakeClient('{"type":"score","value":0.86,"interval_90":[0.8,0.9]}')
         gemma = _FakeClient('{"type":"score","value":0.2,"interval_90":[0.1,0.3]}')

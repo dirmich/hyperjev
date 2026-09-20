@@ -1218,3 +1218,20 @@ uv run hyperjev student evaluate \
 task별로는 6개 task가 모두 `6/6`이었다. 다만 이는 동일 fixture의 36개
 의미 group에 대한 결과이며, 실제 제품의 99% gate에는 충분한 독립 human
 golden group, 새로운 domain/language, calibration set이 추가로 필요하다.
+
+### 14.14 remember rule의 false-positive 방어
+
+정확도를 올릴 때 단어 목록을 무작정 넓히면 false positive가 늘 수 있으므로
+다음 회귀 사례를 고정했다.
+
+| 입력 state | 기대 rule 결과 |
+| --- | --- |
+| `I would like to see a code example first.` | explicit commitment → true |
+| `I don't want this temporary note saved.` | explicit rejection → false |
+| `I wanted noodles for lunch today.` | no rule match → Student/fallback |
+| `다음 분기부터 배포 승인 절차를 바꾸기로 했다.` | explicit commitment → true |
+| `나는 답변을 받을 때 코드 예제를 먼저 보고 싶다.` | explicit commitment → true |
+
+부정 표현은 commitment detection보다 먼저 적용하며, `want` 단독 단어는
+rule 신호에서 제외했다. 이 보정 후에도 unique 36 group 결과는 `36/36`
+정확도와 `29/29` accepted accuracy를 유지했다.
