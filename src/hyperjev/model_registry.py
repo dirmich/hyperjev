@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -32,6 +34,87 @@ def _now() -> str:
 
 def _empty_state() -> dict[str, Any]:
     return {"models": {}, "active_model": None, "events": []}
+
+
+def build_model_manifest(
+    training_plan: Mapping[str, Any],
+    calibration: Mapping[str, Any],
+    checkpoint_path: str | Path,
+    *,
+    git_commit: str,
+    runtime: str = "pytorch",
+    status: str = "trained",
+    model_id: str | None = None,
+) -> dict[str, Any]:
+    """Build a registry manifest from validated training and calibration artifacts."""
+
+    if not isinstance(training_plan, Mapping) or not isinstance(calibration, Mapping):
+        raise ModelRegistryError("training plan and calibration must be objects")
+    if training_plan.get("record_type") != "training_plan":
+        raise ModelRegistryError("training plan must have record_type=training_plan")
+    if calibration.get("record_type") != "calibration_manifest":
+        raise ModelRegistryError("calibration must have record_type=calibration_manifest")
+    if not git_commit.strip():
+        raise ModelRegistryError("git_commit must not be empty")
+    if not runtime.strip():
+        raise ModelRegistryError("runtime must not be empty")
+    if status not in STATUSES:
+        raise ModelRegistryError(f"unsupported manifest status: {status}")
+    dataset = training_plan.get("dataset")
+    student = training_plan.get("student")
+    training = training_plan.get("training")
+    if not isinstance(dataset, Mapping) or not isinstance(student, Mapping) or not isinstance(training, Mapping):
+        raise ModelRegistryError("training plan must contain dataset and student objects")
+    dataset_hash = str(dataset.get("sha256", ""))
+    if len(dataset_hash) != 64 or any(character not in "0123456789abcdef" for character in dataset_hash.lower()):
+        raise ModelRegistryError("training plan dataset sha256 is invalid")
+    heads = student.get("heads")
+    if not dataset_hash or not isinstance(heads, list) or not heads:
+        raise ModelRegistryError("training plan dataset hash and student heads are required")
+    tasks: dict[str, list[int]] = {}
+    for head in heads:
+        if not isinstance(head, Mapping):
+            raise ModelRegistryError("student heads must contain objects")
+        task_id = str(head.get("task_id", ""))
+        try:
+            version = int(head.get("task_version", 0))
+        except (TypeError, ValueError) as exc:
+            raise ModelRegistryError("student head task_version must be an integer") from exc
+        if not task_id or version < 1:
+            raise ModelRegistryError("student head task_id and task_version are required")
+        if task_id in tasks:
+            raise ModelRegistryError(f"duplicate student head task_id: {task_id}")
+        tasks[task_id] = [version]
+    calibration_version = str(calibration.get("calibration_version", ""))
+    if not calibration_version:
+        raise ModelRegistryError("calibration_version is required")
+    precision = str(training.get("precision", ""))
+    if not precision:
+        raise ModelRegistryError("training precision is required")
+    checkpoint = Path(checkpoint_path)
+    if not checkpoint.is_file():
+        raise ModelRegistryError(f"checkpoint not found: {checkpoint}")
+    try:
+        checkpoint_sha256 = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise ModelRegistryError(f"cannot read checkpoint: {checkpoint}") from exc
+    selected_model_id = model_id or str(student.get("model_id", ""))
+    base_model = str(student.get("backbone", ""))
+    if not selected_model_id or not base_model:
+        raise ModelRegistryError("model_id is required")
+    return {
+        "model_id": selected_model_id,
+        "base_model": base_model,
+        "dataset_hash": dataset_hash,
+        "git_commit": git_commit,
+        "tasks": tasks,
+        "calibration_version": calibration_version,
+        "runtime": runtime,
+        "precision": precision,
+        "status": status,
+        "checkpoint_path": str(checkpoint.resolve()),
+        "checkpoint_sha256": checkpoint_sha256,
+    }
 
 
 class ModelRegistry:

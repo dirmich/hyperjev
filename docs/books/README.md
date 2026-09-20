@@ -40,11 +40,12 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.14.1까지 진행되어 있다. Python 테스트 60개와
+현재 `main`은 origin에 push될 1.15.0까지 진행되어 있다. Python 테스트 63개와
 Ruff 검사가 통과한 상태이며, dataset validator와 training plan, optional
 reference train CLI, 그리고 parent LLM 대 HyperJev 경계의 성능 시험 기록까지
-완료됐다. 실제 사람 검수 golden set, Gemma live baseline 전수 실행, production
-PyTorch checkpoint 학습, Student inference benchmark, Rust toolchain compile은
+완료됐다. training plan·calibration·checkpoint를 registry manifest로 묶는
+contract도 추가됐다. 실제 사람 검수 golden set, Gemma live baseline 전수 실행,
+production PyTorch checkpoint 학습, Student inference benchmark, Rust toolchain compile은
 이 책에서 성공했다고 가장하지 않고 외부 의존성 gate로 표시한다. 상세 결과는
 [`docs/test_result.md`](../test_result.md)에 있다.
 

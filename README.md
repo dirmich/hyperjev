@@ -24,6 +24,8 @@ workflow:
 - privacy-safe decision cache, model promotion registry, and drift monitoring.
 - append-only typed golden review feedback and reviewed-queue generation.
 - typed quality/calibration metrics and a validated training plan/reference run.
+- model manifest generation that binds training plan, calibration, checkpoint hash,
+  and git provenance before registry registration.
 - a maintained implementation book under `docs/books/`.
 
 The human-reviewed 1,000-sample golden set and the measured teacher baseline
@@ -40,6 +42,11 @@ uv run hyperjev registry validate
 uv run hyperjev teacher check
 uv run hyperjev benchmark --dry-run --limit 1
 uv run hyperjev calibrate --input heldout-logits.json --output runs/phase3/calibration.json
+uv run hyperjev model manifest --training-plan runs/phase3/training-plan.json \
+  --calibration runs/phase3/calibration.json \
+  --checkpoint runs/phase3/reference-student.pt \
+  --git-commit "$(git rev-parse HEAD)" \
+  --output runs/phase6/model-manifest.json
 uv run hyperjev serve --host 127.0.0.1 --port 6777
 uv run hyperjev serve --mode router --host 127.0.0.1 --port 6777
 ```
@@ -84,3 +91,5 @@ synthetic targets never count as human review.
 
 The step-by-step engineering record is maintained in
 [`docs/books/README.md`](docs/books/README.md).
+The live parent/teacher performance evidence is maintained in
+[`docs/test_result.md`](docs/test_result.md).

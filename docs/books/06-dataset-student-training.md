@@ -108,3 +108,26 @@ training plan
 
 checkpoint 파일이 없는데 model registry를 active로 만들지 않는다. 이 원칙은
 개발 속도보다 재현성과 운영 안전성을 우선하는 HyperJev의 핵심이다.
+
+## 6.5 Training plan에서 registry manifest로
+
+checkpoint가 실제로 생성되고 calibration manifest가 준비되면 두 artifact를
+git provenance와 함께 registry manifest로 묶는다.
+
+```bash
+uv run hyperjev model manifest \
+  --training-plan runs/phase3/training-plan.json \
+  --calibration runs/phase3/calibration.json \
+  --checkpoint runs/phase3/reference-student.pt \
+  --git-commit "$(git rev-parse HEAD)" \
+  --output runs/phase6/model-manifest.json
+```
+
+이 명령은 checkpoint SHA-256을 다시 계산하고, training plan의 dataset hash와
+typed head/task version, calibration version, precision을 manifest에 고정한다.
+따라서 파일 이름이나 최신 파일 선택만으로 모델을 식별하지 않는다. 생성된
+manifest를 registry에 등록한 뒤에도 lifecycle은 `trained → evaluated →
+calibrated → candidate → canary → active` 순서의 명시적 전이를 따른다.
+현재 host에는 production checkpoint를 만들 PyTorch가 없으므로 이 경로의
+contract와 dependency gate만 검증되어 있으며, 실제 DGX checkpoint 등록은
+아직 외부 실행 gate다.

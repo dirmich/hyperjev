@@ -21,7 +21,7 @@ from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
 from .golden import append_golden_feedback, apply_golden_feedback, generate_review_queue
 from .mock_server import serve
-from .model_registry import ModelRegistry
+from .model_registry import STATUSES, ModelRegistry, build_model_manifest
 from .registry import RegistryError, TaskRegistry
 from .routing import DecisionRouter
 from .student import StudentConfig, student_manifest
@@ -309,6 +309,26 @@ def _model_register(args: argparse.Namespace) -> int:
     return 0
 
 
+def _model_manifest(args: argparse.Namespace) -> int:
+    training_plan = json.loads(Path(args.training_plan).read_text(encoding="utf-8"))
+    calibration = json.loads(Path(args.calibration).read_text(encoding="utf-8"))
+    manifest = build_model_manifest(
+        training_plan,
+        calibration,
+        args.checkpoint,
+        git_commit=args.git_commit,
+        runtime=args.runtime,
+        status=args.status,
+        model_id=args.model_id,
+    )
+    if args.output:
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps(manifest, ensure_ascii=False))
+    return 0
+
+
 def _model_promote(args: argparse.Namespace) -> int:
     record = _model_registry(args).transition(args.model_id, args.to, reason=args.reason)
     print(json.dumps(record, ensure_ascii=False))
@@ -489,6 +509,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     model = subparsers.add_parser("model")
     model_subparsers = model.add_subparsers(dest="model_command", required=True)
+    model_manifest = model_subparsers.add_parser("manifest")
+    model_manifest.add_argument("--training-plan", required=True)
+    model_manifest.add_argument("--calibration", required=True)
+    model_manifest.add_argument("--checkpoint", required=True)
+    model_manifest.add_argument("--git-commit", required=True)
+    model_manifest.add_argument("--runtime", default="pytorch")
+    model_manifest.add_argument("--status", choices=STATUSES, default="trained")
+    model_manifest.add_argument("--model-id")
+    model_manifest.add_argument("--output")
+    model_manifest.set_defaults(handler=_model_manifest)
     model_register = model_subparsers.add_parser("register")
     _config_argument(model_register)
     model_register.add_argument("--registry")

@@ -33,6 +33,9 @@
 | 1.13.0 | `3fd213a` | Gemma generation timeout을 900초로 확장 |
 | 1.13.1 | `2064058` | Gemma timeout 결과와 운영 gate 문서화 |
 | 1.13.2 | `f8a2333` | 최종 release gate checklist 장 추가 |
+| 1.13.3 | `ac30dc9` | 구현 일지와 책 원고 ledger 정리 |
+| 1.14.0 | `87a77d5` | calibration manifest CLI |
+| 1.14.1 | `8b2d067` | parent LLM/rule/mock 성능 결과 문서화 |
 
 ## 다음 기록 규칙
 
