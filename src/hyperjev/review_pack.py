@@ -109,6 +109,18 @@ def _prioritize_review_items(items: list[dict[str, Any]]) -> list[dict[str, Any]
     return ordered
 
 
+def _priority_stats(items: list[dict[str, Any]]) -> dict[str, int]:
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for item in items:
+        groups.setdefault(_counterfactual_group(item), []).append(item)
+    collision_groups = [group for group in groups.values() if _is_teacher_collision(group)]
+    return {
+        "counterfactual_group_count": len(groups),
+        "collision_group_count": len(collision_groups),
+        "collision_item_count": sum(len(group) for group in collision_groups),
+    }
+
+
 def export_review_pack(
     queue_path: str | Path,
     draft_path: str | Path,
@@ -166,6 +178,7 @@ def export_review_pack(
         "raw_inputs_included": True,
         "target_excluded": True,
         "priority_order": "uncertain_first" if prioritize else "queue_order",
+        "priority_stats": None,
     }
     output_records: list[dict[str, Any]] = [pack_manifest]
     for sample in samples:
@@ -209,6 +222,7 @@ def export_review_pack(
             }
         )
     if prioritize:
+        pack_manifest["priority_stats"] = _priority_stats(output_records[1:])
         output_records[1:] = _prioritize_review_items(output_records[1:])
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)

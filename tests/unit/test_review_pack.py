@@ -172,6 +172,8 @@ class ReviewPackTests(unittest.TestCase):
         self.assertEqual(group_ids[:2], [group_ids[0], group_ids[0]])
         self.assertEqual(group_ids[2:], [group_ids[2], group_ids[2]])
         self.assertEqual(records[0]["priority_order"], "uncertain_first")
+        self.assertEqual(records[0]["priority_stats"]["counterfactual_group_count"], 2)
+        self.assertEqual(records[0]["priority_stats"]["collision_group_count"], 0)
         self.assertNotIn('"target"', output_text)
 
     def test_pack_includes_context_but_excludes_target(self) -> None:

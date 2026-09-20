@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — review priority statistics manifest (v1.69.0)
+
+- prioritized review pack manifest에 `counterfactual_group_count`,
+  `collision_group_count`, `collision_item_count`를 기록한다.
+- operator가 JSONL 순서를 다시 분석하지 않아도 active-review 범위와 검수량을
+  확인할 수 있다. 기본 queue order에서는 `priority_stats=null`을 유지한다.
+- 실제 Qwen hard-negative 결과는 500 groups, 167 collision groups, 334 items다.
+- 검증: review 테스트 10개, 실제 CLI manifest, Ruff, diff check 통과.
+
 ## 2026-09-21 — pair-collision priority for overconfident teacher errors (v1.68.0)
 
 - confidence만으로 정렬하면 Qwen hard-negative의 HOLD 오답 83건이 confidence

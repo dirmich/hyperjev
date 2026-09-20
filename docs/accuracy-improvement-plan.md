@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.68.0
+현재 버전: 1.69.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -170,6 +170,12 @@ confidence `1.0`이었고 APPROACH 오답도 평균 `0.85`였다. 따라서 prob
 두 typed 결과가 같아지는 collision을 target 없이 계산해 최우선으로 올렸고,
 hard-negative 500 pair 중 167개가 이 조건에 걸렸다. 이 규칙은 calibration의
 대체가 아니라 semantic contradiction을 이용한 active-review 우선순위다.
+
+v1.69.0부터 priority manifest에 group/collision 통계를 함께 기록한다. 실제
+hard-negative manifest는 `counterfactual_group_count=500`,
+`collision_group_count=167`, `collision_item_count=334`이며, reviewer는 이 수치를
+보고 먼저 확인할 active-review 범위를 결정할 수 있다. 기본 queue order에서는
+통계를 null로 남겨 기존 artifact의 의미를 바꾸지 않는다.
 
 v1.67.0에서 generic `golden review-pack`에도 같은 `--prioritize` flag를
 노출했다. control registry와 generic memory registry를 별도 유지하되, human

@@ -1979,6 +1979,26 @@ choice는 후보 probability의 최댓값, boolean은 선택된 값의 probabili
 | human labels after this step | 0/1000 |
 | production eligible | false |
 
+### 14.47 priority statistics manifest (v1.69.0)
+
+priority 정렬을 사용한 review pack manifest에 다음 통계를 추가했다.
+
+```json
+{
+  "priority_order": "uncertain_first",
+  "priority_stats": {
+    "counterfactual_group_count": 500,
+    "collision_group_count": 167,
+    "collision_item_count": 334
+  }
+}
+```
+
+실제 Qwen hard-negative CLI 생성 결과가 위와 일치했다. 기본 queue order를
+사용하면 `priority_stats=null`이어서 기존 review artifact와의 의미 호환성을
+유지한다. 통계는 우선 검수 대상의 양을 보여줄 뿐 human label을 만들거나
+production accuracy를 상승시킨 것으로 해석하지 않는다.
+
 이 단계는 검수자의 시간을 오류 가능성이 높은 항목에 먼저 배분하는 운영 개선이다.
 정렬 자체는 label을 생성하지 않으며, 다음 gate는 사람이 state/question을 확인해
 `control review-session`으로 feedback을 기록하고, `apply-feedback` →

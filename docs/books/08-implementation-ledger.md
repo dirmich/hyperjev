@@ -102,6 +102,7 @@
 | 1.66.0 | 진행 중 | control CLI priority wiring과 실제 1,000건 pair/leakage smoke 검증 |
 | 1.67.0 | 진행 중 | generic golden review CLI에도 priority flag를 노출해 경로 정합성 확보 |
 | 1.68.0 | 진행 중 | overconfident teacher 오류를 잡는 counterfactual pair-collision priority |
+| 1.69.0 | 진행 중 | review manifest에 counterfactual/collision priority 통계 기록 |
 
 ## 다음 기록 규칙
 
