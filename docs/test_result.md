@@ -902,3 +902,18 @@ uv run hyperjev golden review-pack \\
   --output runs/phase1/qwen-golden-review-pack.jsonl \\
   --allow-raw
 ```
+
+실제 1,000건 pack 생성 결과:
+
+| 항목 | 결과 |
+| --- | --- |
+| pack lines | 1,001 (manifest 1 + item 1,000) |
+| pending human corrections | 1,000 |
+| raw state/question | 포함 |
+| synthetic target / queue labels | 제외 |
+| queue/draft hash binding | 통과 |
+| target/labels leakage scan | 통과 |
+
+생성된 pack은 `runs/phase1/qwen-golden-review-pack.jsonl`이며, 각 item을
+검수한 뒤 기존 `hyperjev golden review` 명령으로 typed correction을
+`runs/phase0/golden-feedback.jsonl`에 append한다.

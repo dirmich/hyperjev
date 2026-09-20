@@ -58,6 +58,7 @@
 | 1.25.1 | 진행 중 | Qwen prompt v2 20-sample 재시험 결과 |
 | 1.25.2 | 진행 중 | qwen38fn 1,000-sample draft 전체 실행과 task별 결과 |
 | 1.26.0 | 진행 중 | explicit raw local human review pack과 target leakage guard |
+| 1.26.1 | 진행 중 | 1,000-item Qwen review pack 생성 및 leakage scan |
 
 ## 다음 기록 규칙
 

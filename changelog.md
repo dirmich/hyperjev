@@ -3,6 +3,13 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — 1,000-item review pack generation (v1.26.1)
+
+- Qwen 1,000건 draft와 source queue를 join한 local review pack을 생성했다.
+- 1,000개 review item 모두 `pending`이며 `human_correction`은 비어 있다.
+- state/question은 포함했지만 `target`과 `labels` 키는 전체 파일에서 누출되지
+  않음을 검사했다.
+
 ## 2026-09-20 — local human review pack (v1.26.0)
 
 - `hyperjev golden review-pack`으로 teacher draft와 원문의 state/question을
