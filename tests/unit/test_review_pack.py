@@ -139,7 +139,7 @@ class ReviewPackTests(unittest.TestCase):
                 "\n".join(json.dumps(record) for record in draft_records) + "\n", encoding="utf-8"
             )
             export_review_pack(queue, draft, pack, registry, include_raw=True)
-            answers = iter(["a", "p", "e", '{"type":"boolean","value":false,"probability":1.0,"abstained":false}', "n", "a"])
+            answers = iter(["a", "p", "e", "false", "p", "n", "e", "decision"])
             report = run_review_session(
                 pack,
                 queue,
@@ -154,12 +154,17 @@ class ReviewPackTests(unittest.TestCase):
 
             applied = apply_golden_feedback(queue, feedback, reviewed, registry)
             feedback_lines = feedback.read_text(encoding="utf-8").splitlines()
+            reviewed_records = [
+                json.loads(line) for line in reviewed.read_text(encoding="utf-8").splitlines()
+            ]
 
         self.assertEqual(report["reviewed_count"], 2)
         self.assertEqual(report["pending_count"], 0)
         self.assertEqual(report["saved_in_session"], 3)
         self.assertEqual(len(feedback_lines), 3)
         self.assertEqual(applied["human_reviewed_count"], 2)
+        self.assertFalse(reviewed_records[0]["labels"]["human"]["value"])
+        self.assertEqual(reviewed_records[1]["labels"]["human"]["selected"], "decision")
 
 
 if __name__ == "__main__":

@@ -78,6 +78,8 @@ uv run hyperjev golden review-session \
   --reviewer dirmich
 ```
 
-키 입력은 `a`(draft 승인), `e`(typed JSON 수정), `n`(다음), `p`(이전),
+키 입력은 `a`(draft 승인), `e`(값 수정), `n`(다음), `p`(이전),
 `s`(보류), `q`(저장 후 종료)다. 승인·수정은 즉시 feedback에 append되며,
 이전에 저장된 item도 `p`로 돌아가 다시 수정할 수 있다.
+`e`를 누르면 boolean은 `true/false`, choice는 후보 문자열, score는 `0~1`
+숫자만 입력한다. JSON 전체를 작성할 필요가 없다.

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .contracts import parse_task_reference
 from .golden import append_golden_feedback
 from .registry import TaskRegistry
 from .samples import load_jsonl
@@ -135,6 +136,51 @@ def _feedback_by_sample(path: Path) -> dict[str, dict[str, Any]]:
     }
 
 
+def _correction_from_value(item: dict[str, Any], raw_value: str, registry: TaskRegistry) -> dict[str, Any]:
+    """Build a valid typed correction from one human-entered task value."""
+
+    task_id, task_version = parse_task_reference(str(item.get("task", "")))
+    task = registry.get(task_id, task_version)
+    value = raw_value.strip()
+    if not value:
+        raise ValueError("value must not be empty")
+    if task.output_type == "boolean":
+        normalized = {"true": True, "false": False, "yes": True, "no": False, "y": True, "n": False}
+        if value.lower() not in normalized:
+            raise ValueError("boolean value must be true or false")
+        return {
+            "type": "boolean",
+            "value": normalized[value.lower()],
+            "probability": 1.0,
+            "abstained": False,
+        }
+    if task.output_type == "choice":
+        candidates = [str(candidate) for candidate in task.output.get("candidates", [])]
+        selected = next((candidate for candidate in candidates if candidate.lower() == value.lower()), None)
+        if selected is None:
+            raise ValueError(f"choice value must be one of: {', '.join(candidates)}")
+        return {
+            "type": "choice",
+            "selected": selected,
+            "probabilities": {candidate: float(candidate == selected) for candidate in candidates},
+            "abstained": False,
+        }
+    if task.output_type == "score":
+        try:
+            score = float(value)
+        except ValueError as exc:
+            raise ValueError("score value must be a number between 0 and 1") from exc
+        if not 0.0 <= score <= 1.0:
+            raise ValueError("score value must be a number between 0 and 1")
+        return {
+            "type": "score",
+            "value": score,
+            "interval_90": [score, score],
+            "abstained": False,
+        }
+    raise ValueError(f"unsupported task output type: {task.output_type}")
+
+
 def run_review_session(
     review_pack_path: str | Path,
     queue_path: str | Path,
@@ -147,8 +193,8 @@ def run_review_session(
 ) -> dict[str, Any]:
     """Review a pack in one resumable session with next/previous navigation.
 
-    Commands are ``a`` (accept the displayed teacher draft), ``e`` (enter a
-    typed correction), ``n``/``p`` (next/previous), ``s`` (leave pending and
+    Commands are ``a`` (accept the displayed teacher draft), ``e`` (enter only
+    the corrected task value), ``n``/``p`` (next/previous), ``s`` (leave pending and
     move next), and ``q`` (save and quit). Every accepted or edited label is
     appended immediately; revising an earlier item appends a newer record that
     wins when feedback is applied.
@@ -223,12 +269,9 @@ def run_review_session(
             reason = "interactive review: reviewer accepted teacher draft"
         else:
             try:
-                correction = json.loads(input_fn("correction JSON: "))
-            except (json.JSONDecodeError, TypeError) as exc:
-                output_fn(f"Invalid JSON: {exc}")
-                continue
-            if not isinstance(correction, dict):
-                output_fn("Correction must be a JSON object.")
+                correction = _correction_from_value(item, input_fn("correct value: "), registry)
+            except (TypeError, ValueError) as exc:
+                output_fn(f"Invalid value: {exc}")
                 continue
             reason = "interactive review: reviewer entered correction"
         try:

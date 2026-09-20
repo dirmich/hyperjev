@@ -3,6 +3,13 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — value-only human correction input (v1.29.0)
+
+- interactive `e` 수정이 raw JSON 전체가 아니라 task에 맞는 값만 받도록
+  변경했다.
+- boolean은 `true/false`, choice는 registered candidate, score는 `0~1` 숫자를
+  입력하며 typed result와 probability/interval은 시스템이 생성한다.
+
 ## 2026-09-20 — navigable human review session (v1.28.0)
 
 - `golden review-session` 한 번으로 1,000건을 순차 검수할 수 있게 했다.
