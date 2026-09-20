@@ -141,3 +141,11 @@ v1.40.0의 48-sample synthetic smoke는 train `100%`였지만 validation
 `37.5%`, test `12.5%`에 불과했다. 따라서 latency `p50 0.128ms`만으로 제품
 적용을 선언하지 않는다. 현재 checkpoint는 reference encoder 실험 artifact이고,
 사람 라벨과 simulator gate 전에는 actuator 연결 금지 상태다.
+
+v1.41.0의 HyperMemory adapter는 `POST /v1/context`에서 compact context를
+prefetch하는 경계를 제공한다. context는 최대 8개 summary/2,048자이며, 이를
+실제 loop에 연결할 때는 memory timeout, cache hit, stale context age, context
+사용/미사용별 action accuracy를 분리해서 기록해야 한다. HyperMemory 장애가
+제어기를 멈추게 하지 않도록 bounded timeout 뒤에는 이전 context의 유효기간을
+검사하고, 유효하지 않으면 Student confidence gate와 safety shield를 거쳐
+STOP 또는 deterministic HOLD로 내려보낸다.

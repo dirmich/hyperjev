@@ -25,6 +25,40 @@ CONTROL_SKILLS = frozenset(
     }
 )
 CONTROL_QUESTION = "Select the next safe high-level control skill."
+MAX_MEMORY_CONTEXT_ITEMS = 8
+MAX_MEMORY_CONTEXT_CHARS = 2048
+
+
+@dataclass(frozen=True)
+class ControlMemoryContext:
+    """Bounded summaries prefetched from Hyper Memory outside the motor loop."""
+
+    summaries: tuple[str, ...]
+    source: str = "hypermemory"
+
+    def __post_init__(self) -> None:
+        if not self.source.strip():
+            raise ControlContractError("memory context source must not be empty")
+        if len(self.summaries) > MAX_MEMORY_CONTEXT_ITEMS:
+            raise ControlContractError("memory context contains too many summaries")
+        total_chars = 0
+        for summary in self.summaries:
+            if not isinstance(summary, str) or not summary.strip():
+                raise ControlContractError("memory summaries must be non-empty strings")
+            total_chars += len(summary)
+        if total_chars > MAX_MEMORY_CONTEXT_CHARS:
+            raise ControlContractError("memory context exceeds the bounded character limit")
+
+    @classmethod
+    def from_text(cls, text: str, *, source: str = "hypermemory") -> ControlMemoryContext:
+        """Convert a remote context response to one bounded model summary."""
+
+        if not isinstance(text, str) or not text.strip():
+            raise ControlContractError("memory context text must not be empty")
+        return cls((text.strip()[:MAX_MEMORY_CONTEXT_CHARS],), source=source)
+
+    def render(self) -> str:
+        return "\n".join(f"- {summary}" for summary in self.summaries)
 
 
 @dataclass(frozen=True)
@@ -37,6 +71,7 @@ class ControlObservation:
     timestamp_ms: float
     emergency_stop: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
+    memory_context: ControlMemoryContext | None = None
 
     def __post_init__(self) -> None:
         if not self.observation_id.strip() or not self.state.strip() or not self.domain.strip():
@@ -47,12 +82,29 @@ class ControlObservation:
             raise ControlContractError("emergency_stop must be a boolean")
         if not isinstance(self.metadata, dict):
             raise ControlContractError("metadata must be an object")
+        if self.memory_context is not None and not isinstance(self.memory_context, ControlMemoryContext):
+            raise ControlContractError("memory_context must be a ControlMemoryContext")
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> ControlObservation:
         if not isinstance(raw, dict):
             raise ControlContractError("observation must be an object")
         try:
+            raw_memory_context = raw.get("memory_context")
+            if raw_memory_context is None:
+                memory_context = None
+            elif isinstance(raw_memory_context, dict):
+                summaries = raw_memory_context.get("summaries", [])
+                if not isinstance(summaries, list):
+                    raise ControlContractError("memory_context.summaries must be a list")
+                memory_context = ControlMemoryContext(
+                    summaries=tuple(summaries),
+                    source=str(raw_memory_context.get("source", "hypermemory")),
+                )
+            elif isinstance(raw_memory_context, list):
+                memory_context = ControlMemoryContext(summaries=tuple(raw_memory_context))
+            else:
+                raise ControlContractError("memory_context must be an object or list")
             return cls(
                 observation_id=str(raw["observation_id"]),
                 state=str(raw["state"]),
@@ -60,9 +112,17 @@ class ControlObservation:
                 timestamp_ms=float(raw["timestamp_ms"]),
                 emergency_stop=raw.get("emergency_stop", False),
                 metadata=raw.get("metadata", {}),
+                memory_context=memory_context,
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise ControlContractError(f"invalid observation: {exc}") from exc
+
+    def model_state(self) -> str:
+        """Render bounded state plus prefetched memory without raw frame history."""
+
+        if self.memory_context is None:
+            return self.state
+        return f"{self.state}\nRelevant memory context ({self.memory_context.source}):\n{self.memory_context.render()}"
 
 
 @dataclass(frozen=True)
@@ -202,7 +262,7 @@ class ControlStudentClient:
         try:
             completion = self._client.complete_decision(
                 self._task,
-                state=observation.state,
+                state=observation.model_state(),
                 question=CONTROL_QUESTION,
                 candidates=list(self._task.output["candidates"]),
             )

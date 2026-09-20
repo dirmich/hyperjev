@@ -1352,3 +1352,30 @@ stale observation과 emergency stop은 각각 `STOP`과 `reason`을 반환했다
 보장하지 않는다. 실제 상용 판단에서는 sensor acquisition, feature/state
 construction, HyperMemory read, action arbitration, controller execution,
 logging, network/IPC까지 포함한 p50/p95/p99를 다시 측정해야 한다.
+
+### 14.19 HyperMemory bounded context adapter
+
+HyperMemory repository의 REST contract인 `POST /v1/context`를
+[`src/hyperjev/integration.py`](../src/hyperjev/integration.py)의
+`compile_context`와 `control_context`로 연결했다. 요청은 `container`, 현재
+skill 판단에 필요한 `query`, 작은 `max_tokens`를 보내고, 응답의 `context`
+문자열만 typed `ControlMemoryContext`로 감싼다.
+
+```python
+memory = HyperMemoryClient("http://127.0.0.1:6767", timeout_s=0.02)
+context = memory.control_context(
+    "safe next skill for the current target",
+    container="robot-01",
+    max_tokens=256,
+)
+observation = replace(observation, memory_context=context)
+action = control_client.decide(observation, now_ms=now_ms)
+```
+
+`ControlMemoryContext`는 최대 8개 summary와 총 2,048자를 허용하며, 긴 remote
+context는 deterministic하게 잘라낸다. 이 adapter 자체의 mock contract test는
+통과했지만, 현재 실행환경에서 HyperMemory live endpoint를 control loop에
+연결한 end-to-end latency는 아직 측정하지 않았다. 따라서 memory lookup은
+100Hz motor loop가 아니라 더 느린 skill-decision tick에서 prefetch하고,
+timeout/error이면 이전 context를 재사용하거나 `STOP`/controller hold로
+전환해야 한다.

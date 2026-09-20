@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — HyperMemory bounded context adapter (v1.41.0)
+
+- HyperMemory `POST /v1/context`를 호출하는 `compile_context`와
+  `control_context` adapter를 추가했다.
+- control observation은 raw frame history를 저장하지 않고, HyperMemory가
+  미리 압축한 summary를 최대 8개·2,048자로 제한한다.
+- Student는 `state + bounded relevant memory context`를 입력으로 받고, 이
+  context 조회는 저수준 motor loop 밖의 skill-decision tick에서 수행한다.
+- API contract와 control rendering 회귀 테스트를 추가했다. 전체 테스트는
+  `95 passed, 1 skipped`다.
+
 ## 2026-09-20 — control typed head CLI와 smoke checkpoint (v1.40.0)
 
 - `control train`, `control evaluate`, `control decide` CLI를 추가했다.

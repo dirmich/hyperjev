@@ -209,3 +209,10 @@ runtime에서 safety policy는 observation age 100ms, confidence 0.90, action TT
 대체하지 않는다. 가장 안전한 구조는 HyperJev가 skill을 고르고, HyperMemory가
 짧은 relevant context/episode summary를 제공하며, deterministic controller가
 최종 움직임을 제한하는 세 층 구조다.
+
+HyperMemory adapter는 `/v1/context`의 compact result를 받아 observation에
+주입한다. 이 호출은 고주기 sensor loop와 분리하고, memory timeout이 model
+input을 무한히 기다리게 하지 않는다. summary는 prompt에 넣기 전에 개수와
+문자 수를 제한하므로, 기억이 많아질수록 control latency가 무제한 증가하지
+않는다. 저장/검색 실패는 안전한 motion을 계속 생성하기 위한 신호가 아니라
+fallback 또는 hold/stop 사유로 기록한다.

@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.40.0까지 진행되어 있다. Python 테스트 92개와
+현재 `main`은 origin에 push될 1.41.0까지 진행되어 있다. Python 테스트 95개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -60,6 +60,10 @@ v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safe
 100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지
 않는다. control latency p50 0.128ms는 in-process CPU model-only 측정이며,
 simulator와 저수준 controller를 포함한 end-to-end 결과가 아니다.
+
+v1.41.0에서는 HyperMemory `POST /v1/context`를 control skill tick에 연결할 수
+있는 adapter를 추가했다. context는 최대 8개 summary와 2,048자로 잘라 모델에
+전달하며, 매 frame의 raw transcript를 motor loop에 넣지 않는다.
 
 각 구현 단계는 다음 순서를 따른다.
 

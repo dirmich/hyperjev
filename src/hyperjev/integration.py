@@ -74,6 +74,52 @@ class HyperMemoryClient:
             raise TypeError("Hyper Memory response must be an object")
         return result
 
+    def compile_context(
+        self,
+        query: str,
+        *,
+        container: str = "default",
+        max_tokens: int = 256,
+    ) -> str:
+        """Fetch compact relevant context for a slower skill-decision tick."""
+
+        if not query.strip() or not container.strip():
+            raise ValueError("query and container must not be empty")
+        if max_tokens < 1:
+            raise ValueError("max_tokens must be positive")
+        payload = {
+            "container": container,
+            "query": query,
+            "max_tokens": max_tokens,
+        }
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        request = Request(
+            f"{self.base_url}/v1/context",
+            data=body,
+            headers={"Accept": "application/json", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=self.timeout_s) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        if not isinstance(result, dict) or not isinstance(result.get("context"), str):
+            raise TypeError("Hyper Memory context response must contain a string context")
+        return result["context"]
+
+    def control_context(
+        self,
+        query: str,
+        *,
+        container: str = "default",
+        max_tokens: int = 256,
+    ) -> Any:
+        """Return the bounded control context contract used by ControlObservation."""
+
+        from .control import ControlMemoryContext
+
+        return ControlMemoryContext.from_text(
+            self.compile_context(query, container=container, max_tokens=max_tokens)
+        )
+
 
 def _hash_state(state: str) -> str:
     return hashlib.sha256(state.encode("utf-8")).hexdigest()

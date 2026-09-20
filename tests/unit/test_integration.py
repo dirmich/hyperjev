@@ -141,6 +141,33 @@ class HyperMemoryClientTests(unittest.TestCase):
         self.assertIn(b'"content": "safe content"', request.data)
         self.assertIn("/v1/documents", request.full_url)
 
+    def test_client_compiles_context_contract(self) -> None:
+        class _Response:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return b'{"context":"# Relevant memory\\n- north route"}'
+
+        from unittest.mock import patch
+
+        with patch("hyperjev.integration.urlopen", return_value=_Response()) as opener:
+            context = HyperMemoryClient("http://memory:6767").control_context(
+                "safe route for current target",
+                container="robot",
+                max_tokens=128,
+            )
+        request = opener.call_args.args[0]
+        self.assertEqual(context.source, "hypermemory")
+        self.assertIn("north route", context.summaries[0])
+        self.assertIn(b'"container": "robot"', request.data)
+        self.assertIn("/v1/context", request.full_url)
+
 
 if __name__ == "__main__":
     unittest.main()

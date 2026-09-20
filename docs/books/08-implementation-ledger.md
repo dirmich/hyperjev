@@ -74,6 +74,7 @@
 | 1.38.0 | 진행 중 | Student dynamic padding으로 JEv형 low-latency inference 경로 최적화 |
 | 1.39.0 | 진행 중 | 실시간 control observation/action 계약과 deterministic safety shield |
 | 1.40.0 | 진행 중 | control typed head CLI, smoke checkpoint, split별 일반화 gate |
+| 1.41.0 | 진행 중 | HyperMemory `/v1/context` bounded control context adapter |
 
 ## 다음 기록 규칙
 

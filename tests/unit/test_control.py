@@ -6,6 +6,7 @@ from hyperjev.control import (
     CONTROL_SKILLS,
     ControlAction,
     ControlContractError,
+    ControlMemoryContext,
     ControlObservation,
     ControlSafetyPolicy,
     ControlStudentClient,
@@ -82,6 +83,26 @@ class ControlContractTests(unittest.TestCase):
                     "emergency_stop": "false",
                 }
             )
+
+    def test_observation_renders_bounded_hypermemory_context(self) -> None:
+        observation = ControlObservation.from_dict(
+            {
+                "observation_id": "frame-1",
+                "state": "target is ahead",
+                "domain": "simulation",
+                "timestamp_ms": 1000,
+                "memory_context": {
+                    "source": "hypermemory",
+                    "summaries": ["The robot prefers the north route."],
+                },
+            }
+        )
+        self.assertIn("Relevant memory context (hypermemory)", observation.model_state())
+        self.assertIn("north route", observation.model_state())
+
+    def test_memory_context_is_bounded(self) -> None:
+        context = ControlMemoryContext.from_text("x" * 2049)
+        self.assertEqual(len(context.summaries[0]), 2048)
 
     def test_boolean_parameters_are_rejected(self) -> None:
         with self.assertRaises(ControlContractError):
