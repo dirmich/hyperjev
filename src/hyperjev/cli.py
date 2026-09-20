@@ -362,6 +362,25 @@ def _control_seed(args: argparse.Namespace) -> int:
     return 0
 
 
+def _control_draft(args: argparse.Namespace) -> int:
+    config = load_config(args.config)
+    registry = TaskRegistry.load(args.registry)
+    queue = Path(args.queue)
+    output = Path(args.output) if args.output else queue.with_name(f"{args.provider}-control-draft.jsonl")
+    report = generate_teacher_draft(
+        config,
+        registry,
+        queue,
+        output,
+        provider=args.provider,
+        limit=args.limit,
+        timeout_s=args.timeout,
+        max_tokens=args.max_tokens,
+    )
+    print(json.dumps(report["manifest"], ensure_ascii=False))
+    return 0 if report["manifest"]["error_count"] == 0 else 1
+
+
 def _control_decide(args: argparse.Namespace) -> int:
     registry = TaskRegistry.load(args.registry)
     observation = ControlObservation.from_dict(json.loads(Path(args.observation).read_text(encoding="utf-8")))
@@ -773,6 +792,16 @@ def build_parser() -> argparse.ArgumentParser:
     control_seed.add_argument("--count-per-skill", type=int, default=100)
     control_seed.add_argument("--seed", type=int, default=7)
     control_seed.set_defaults(handler=_control_seed)
+    control_draft = control_subparsers.add_parser("draft")
+    _config_argument(control_draft)
+    control_draft.add_argument("--registry", default="registry/control_tasks")
+    control_draft.add_argument("--queue", required=True)
+    control_draft.add_argument("--output")
+    control_draft.add_argument("--provider", choices=("qwen", "gemma"), default="qwen")
+    control_draft.add_argument("--limit", type=int)
+    control_draft.add_argument("--timeout", type=float)
+    control_draft.add_argument("--max-tokens", type=int, default=256)
+    control_draft.set_defaults(handler=_control_draft)
     control_train = control_subparsers.add_parser("train")
     control_train.add_argument("--registry", default="registry/control_tasks")
     control_train.add_argument("--dataset", required=True)

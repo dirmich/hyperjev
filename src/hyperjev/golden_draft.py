@@ -31,6 +31,7 @@ def generate_teacher_draft(
     provider: str = "gemma",
     limit: int | None = None,
     timeout_s: float | None = None,
+    max_tokens: int = 256,
 ) -> dict[str, Any]:
     """Generate non-human teacher draft labels bound to one queue hash.
 
@@ -74,7 +75,7 @@ def generate_teacher_draft(
             "error": None,
         }
         try:
-            completion = client.complete(messages_for_sample(provider, sample, task))
+            completion = client.complete(messages_for_sample(provider, sample, task), max_tokens=max_tokens)
             record.update(
                 {
                     "status": "completed",
@@ -106,6 +107,7 @@ def generate_teacher_draft(
         "provider": provider,
         "model": settings.model,
         "prompt_version": PROMPT_VERSION,
+        "max_tokens": max_tokens,
         "sample_count": len(samples),
         "schema_valid_count": sum(record["schema_valid"] is True for record in records),
         "completed_count": sum(record["status"] == "completed" for record in records),
@@ -128,6 +130,7 @@ def generate_gemma_draft(
     *,
     limit: int | None = None,
     timeout_s: float | None = None,
+    max_tokens: int = 256,
 ) -> dict[str, Any]:
     """Backward-compatible Gemma-specific wrapper."""
 
@@ -139,4 +142,5 @@ def generate_gemma_draft(
         provider="gemma",
         limit=limit,
         timeout_s=timeout_s,
+        max_tokens=max_tokens,
     )

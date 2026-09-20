@@ -80,6 +80,7 @@
 | 1.44.0 | 진행 중 | control dataset provenance와 cross-split leakage validator |
 | 1.45.0 | 진행 중 | 균형 잡힌 human-review control seed generator와 CLI |
 | 1.46.0 | 진행 중 | safety action accuracy와 human-label production gate 강화 |
+| 1.47.0 | 진행 중 | control Qwen/Gemma draft routing과 teacher latency/schema 기록 |
 
 ## 다음 기록 규칙
 

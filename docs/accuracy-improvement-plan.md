@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.46.0
+현재 버전: 1.47.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -96,6 +96,22 @@ uv run python scripts/evaluate_control_quality.py \
 100%, 그리고 validation/test 모든 sample의 human typed label이 있어야 한다.
 synthetic target만 있는 seed는 연구용 비교에는 쓸 수 있지만 이 gate를 통과할
 수 없다.
+
+v1.47.0부터 teacher draft는 다음처럼 control registry를 사용한다.
+
+```bash
+uv run hyperjev control draft \
+  --config configs/phase0.toml \
+  --queue runs/control/control-review-queue.jsonl \
+  --provider qwen \
+  --output runs/control/qwen-control-draft.jsonl \
+  --max-tokens 256
+```
+
+Qwen은 빠른 초안/확장, Gemma는 독립 judge로 사용하되 Gemma generation은
+control tick에서 기다리지 않는다. timeout/error/teacher disagreement는
+human review queue로 보내며, normalized result가 있어도 `labels.human`을
+자동으로 채우지 않는다.
 
 simulation safety scenario는 40회 replay에서 action accuracy 100%, safety STOP
 recall 100%였지만, 이는 contract regression 증거이지 새로운 state 일반화 증거가

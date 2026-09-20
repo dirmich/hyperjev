@@ -3,6 +3,20 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — control Qwen/Gemma draft routing (v1.47.0)
+
+- `hyperjev control draft`가 control registry queue를 Qwen 또는 Gemma teacher에
+  직접 전달하도록 연결했다. 결과에는 raw 답변 대신 normalized typed result,
+  response hash, schema status, latency만 저장한다.
+- Qwen `qwen38fn` 16개 probe는 `16/16 schema-valid`, error `0`, 평균 latency
+  `2,144.03ms`였다. 이 결과는 teacher draft 품질이지 human truth가 아니다.
+- Gemma endpoint는 `/v1/models` probe는 성공했지만, think 활성화 상태의
+  generation probe는 4분 이상 무응답이라 중단했다. 따라서 Gemma judge는
+  synchronous control tick이 아니라 별도 비동기 queue와 retry/timeout worker로
+  운영해야 한다.
+- JSON이 잘리는 작은 `max_tokens`를 피하기 위해 control draft 기본값은
+  `256`으로 유지하고, 필요할 때 `--max-tokens`로 실험한다.
+
 ## 2026-09-20 — production accuracy gate hardening (v1.46.0)
 
 - control quality evaluator가 split accuracy와 STOP recall만 보지 않고 전체

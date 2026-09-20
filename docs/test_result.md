@@ -1498,3 +1498,28 @@ safe STOP recall만 `100%`, human label은 `0개`였다.
 `--require-human-labels`를 지정하면 validation/test의 모든 row가 human typed
 label을 가져야 통과하도록 했다. 이 실험의 최종 결과는 `FAIL`이며, split
 accuracy만으로 99% 상용 정확도를 주장하지 않는다.
+
+### 14.25 control Qwen/Gemma draft routing (v1.47.0)
+
+control queue를 memory task용 generic registry와 분리해 다음 명령으로 teacher
+draft를 만들 수 있게 했다.
+
+```bash
+uv run hyperjev control draft \
+  --config configs/phase0.toml \
+  --queue runs/control/control-review-queue.jsonl \
+  --provider qwen \
+  --output runs/control/qwen-control-draft.jsonl \
+  --max-tokens 256
+```
+
+Qwen `qwen38fn` 16개 probe는 schema-valid `16/16`, error `0`, latency
+min/max `2,000.697/2,272.962ms`, 평균 `2,144.030ms`였다. 결과 파일은 raw
+teacher text를 보관하지 않고 normalized result, response hash, schema status,
+latency만 보관한다.
+
+Gemma `google/gemma-4-12b`는 `/v1/models`와 model alias probe는 성공했지만,
+think 활성화 generation probe가 4분 이상 무응답이라 중단했다. 이는 Gemma가
+틀렸다는 정확도 판정이 아니라 현재 설정에서 동기 호출로 사용할 수 없다는
+latency/operability 결과다. Gemma는 별도 async judge worker, timeout, retry,
+disagreement queue에서 실행하며 motor/control tick은 기다리지 않는다.

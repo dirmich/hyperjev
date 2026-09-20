@@ -17,7 +17,7 @@ class _FakeGemma:
     def __init__(self, _settings, timeout_s=None) -> None:
         self.timeout_s = timeout_s
 
-    def complete(self, _messages):
+    def complete(self, _messages, *, max_tokens=256):
         return TeacherCompletion(
             content='{"type":"boolean","value":true,"probability":0.99,"abstained":false}',
             model="fake-gemma-4",
@@ -29,7 +29,7 @@ class _FakeGemma:
 
 
 class _FakeQwen(_FakeGemma):
-    def complete(self, messages):
+    def complete(self, messages, *, max_tokens=256):
         self.messages = messages
         return TeacherCompletion(
             content='{"type":"boolean","value":true,"probability":0.98,"abstained":false}',

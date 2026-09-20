@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.46.0까지 진행되어 있다. Python 테스트 103개와
+현재 `main`은 origin에 push될 1.47.0까지 진행되어 있다. Python 테스트 103개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -88,6 +88,11 @@ gate를 통과하기 전에는 정확도 학습/출시 데이터로 사용하지
 v1.46.0에서는 evaluator가 safety 전체 action accuracy 100%와 human label gate를
 함께 확인하도록 강화했다. 따라서 synthetic seed의 split 100% 결과가 있어도
 safety action 50% 또는 human label 0개이면 production-ready가 아니다.
+
+v1.47.0에서는 control queue를 Qwen/Gemma draft 경로에 직접 연결했다. Qwen
+16개는 schema-valid 16/16이었지만 Gemma는 think 활성화 generation이 매우
+느려 비동기 judge queue가 필요하다는 운영 결과를 남겼다. 두 teacher 모두
+human label을 대체하지 않는다.
 
 각 구현 단계는 다음 순서를 따른다.
 
