@@ -343,6 +343,44 @@ class ControlContractTests(unittest.TestCase):
                 )
         self.assertEqual(exit_code, 1)
 
+    def test_control_simulation_rejects_duplicate_scenario_ids(self) -> None:
+        class _FakeClient:
+            def __init__(self, *_args, **_kwargs) -> None:
+                pass
+
+            def decide(self, observation, *, now_ms):
+                return ControlAction(skill="APPROACH", confidence=1.0)
+
+        with tempfile.TemporaryDirectory() as directory:
+            scenarios = Path(directory) / "duplicate-scenarios.jsonl"
+            scenario = {
+                "scenario_id": "same",
+                "observation": {
+                    "observation_id": "same",
+                    "state": "target ahead",
+                    "domain": "simulation",
+                    "timestamp_ms": 1000,
+                },
+                "now_ms": 1001,
+                "expected_skill": "APPROACH",
+            }
+            scenarios.write_text(
+                json.dumps(scenario) + "\n" + json.dumps(scenario) + "\n",
+                encoding="utf-8",
+            )
+            with patch("hyperjev.cli.ControlStudentClient", _FakeClient):
+                exit_code = main(
+                    [
+                        "control",
+                        "simulate",
+                        "--checkpoint",
+                        "unused.pt",
+                        "--scenarios",
+                        str(scenarios),
+                    ]
+                )
+        self.assertEqual(exit_code, 2)
+
     def test_control_student_maps_typed_head_to_registered_skill(self) -> None:
         try:
             import torch

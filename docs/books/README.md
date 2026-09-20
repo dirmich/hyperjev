@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.102.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.103.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -56,6 +56,12 @@ reference-ngram-encoder이고 control checkpoint는 별도 48개 smoke fixture�
 PyTorch checkpoint 학습, Student GPU inference benchmark, Rust toolchain compile은
 이 책에서 성공했다고 가장하지 않고 외부 의존성 gate로 표시한다. 상세 결과는
 [`docs/test_result.md`](../test_result.md)에 있다.
+
+v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
+`--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
+정확도·STOP recall을 부풀리는 실수를 회귀 테스트로 막는다. 500-case 재생은
+고유 500개, 정확도 100%, safe STOP recall 100%, p99 0.001552ms였지만 여전히
+local CPU evidence이며 human control accuracy 증거는 아니다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

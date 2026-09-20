@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — control simulation scenario uniqueness guard (v1.103.0)
+
+- `control simulate`가 입력 시나리오의 중복 `scenario_id`를 거부하도록 했다.
+- `--repeat`는 latency sampling을 위한 동일 시나리오 반복으로 계속 허용하고,
+  독립 입력 행의 ID 재사용만 exit code `2`로 차단한다.
+- 500-case safety matrix 재생에서 `unique_scenario_count=500`, accuracy
+  `500/500`, safe STOP recall `500/500`, p95 `0.000976 ms`, p99
+  `0.001552 ms`와 5ms latency gate 통과를 재확인했다.
+- human label은 여전히 `0/1000`이므로 production control accuracy 99% 달성으로
+  해석하지 않는다.
+
 ## 2026-09-21 — Gemma judge timeout boundary (v1.102.0)
 
 - Gemma endpoint `/v1/models`는 응답했지만 control draft 첫 sample은

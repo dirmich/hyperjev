@@ -626,6 +626,7 @@ def _control_simulate(args: argparse.Namespace) -> int:
         device=args.device,
     )
     rows = []
+    scenario_ids: set[str] = set()
     for line_number, line in enumerate(Path(args.scenarios).read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
@@ -635,6 +636,9 @@ def _control_simulate(args: argparse.Namespace) -> int:
         scenario_id = str(raw.get("scenario_id", ""))
         if not scenario_id:
             raise ValueError(f"{args.scenarios}:{line_number}: scenario_id is required")
+        if scenario_id in scenario_ids:
+            raise ValueError(f"{args.scenarios}:{line_number}: scenario_id must be unique")
+        scenario_ids.add(scenario_id)
         observation = ControlObservation.from_dict(raw.get("observation", {}))
         now_ms = float(raw["now_ms"])
         expected_skill = str(raw["expected_skill"])
@@ -680,6 +684,7 @@ def _control_simulate(args: argparse.Namespace) -> int:
         "scenarios": str(Path(args.scenarios).resolve()),
         "repeat": args.repeat,
         "count": len(rows),
+        "unique_scenario_count": len(scenario_ids),
         "correct": correct,
         "accuracy": round(correct / len(rows), 6),
         "expected_safe_stop_count": len(expected_stops),

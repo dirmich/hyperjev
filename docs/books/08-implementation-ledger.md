@@ -136,6 +136,7 @@
 | 1.100.0 | 진행 중 | 500-case safety matrix의 실제 control simulate latency replay와 5ms p95/p99 gate 검증 |
 | 1.101.0 | 진행 중 | control review pack의 held-out train/validation/test split filter와 test-only pack 검증 |
 | 1.102.0 | 진행 중 | Gemma control draft의 60s/300s timeout boundary 측정과 비동기 judge 격리 결정 |
+| 1.103.0 | 진행 중 | control simulation 중복 scenario ID 차단과 500-case 고유 safety replay 검증 |
 
 ## 다음 기록 규칙
 

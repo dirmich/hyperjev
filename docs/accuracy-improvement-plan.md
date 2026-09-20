@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.102.0
+현재 버전: 1.103.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1113,3 +1113,17 @@ Gemma endpoint의 control draft 경계를 실제로 확인했다. `/v1/models`�
 재시도할 수 있지만 그 결과가 없거나 늦어도 control loop와 human gate는 진행되어야
 한다. 이 결정은 정확도 하락을 의미하는 것이 아니라, timeout을 정확도나 label로
 오인하지 않도록 하는 경계다.
+
+### v1.103.0 simulation scenario uniqueness guard
+
+`control simulate`가 입력 matrix의 `scenario_id`를 중복 허용하지 않도록
+검증을 추가했다. `--repeat`는 하나의 고유 scenario를 latency sampling 목적으로
+반복하는 기능이므로 허용하지만, 서로 다른 입력 행이 같은 `scenario_id`를
+재사용하면 CLI가 exit code 2로 거부한다. 이 구분으로 반복 측정과 독립
+안전성 표본을 혼동하지 않는다.
+
+실제 500-case safety matrix 재생에서 `count=500`,
+`unique_scenario_count=500`, action accuracy `500/500`, safe STOP recall
+`500/500`, p95 `0.000976 ms`, p99 `0.001552 ms`를 확인했고 5ms latency gate를
+통과했다. 이는 local CPU sequential replay 증거이며, human-labeled control
+accuracy나 DGX Spark 동시성 production benchmark를 대체하지 않는다.

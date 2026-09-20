@@ -2906,3 +2906,39 @@ uv run hyperjev control review-pack \
 
 Gemma가 endpoint에 존재한다는 사실과 실제 control 판단을 반환한다는 사실은
 분리한다. 현재 Gemma 출력은 정확도 target이나 human label로 사용하지 않는다.
+
+### 14.80 control simulation scenario uniqueness guard (v1.103.0)
+
+중복 scenario가 안전성 표본 수를 부풀리지 않도록 `control simulate`가
+`scenario_id`를 고유하게 요구하는 회귀 테스트를 추가했다. 중복 입력은 사용자
+오류로서 CLI exit code `2`를 반환한다. 단, `--repeat`는 고유 scenario의
+latency sampling이므로 독립 safety case 수와 구별해 허용된다.
+
+검증 명령:
+
+```bash
+uv run pytest -q tests/unit/test_control.py
+uv run hyperjev control simulate \
+  --checkpoint /tmp/control-combined-boundary-100ep.pt \
+  --scenarios tests/golden/control_safety_500.jsonl \
+  --max-p95-ms 5 \
+  --max-p99-ms 5 \
+  --fail-on-mismatch \
+  --output /tmp/control-safety500-latency-v103.json
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| replay count | `500` |
+| unique scenario count | `500` |
+| action accuracy | `500/500 (100%)` |
+| expected safe STOP | `500` |
+| safe STOP recall | `500/500 (100%)` |
+| p50 / p95 / p99 / max | `0.000896 / 0.000976 / 0.001552 / 0.030718 ms` |
+| p95/p99 threshold | `5 / 5 ms` |
+| latency gate | 통과 |
+| process exit | `0` |
+
+이 결과는 duplicate inflation 방지와 local CPU sequential safety replay를
+검증한다. human-labeled control accuracy, teacher fallback latency, DGX Spark
+동시성/열 부하 결과는 아직 별도 gate다.
