@@ -117,3 +117,9 @@
 - 검증: **70 passed, 1 skipped**, Ruff 통과, `git diff --check` 통과.
 - 이 변경은 synthetic 품질 수치를 production 99%로 승격하지 않는다. human
   golden 1,000개와 `--production-gate` 통과는 여전히 필요하다.
+
+## 2026-09-20 — Student router milestone ledger sync (v1.21.1)
+
+- `ca49048`의 Student router 구현·테스트·smoke 증거를 구현 장부에 확정했다.
+- Python/Rust/lockfile version을 `1.21.1`로 동기화했다.
+- 기능 동작은 v1.21.0과 동일하며, production gate 상태도 변경하지 않았다.
