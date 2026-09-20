@@ -1177,3 +1177,20 @@ task + language + domain + redacted state + redacted question
 계속 우선하므로 서로 다른 문서의 같은 문구를 무조건 합치지는 않는다.
 이 변경은 기존 1,000건 artifact를 소급 변경하지 않으며, 다음 dataset
 build부터 적용된다.
+
+### 14.12 split별 accuracy 확인
+
+같은 `human-reference-ngram-groups.pt` checkpoint를 전체 데이터가 아니라
+기록된 `provenance.split`별로 다시 평가했다.
+
+| split | correct | total | accuracy | accepted | accepted accuracy | coverage | rule covered |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| test | 113 | 113 | 100.00% | 100 | 100.00% | 88.50% | 33 |
+| validation | 105 | 105 | 100.00% | 87 | 100.00% | 82.86% | 27 |
+| train | 782 | 782 | 100.00% | 635 | 100.00% | 81.20% | 219 |
+
+각 split에서 rule-correct도 각각 `33/33`, `27/27`, `219/219`였다.
+하지만 test에는 2개의 unique group만 존재하므로, 113개 row라는 숫자만으로
+통계적으로 충분한 독립 test set이라고 볼 수 없다. 상용 승격 전에는 task별로
+충분한 unique human group과 새로운 domain/language를 추가하고, duplicate
+group 기준으로 confidence interval과 bootstrap 평가를 함께 기록해야 한다.

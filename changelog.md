@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — split-specific accuracy evidence (v1.35.0)
+
+- human-target retrained checkpoint를 `test`, `validation`, `train`으로
+  나눠 같은 evaluator로 재실행했다.
+- rules + Student 결과는 test `113/113`, validation `105/105`, train
+  `782/782` correct였고, 각 split의 accepted accuracy도 100%였다.
+- test의 unique group 수는 2개뿐이다. 따라서 이 결과는 regression evidence이지
+  99% 이상의 상용 일반화 증명으로 해석하지 않는다.
+
 ## 2026-09-20 — content-based split fallback (v1.34.0)
 
 - `document_id`, `entity_id`, `source_id`, `split_group`이 모두 없는 seed는
