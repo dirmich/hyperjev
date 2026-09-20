@@ -251,6 +251,7 @@ def _student_evaluate(args: argparse.Namespace) -> int:
         split=args.split,
         minimum_confidence=args.minimum_confidence,
         allow_score=args.allow_score,
+        with_rules=args.with_rules,
         score_tolerance=args.score_tolerance,
         device=args.device,
     )
@@ -494,6 +495,7 @@ def build_parser() -> argparse.ArgumentParser:
     student_evaluate_parser.add_argument("--split", choices=("all", "train", "validation", "test"), default="all")
     student_evaluate_parser.add_argument("--minimum-confidence", type=float, default=0.95)
     student_evaluate_parser.add_argument("--allow-score", action="store_true")
+    student_evaluate_parser.add_argument("--with-rules", action="store_true")
     student_evaluate_parser.add_argument("--score-tolerance", type=float, default=0.10)
     student_evaluate_parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     student_evaluate_parser.add_argument("--output")

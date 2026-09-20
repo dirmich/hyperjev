@@ -93,6 +93,7 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
     """
 
     try:
+        import torch
         from torch import nn
     except ImportError as exc:  # pragma: no cover - depends on deployment image
         raise StudentDependencyError("PyTorch is required to build the Student backend") from exc
@@ -111,6 +112,20 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
                 for index, spec in enumerate(specs)
             }
             self.embedding = nn.Embedding(selected.vocab_size, selected.hidden_size)
+            self.use_ngram_encoder = selected.backbone == "reference-ngram-encoder"
+            if self.use_ngram_encoder:
+                self.ngram_encoder = nn.Sequential(
+                    nn.Conv1d(
+                        selected.hidden_size,
+                        selected.hidden_size,
+                        kernel_size=3,
+                        padding=1,
+                        groups=selected.hidden_size,
+                    ),
+                    nn.GELU(),
+                    nn.Conv1d(selected.hidden_size, selected.hidden_size, kernel_size=1),
+                )
+                self.pool_projection = nn.Linear(selected.hidden_size * 2, selected.hidden_size)
             self.encoder = nn.Sequential(
                 nn.LayerNorm(selected.hidden_size),
                 nn.Linear(selected.hidden_size, selected.hidden_size),
@@ -143,6 +158,18 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
             if input_ids.ndim != 2:
                 raise ValueError("input_ids must have shape [batch, sequence]")
             embedded = self.embedding(input_ids)
+            if self.use_ngram_encoder:
+                mask = attention_mask.to(dtype=embedded.dtype) if attention_mask is not None else None
+                features = self.ngram_encoder(embedded.transpose(1, 2)).transpose(1, 2)
+                if mask is None:
+                    mean = features.mean(dim=1)
+                    maximum = features.amax(dim=1)
+                else:
+                    expanded = mask.unsqueeze(-1)
+                    mean = (features * expanded).sum(dim=1) / expanded.sum(dim=1).clamp_min(1.0)
+                    maximum = features.masked_fill(expanded == 0, -1e4).amax(dim=1)
+                pooled = self.pool_projection(torch.cat([mean, maximum], dim=-1))
+                return self.encoder(pooled)
             if attention_mask is None:
                 return self.encoder(embedded.mean(dim=1))
             mask = attention_mask.to(dtype=embedded.dtype).unsqueeze(-1)

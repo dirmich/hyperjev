@@ -52,3 +52,20 @@
   - confidence 0.95 자동 수락: 0/36
   - 결론: 현재 Student는 production 자동 수락 기준을 충족하지 않으며,
     이 결과가 다음 모델 개선의 regression baseline이다.
+
+## 2026-09-20 — n-gram Student와 guarded product path (v1.19.0)
+
+- `reference-ngram-encoder` 추가: byte embedding 뒤에 depthwise 3-gram
+  convolution과 mean/max pooling을 연결했다.
+- 학습: dataset 36개, train 31개, 100 epochs, CPU, learning rate 0.01,
+  weight decay 0.
+- checkpoint:
+  `runs/phase3/reference-ngram-student.pt`
+- checkpoint SHA-256:
+  `030cdc2e270a3cfb4a28756dd36f5a3991dfbce28ae178243f88a089cdf5c0ba`
+- Student 단독: 전체 35/36 = **97.22%**, test 3/3 = **100%**
+- Student confidence 0.95 accepted: 27/27 = **100%**, coverage **75.00%**
+- rule + Student guarded path: 36/36 = **100%**, accepted 29/29 = **100%**,
+  coverage **80.56%**, fallback 7/36
+- 판정: synthetic contract gate는 99%를 넘겼다. 사람 검수 golden 1,000개와
+  production multilingual encoder가 없으므로 production 승격은 하지 않는다.

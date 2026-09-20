@@ -19,13 +19,15 @@ uv run hyperjev benchmark --dry-run --limit 1
 uv run hyperjev golden --help
 ```
 
-현재 마지막 확정 증거는 1.17.1 기준 Ruff 통과와 Python 테스트 64개 통과,
+현재 마지막 확정 증거는 1.19.0 기준 Ruff 통과와 Python 테스트 66개 통과,
 1개 skip이다. Golden review, metric, training validator, reference torch
 checkpoint, calibration manifest gate가 포함되어 있다.
 
 1.18.0부터 `hyperjev student evaluate`가 checkpoint 품질을 전체 정확도와
 자동 수락 정확도로 분리한다. 자동 수락 정확도만 99%를 넘긴 경우에도
 coverage와 fallback count를 함께 보지 않으면 제품 품질을 과대평가하게 된다.
+1.19.0의 synthetic guarded path는 100%였지만 coverage 80.56%이며, human
+golden 검증 전에는 production quality 통과로 기록하지 않는다.
 
 Parent LLM과 HyperJev 경계의 실제 성능 측정은 [`docs/test_result.md`](../test_result.md)에
 기록했다. Qwen endpoint는 6개 smoke에서 HTTP 6/6, typed schema 5/6,

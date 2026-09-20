@@ -58,6 +58,22 @@ class StudentContractTests(unittest.TestCase):
             output = model(task_id, input_ids, attention)
             self.assertIn(output["type"], {"boolean", "choice", "score"})
 
+    def test_reference_ngram_encoder_is_a_compatible_backbone(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        model = build_torch_model(
+            self.registry,
+            StudentConfig(backbone="reference-ngram-encoder", precision="fp32"),
+        )
+        output = model(
+            "wiki.semantic_change",
+            torch.zeros((1, 16), dtype=torch.long),
+            torch.ones((1, 16), dtype=torch.long),
+        )
+        self.assertEqual(output["type"], "boolean")
+
     def test_student_evaluation_reports_accuracy_and_guarded_coverage(self) -> None:
         try:
             import torch

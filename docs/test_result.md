@@ -550,3 +550,65 @@ teacher가 처리하지 않으면 제품 전체 정확도가 아니다. 현재 �
 synthetic 중복 데이터가 아니라 사람이 검수한 task별 train/validation/test를
 확대하고, production multilingual backbone·GPU inference·calibration·risk
 coverage를 다시 측정하는 것이다.
+
+## 11. n-gram Student와 99% guarded path 결과
+
+기존 평균 byte embedding의 underfit을 확인한 뒤, 기존 checkpoint 경로를
+깨지 않는 `reference-ngram-encoder`를 추가했다. byte embedding 뒤에
+depthwise 3-gram convolution, mean/max pooling, typed heads를 연결했다.
+
+### 11.1 학습 조건
+
+```bash
+uv run hyperjev train run \
+  --dataset runs/phase2/reference-dataset.jsonl \
+  --output runs/phase3/reference-ngram-student.pt \
+  --model-id hyperjev-reference-ngram \
+  --backbone reference-ngram-encoder \
+  --epochs 100 --batch-size 1 \
+  --learning-rate 0.01 --weight-decay 0 \
+  --precision fp32 --device cpu
+```
+
+| 항목 | 결과 |
+| --- | --- |
+| checkpoint | `runs/phase3/reference-ngram-student.pt` |
+| backbone | `reference-ngram-encoder` |
+| dataset | 36개 (train 31, validation 2, test 3) |
+| device | CPU (Qwen llama-server가 GB10 memory 점유) |
+| epochs | 100 |
+| checkpoint SHA-256 | `030cdc2e270a3cfb4a28756dd36f5a3991dfbce28ae178243f88a089cdf5c0ba` |
+
+### 11.2 정확도와 guarded acceptance
+
+`hyperjev student evaluate`로 동일 checkpoint를 측정했다. boolean/choice는
+exact match, score는 ±0.10 이내를 correct로 계산했고 score는 calibration
+검증 전 자동 수락하지 않았다.
+
+| 경로 | correct | accuracy | accepted | coverage | fallback |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Student 전체 | 35/36 | 97.22% | - | - | - |
+| Student test split | 3/3 | 100% | 2/3 | 66.67% | 1 |
+| Student confidence ≥ 0.95 | 27/27 | 100% | 27/36 | 75.00% | 9 |
+| rule + Student guarded | 36/36 | 100% | 29/29 | 80.56% | 7 |
+
+`--with-rules` 경로에서 rule은 8개를 처리했고 8/8 정확했다. 나머지는
+Student가 처리하며, score task는 자동 수락하지 않고 fallback으로 남겼다.
+따라서 현재는 “99% 이상”을 **synthetic accepted path에서 달성**했지만,
+사람 golden 전체 정확도 99%라는 주장은 아직 할 수 없다.
+
+### 11.3 다음 품질 gate
+
+다음 실행은 synthetic 데이터를 더 반복해 숫자를 키우는 것이 아니라,
+사람이 검수한 최소 1,000개 golden으로 같은 명령을 반복하는 것이다.
+
+```bash
+uv run hyperjev student evaluate \
+  --checkpoint runs/phase3/reference-ngram-student.pt \
+  --dataset runs/phase2/human-golden-dataset.jsonl \
+  --minimum-confidence 0.95 --with-rules \
+  --output runs/phase3/human-golden-student-evaluation.json
+```
+
+overall accuracy >= 99%, task별 >= 98%, accepted accuracy >= 99.5%를 모두
+충족하기 전에는 registry를 `candidate` 이상으로 승격하지 않는다.

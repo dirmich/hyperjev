@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .registry import TaskRegistry
+from .rules import match_rule
 from .samples import CanonicalSample
 from .student import StudentConfig, StudentDependencyError, build_torch_model
 from .training import _encode_reference_sample, load_training_dataset
@@ -125,6 +126,7 @@ def evaluate_student_checkpoint(
     split: str = "all",
     minimum_confidence: float = 0.95,
     allow_score: bool = False,
+    with_rules: bool = False,
     score_tolerance: float = 0.10,
     device: str = "cpu",
 ) -> dict[str, Any]:
@@ -180,6 +182,37 @@ def evaluate_student_checkpoint(
             row["confidence"] >= minimum_confidence
             and (output_type != "score" or allow_score)
         )
+        row["route"] = "student"
+
+    rule_covered = 0
+    rule_correct = 0
+    if with_rules:
+        by_sample = {sample.sample_id: sample for sample in samples}
+        for row in predictions:
+            sample = by_sample[row["sample_id"]]
+            task = registry.get(sample.task_id, sample.task_version)
+            rule = match_rule(task, state=sample.state, question=sample.question)
+            if rule is None or rule.result.abstained:
+                continue
+            rule_covered += 1
+            rule_result = rule.result.to_dict()
+            if task.output_type == "boolean":
+                rule_correct_for_sample = bool(rule_result["value"]) == bool(sample.target)
+                confidence = float(rule_result["probability"])
+            elif task.output_type == "choice":
+                rule_correct_for_sample = str(rule_result["selected"]) == str(sample.target)
+                confidence = max(float(value) for value in rule_result["probabilities"].values())
+            else:
+                rule_correct_for_sample = (
+                    abs(float(rule_result["value"]) - float(sample.target)) <= score_tolerance
+                )
+                confidence = 1.0
+            rule_correct += int(rule_correct_for_sample)
+            row["prediction"] = rule_result
+            row["confidence"] = round(confidence, 6)
+            row["correct"] = rule_correct_for_sample
+            row["accepted"] = True
+            row["route"] = "rule"
 
     by_task: dict[str, list[dict[str, Any]]] = {}
     for row in predictions:
@@ -195,6 +228,9 @@ def evaluate_student_checkpoint(
         "split": split,
         "minimum_confidence": minimum_confidence,
         "score_auto_accept": allow_score,
+        "rules_enabled": with_rules,
+        "rule_covered": rule_covered,
+        "rule_correct": rule_correct,
         "score_tolerance": score_tolerance,
         "overall": _summary(predictions),
         "tasks": {task_id: _summary(rows) for task_id, rows in sorted(by_task.items())},

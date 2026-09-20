@@ -40,9 +40,10 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.18.0까지 진행되어 있다. Python 테스트 65개와
+현재 `main`은 origin에 push될 1.19.0까지 진행되어 있다. Python 테스트 66개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
-reference train CLI, reference Student checkpoint 생성, parent LLM 대 HyperJev
+reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
+guarded 99% 평가, parent LLM 대 HyperJev
 경계의 성능 시험 기록까지 완료됐다. training plan·calibration·checkpoint를
 registry manifest로 묶는 contract와 30-sample confidence/coverage 분석도
 추가됐다. 다만 checkpoint는 synthetic 36개 샘플의 reference-byte-encoder이고

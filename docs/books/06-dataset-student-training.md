@@ -106,6 +106,12 @@ production multilingual encoder가 아닌 deterministic byte-hash encoder를
 | held-out test accuracy | 1/3 = 33.33% |
 | checkpoint SHA-256 | `7a4bb4d47a58295db479cb56ee675335e45706d80d54a87359b87a30f678e19a` |
 
+평가용 `reference-ngram-encoder`도 추가했다. 100 epoch 학습 결과 Student
+단독은 전체 97.22%, test 100%였고, confidence 0.95 이상 자동 수락 subset은
+27/27 = 100%였다. rule fast-path를 합친 guarded synthetic path는 36/36 =
+100%였지만 coverage는 80.56%에 불과하다. 이 수치는 사람 golden 일반화가
+아니므로 production checkpoint 승격 근거가 아니다.
+
 따라서 artifact 생성 gate는 통과했지만 quality gate는 통과하지 못했다. 실제
 학습은 사람 검수 golden과 production multilingual tokenizer/backbone, optimizer
 loop, checkpoint storage가 준비된 뒤 다시 실행해야 한다.

@@ -280,7 +280,10 @@ def run_reference_training(
     model.train()
     for _epoch in range(selected_training.epochs):
         epoch_losses: list[float] = []
-        for sample in train_samples:
+        generator = torch.Generator(device="cpu").manual_seed(selected_training.seed + _epoch)
+        order = torch.randperm(len(train_samples), generator=generator).tolist()
+        for index in order:
+            sample = train_samples[index]
             task = registry.get(sample.task_id, sample.task_version)
             token_ids, attention = _encode_reference_sample(
                 sample,
