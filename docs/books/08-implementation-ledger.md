@@ -55,6 +55,7 @@
 | 1.24.0 | 진행 중 | Qwen/Gemma 선택형 golden draft와 Qwen 재시도 경로 |
 | 1.24.1 | 진행 중 | qwen38fn 실제 20-sample draft probe와 schema/latency 결과 |
 | 1.25.0 | 진행 중 | choice probability 합 prompt hardening과 prompt v2 provenance |
+| 1.25.1 | 진행 중 | Qwen prompt v2 20-sample 재시험 결과 |
 
 ## 다음 기록 규칙
 

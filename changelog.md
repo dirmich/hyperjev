@@ -3,6 +3,14 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — Qwen prompt v2 re-probe (v1.25.1)
+
+- `qwen38fn` 20건 재시험에서 완료 `20/20`, schema-valid `20/20 (100%)`를
+  확인했다.
+- synthetic target 탐색적 일치는 `18/20 (90%)`였으며, 평균 latency
+  `1,503.768ms`, p50 `1,238.746ms`, p95 `2,338.942ms`였다.
+- 이전 확률합 schema 오류 3건은 재시험에서 0건으로 감소했다.
+
 ## 2026-09-20 — choice probability prompt hardening (v1.25.0)
 
 - teacher prompt를 v2로 올려 choice 결과가 모든 후보를 포함하고 확률 합을

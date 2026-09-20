@@ -845,3 +845,16 @@ synthetic target은 human label이 아니므로 상용 정확도나 99% gate의 
 모든 후보를 정확히 한 번씩 포함하고 확률 합을 정확히 `1.0`으로 만들라는
 제약을 추가했으며, registry의 `teacher_prompt_version`도 2로 갱신했다.
 변경 후 20건 재시험을 별도 실행해 schema-valid 개선 여부를 확인한다.
+
+Prompt v2 재시험 결과는 다음과 같다.
+
+| 항목 | prompt v1 | prompt v2 |
+| --- | ---: | ---: |
+| completed | 20/20 | 20/20 |
+| schema-valid | 17/20 (85%) | **20/20 (100%)** |
+| synthetic target match | 14/20 (70%) | **18/20 (90%)** |
+| mean latency | 1,449.496ms | 1,503.768ms |
+| p50 / p95 | 1,075.946 / 2,357.904ms | 1,238.746 / 2,338.942ms |
+
+이는 prompt 제약이 transport/schema 품질을 개선했다는 20건 탐색 결과다.
+human golden 1,000건 정확도는 아직 측정되지 않았다.
