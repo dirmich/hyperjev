@@ -3037,30 +3037,6 @@ English `39/40`과 Korean `36/40`은 production accuracy가 아니다. human lab
 human review와 human-only materialize이며, 그 전에는 checkpoint promotion을
 수행하지 않는다.
 
-### 14.85 human-review readiness gate (v1.108.0)
-
-`control review-status`에 승격용 strict exit-code 옵션을 추가했다.
-
-| 옵션 | 성공 조건 | 현재 상태 |
-| --- | --- | --- |
-| `--require-test-ready` | test split pending `0` | 실패: pending `100` |
-| `--require-materialize-ready` | 전체 queue pending `0` | 실패: pending `1000` |
-
-재현 명령:
-
-```bash
-uv run hyperjev control review-status \
-  --queue /tmp/hyperjev-control-hard-500.jsonl \
-  --feedback /tmp/control-feedback.jsonl \
-  --require-test-ready \
-  --require-materialize-ready
-```
-
-현재 report는 reviewed `0/1000`, `test_ready=false`,
-`ready_for_materialize=false`이므로 exit code `1`이 정답이다. 이 명령은
-synthetic `target`, Qwen draft, Gemma draft를 human label로 취급하지 않는다.
-다음 gate는 blind dual-review와 strict materialize다.
-
 ### 14.84 multilingual raw replay correction and char/hybrid ablation (v1.107.0)
 
 v1.105/v1.106의 Korean raw 수치가 integrated rule/fast-path와 혼재된 것을
@@ -3084,3 +3060,27 @@ char/hybrid checkpoint는 Korean raw OOD만 개선했지만 English와 safety fa
 `40/40`은 phrase/rule 포함 결과이고 raw Student `36/40`과 혼동하지 않는다.
 human label은 여전히 `0/1000`이며 다음 promotion gate는 blind dual human
 review, human-only materialize, held-out test 재평가다.
+
+### 14.85 human-review readiness gate (v1.108.0)
+
+`control review-status`에 승격용 strict exit-code 옵션을 추가했다.
+
+| 옵션 | 성공 조건 | 현재 상태 |
+| --- | --- | --- |
+| `--require-test-ready` | test split pending `0` | 실패: pending `100` |
+| `--require-materialize-ready` | 전체 queue pending `0` | 실패: pending `1000` |
+
+재현 명령:
+
+```bash
+uv run hyperjev control review-status \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --feedback /tmp/control-feedback.jsonl \
+  --require-test-ready \
+  --require-materialize-ready
+```
+
+현재 report는 reviewed `0/1000`, `test_ready=false`,
+`ready_for_materialize=false`이므로 exit code `1`이 정답이다. 이 명령은
+synthetic `target`, Qwen draft, Gemma draft를 human label로 취급하지 않는다.
+다음 gate는 blind dual-review와 strict materialize다.
