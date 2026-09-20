@@ -617,3 +617,22 @@ overall accuracy >= 99%, task별 >= 98%, accepted accuracy >= 99.5%를 모두
 accepted 100%였지만 human label 0/36이라 exit code 1과
 `human_labels_required`를 반환했다. 이는 99% 숫자와 production 승인을
 분리하는 의도된 실패다.
+
+### 11.4 1,000개 synthetic stress
+
+동일한 n-gram checkpoint를 원래의 1,000개 synthetic review queue 전체에
+적용했다. 중복 제거 dataset과 달리 sample ID는 유지하고 split만 deterministic
+하게 부여했다.
+
+| 지표 | 결과 |
+| --- | ---: |
+| 전체 | 1000/1000 = 100% |
+| accepted | 787/787 = 100% |
+| coverage | 78.70% |
+| fallback | 213/1000 |
+| rule covered | 197/197 = 100% |
+| human labels | 0/1000 |
+
+따라서 synthetic stress에서는 99% 목표를 넘겼지만, `--production-gate`는
+`human_labels_required`로 실패한다. 다음 정확도 작업은 이 수치를 더 높이는
+것이 아니라 이 queue를 실제 사람이 검수한 golden dataset으로 교체하는 것이다.

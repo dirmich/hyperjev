@@ -85,3 +85,17 @@
   - exit code: 1 (`human_labels_required`)
 - 결론: 숫자만 높은 synthetic checkpoint를 production 승격하지 않는 보호
   장치가 정상 동작한다.
+
+## 2026-09-20 — 1,000개 synthetic stress (v1.20.1)
+
+- 입력: `runs/phase0/phase0-review-queue.jsonl` 1,000개
+- 평가 dataset SHA-256:
+  `139e5c2f63de52811eab3845f19a4b42e4c7c0d6d7b61f1d979af292e08438ff`
+- rule + n-gram Student:
+  - overall: **1000/1000 = 100%**
+  - accepted: **787/787 = 100%**
+  - coverage: **78.70%**
+  - fallback: 213개
+  - rule: 197/197 = 100%
+- 단, 이 queue는 synthetic이며 human label 0/1,000이다. 따라서 이 결과는
+  regression/stress 증거이고 production 99% gate 통과 증거가 아니다.
