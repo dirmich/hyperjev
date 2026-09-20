@@ -128,6 +128,63 @@ _CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
     ),
 )
 
+_CONTROL_FAST_PATH_BLOCKERS: dict[str, tuple[str, ...]] = {
+    "APPROACH": (
+        "cannot be approached",
+        "can't be approached",
+        "do not approach",
+        "don't approach",
+        "접근할 수 없다",
+        "접근할 수 없어",
+        "접근하지",
+    ),
+    "HOLD": (
+        "pose is unstable",
+        "an emergency hazard is present",
+        "the hazard is present",
+        "emergency",
+        "자세가 불안정",
+        "위험이 있다",
+        "비상",
+    ),
+    "MOVE": (
+        "path is blocked",
+        "corridor is blocked",
+        "cannot move",
+        "can't move",
+        "경로가 막혀",
+        "움직일 수 없다",
+    ),
+    "ROTATE": (
+        "cannot turn",
+        "can't turn",
+        "turn space is blocked",
+        "회전할 수 없다",
+        "회전 공간이 막혀",
+    ),
+    "RETREAT": (
+        "no safe space behind",
+        "cannot retreat",
+        "can't retreat",
+        "뒤에 안전한 공간이 없다",
+        "후퇴할 수 없다",
+    ),
+    "INTERACT": (
+        "not within reach",
+        "not aligned",
+        "cannot activate",
+        "can't activate",
+        "손이 닿지 않는다",
+        "정렬되지",
+        "작동할 수 없다",
+    ),
+    "RECOVER": (
+        "no recovery is needed",
+        "recovery is not needed",
+        "복구가 필요 없다",
+    ),
+}
+
 
 @dataclass(frozen=True)
 class ControlMemoryContext:
@@ -334,6 +391,8 @@ def deterministic_control_action(state: str) -> ControlAction | None:
     normalized = " ".join(state.casefold().split())
     matches: list[str] = []
     for skill, patterns in _CONTROL_FAST_PATHS:
+        if any(blocker in normalized for blocker in _CONTROL_FAST_PATH_BLOCKERS.get(skill, ())):
+            continue
         if any(all(phrase in normalized for phrase in pattern) for pattern in patterns):
             matches.append(skill)
     if len(matches) != 1:

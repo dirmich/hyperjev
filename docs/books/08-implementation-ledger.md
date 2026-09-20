@@ -106,6 +106,7 @@
 | 1.70.0 | 진행 중 | hard-negative weighted loss ablation과 safety gate 탈락 기록 |
 | 1.71.0 | 진행 중 | Gemma hard-negative timeout probe와 async judge 격리 gate |
 | 1.72.0 | 진행 중 | compound-phrase control fast path와 synthetic hard-negative 100% 경로 |
+| 1.73.0 | 진행 중 | skill별 contradiction blocker와 fast-path negative regression |
 
 ## 다음 기록 규칙
 

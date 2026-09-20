@@ -76,6 +76,11 @@ class ControlContractTests(unittest.TestCase):
         self.assertEqual(action.source, "control-rule")
         self.assertEqual(action.confidence, 1.0)
         self.assertIsNone(deterministic_control_action("target ahead"))
+        self.assertIsNone(
+            deterministic_control_action(
+                "the target is ahead but cannot be approached safely"
+            )
+        )
 
     def test_control_fast_path_covers_hold_without_confusing_stop(self) -> None:
         action = deterministic_control_action("pause safely while the pose is stable and no hazard is present")
@@ -83,6 +88,11 @@ class ControlContractTests(unittest.TestCase):
         assert action is not None
         self.assertEqual(action.skill, "HOLD")
         self.assertFalse(explicit_stop_signal("pause safely while the pose is stable and no hazard is present"))
+        self.assertIsNone(
+            deterministic_control_action(
+                "pause safely while the pose is stable but an emergency hazard is present"
+            )
+        )
 
     def test_low_confidence_and_long_ttl_are_rejected(self) -> None:
         policy = ControlSafetyPolicy(minimum_confidence=0.95, max_action_ttl_ms=100)

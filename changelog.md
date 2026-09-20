@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — control fast-path contradiction blockers (v1.73.0)
+
+- fast path의 substring 오탐을 줄이기 위해 skill별 contradiction blocker를
+  추가했다. `no hazard is present`가 `hazard is present`로 잘못 매칭되지 않도록
+  blocker를 구체 표현으로 제한했다.
+- “target은 앞에 있지만 안전하게 접근할 수 없다”, “안정 자세지만 emergency
+  hazard가 있다” 같은 반례는 fast path에서 거부하고 model/safety 경로로 보낸다.
+- synthetic coverage/target 결과는 v1.72.0과 동일하며, human label은 `0/1000`이다.
+  이 단계는 정확도 상승 증거가 아니라 control false-positive 방어 단계다.
+- 검증: control unit `16 passed`, targeted Ruff, diff check.
+
 ## 2026-09-21 — compound-phrase control fast path (v1.72.0)
 
 - Qwen hard-negative에서 반복된 `APPROACH↔MOVE`, `HOLD↔STOP` semantic collision을

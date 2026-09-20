@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.72.0
+현재 버전: 1.73.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -247,6 +247,13 @@ local CPU 경로의 증거일 뿐 human generalization이나 end-to-end motor de
 증거가 아니다. 사람 라벨은 여전히 0건이고 production eligibility는 false다.
 fast path에 매칭되지 않은 state는 기존 typed Student와 safety fallback을 그대로
 사용한다.
+
+v1.73.0에서는 fast path의 phrase substring 오탐을 막는 skill별 contradiction
+blocker를 추가했다. 예를 들어 `no hazard is present`를 `hazard is present`로
+잘못 읽지 않도록 blocker를 구체적인 부정/위험 표현으로 제한하고, “target은
+앞에 있지만 안전하게 접근할 수 없다”와 “안정 자세지만 emergency hazard가 있다”
+반례가 model/safety 경로로 우회되는 회귀 테스트를 추가했다. 이 단계의 목적은
+coverage를 늘리는 것이 아니라 규칙 false-positive를 낮추는 것이다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적

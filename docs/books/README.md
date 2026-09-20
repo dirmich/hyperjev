@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.72.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.73.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -136,6 +136,11 @@ target 기준 100%를 약 10.11µs/행 평균으로 처리했고, seed 800행은
 규칙으로 확정했다. 이는 human label이 0건인 synthetic regression 결과이므로
 production accuracy로 해석하지 않는다. 모호한 입력은 model/fallback으로
 남기고 explicit STOP은 safety rule로 먼저 처리한다.
+
+v1.73.0에서는 부정문·위험문이 compound phrase를 포함해도 fast path가 오작동하지
+않도록 skill별 contradiction blocker를 추가했다. 정상 HOLD의 `no hazard`가
+차단되지 않는 회귀와, 접근 불가/비상 위험 반례의 fast path 우회 테스트를 모두
+통과했다. 이는 coverage 확장이 아니라 안전 false-positive를 줄이는 단계다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

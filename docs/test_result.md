@@ -2096,6 +2096,32 @@ GPU/e2e motor latency를 증명하지 않으며, 규칙에 매칭되지 않는 �
 typed Student와 safe STOP policy로 처리한다. 따라서 이 단계는 production
 accuracy 승격이 아니라 낮은 지연의 고정밀 안전 보조 경로다.
 
+### 14.51 control fast-path contradiction blockers (v1.73.0)
+
+v1.72.0 phrase matcher를 반례로 재검증한 결과, 단순 substring blocker는
+`no hazard is present` 같은 정상 HOLD 문장을 잘못 차단할 수 있었다. v1.73.0은
+skill별 blocker를 구체적인 contradiction phrase로 좁혔고, 다음 negative cases를
+추가했다.
+
+| 반례 | 기대 동작 | 결과 |
+| --- | --- | --- |
+| target is ahead but cannot be approached safely | APPROACH fast path 금지 | passed |
+| stable pose but an emergency hazard is present | HOLD fast path 금지 | passed |
+| pose stable and no hazard is present | HOLD fast path 유지 | passed |
+| target ahead처럼 불완전한 문장 | model 경로 유지 | passed |
+
+| 검증 | 결과 |
+| --- | ---: |
+| control unit tests | 16 passed |
+| Ruff targeted | passed |
+| human labels | 0/1,000 |
+| production eligible | false |
+
+이 단계는 synthetic hard-negative의 100% 수치를 바꾸지 않았으며, 그 수치를
+일반화 정확도로 승격하지 않는다. 의미가 충돌하는 문장은 fast path를 거부하고
+typed Student 또는 safety fallback이 판단하도록 남겨 false-positive 비용을
+낮춘다.
+
 ### 14.46 pair-collision active review priority (v1.68.0)
 
 hard-negative Qwen 결과의 confidence 분포를 오류 여부와 분리해 분석했다.
