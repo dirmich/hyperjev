@@ -35,7 +35,13 @@ from .golden_draft import adjudicate_teacher_drafts, generate_teacher_draft
 from .mock_server import serve
 from .model_registry import STATUSES, ModelRegistry, build_model_manifest
 from .registry import RegistryError, TaskRegistry
-from .review_pack import export_review_pack, run_review_session
+from .review_pack import (
+    compare_control_reviews,
+    export_review_pack,
+    finalize_control_reviews,
+    run_adjudication_session,
+    run_review_session,
+)
 from .routing import DecisionRouter
 from .student import StudentConfig, student_manifest
 from .student_inference import evaluate_student_checkpoint, write_student_evaluation
@@ -237,6 +243,7 @@ def _golden_review_session(args: argparse.Namespace) -> int:
         registry,
         reviewer=args.reviewer,
         deduplicate_exact=args.deduplicate_exact,
+        blind_teacher=args.blind,
     )
     print(json.dumps(report, ensure_ascii=False))
     return 0
@@ -467,9 +474,50 @@ def _control_review_session(args: argparse.Namespace) -> int:
         registry,
         reviewer=args.reviewer,
         deduplicate_exact=args.deduplicate_exact,
+        blind_teacher=args.blind,
     )
     print(json.dumps(report, ensure_ascii=False))
     return 0
+
+
+def _control_review_agreement(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = compare_control_reviews(
+        args.queue,
+        args.reviewer_a_feedback,
+        args.reviewer_b_feedback,
+        args.output,
+        registry,
+        minimum_agreement=args.minimum_agreement,
+    )
+    print(json.dumps(report["manifest"], ensure_ascii=False))
+    return 0 if report["manifest"]["agreement_gate"] else 1
+
+
+def _control_review_adjudicate(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = run_adjudication_session(
+        args.agreement,
+        args.queue,
+        args.feedback_output,
+        registry,
+        reviewer=args.reviewer,
+    )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _control_review_finalize(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = finalize_control_reviews(
+        args.queue,
+        args.agreement,
+        args.adjudication_feedback,
+        args.output,
+        registry,
+    )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0 if report["ready"] else 1
 
 
 def _control_apply_feedback(args: argparse.Namespace) -> int:
@@ -832,6 +880,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="review one item per exact task/language/domain/state/question group and propagate its label",
     )
+    golden_session.add_argument(
+        "--blind",
+        action="store_true",
+        help="hide teacher output and require an independently entered value",
+    )
     golden_session.set_defaults(handler=_golden_review_session)
     golden_apply = golden_subparsers.add_parser("apply-feedback")
     _config_argument(golden_apply)
@@ -974,7 +1027,34 @@ def build_parser() -> argparse.ArgumentParser:
     control_review_session.add_argument("--feedback-output", required=True)
     control_review_session.add_argument("--reviewer", required=True)
     control_review_session.add_argument("--deduplicate-exact", action="store_true")
+    control_review_session.add_argument(
+        "--blind",
+        action="store_true",
+        help="hide teacher output and require an independently entered value",
+    )
     control_review_session.set_defaults(handler=_control_review_session)
+    control_review_agreement = control_subparsers.add_parser("review-agreement")
+    control_review_agreement.add_argument("--registry", default="registry/control_tasks")
+    control_review_agreement.add_argument("--queue", required=True)
+    control_review_agreement.add_argument("--reviewer-a-feedback", required=True)
+    control_review_agreement.add_argument("--reviewer-b-feedback", required=True)
+    control_review_agreement.add_argument("--output", required=True)
+    control_review_agreement.add_argument("--minimum-agreement", type=float, default=0.98)
+    control_review_agreement.set_defaults(handler=_control_review_agreement)
+    control_review_adjudicate = control_subparsers.add_parser("review-adjudicate")
+    control_review_adjudicate.add_argument("--registry", default="registry/control_tasks")
+    control_review_adjudicate.add_argument("--agreement", required=True)
+    control_review_adjudicate.add_argument("--queue", required=True)
+    control_review_adjudicate.add_argument("--feedback-output", required=True)
+    control_review_adjudicate.add_argument("--reviewer", required=True)
+    control_review_adjudicate.set_defaults(handler=_control_review_adjudicate)
+    control_review_finalize = control_subparsers.add_parser("review-finalize")
+    control_review_finalize.add_argument("--registry", default="registry/control_tasks")
+    control_review_finalize.add_argument("--queue", required=True)
+    control_review_finalize.add_argument("--agreement", required=True)
+    control_review_finalize.add_argument("--adjudication-feedback", required=True)
+    control_review_finalize.add_argument("--output", required=True)
+    control_review_finalize.set_defaults(handler=_control_review_finalize)
     control_apply_feedback = control_subparsers.add_parser("apply-feedback")
     control_apply_feedback.add_argument("--registry", default="registry/control_tasks")
     control_apply_feedback.add_argument("--queue", required=True)

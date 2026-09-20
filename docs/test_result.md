@@ -2452,3 +2452,38 @@ pack item에는 raw `state/question`, Qwen draft, task 후보만 있고 syntheti
 queue labels는 없다. 따라서 reviewer가 Qwen 답을 참고하더라도 직접 선택해야
 human source가 된다. 아직 feedback이 생성되지 않았으므로 production accuracy와
 99% gate는 미측정이다.
+
+### 14.60 teacher-blind control dual review gate (v1.82.0)
+
+critic 검토에서 가장 큰 정확도 근거 부족은 synthetic target만 있고 독립 human
+benchmark가 없다는 점으로 확인됐다. v1.82는 이 문제를 해결하기 위한 검수
+경로를 추가했다.
+
+| 검증 | 결과 |
+| --- | --- |
+| blind session targeted test | `12 passed` |
+| teacher draft 노출 | `--blind`에서 차단 |
+| label 입력 | JSON 대신 typed skill value |
+| dual review | agreement/disagreement/missing을 manifest에 기록 |
+| disagreement | 제3자 adjudication 없이는 finalize 불가 |
+| target leakage | review pack과 dual manifest 모두 target 제외 |
+| 현재 실제 human label | `0` |
+| production 99% gate | 미측정, false |
+
+재현 가능한 단위 테스트는 `tests/unit/test_review_pack.py`에 있으며 blind review,
+합의 1건·불일치 1건·adjudication 1건·final feedback 적용까지 임시 queue에서
+검증한다. 실제 1,000행 검수 결과가 생기면 다음 순서로 적용한다.
+
+```bash
+uv run hyperjev control apply-feedback \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --feedback /tmp/control-human-feedback.jsonl \
+  --output /tmp/control-human-reviewed.jsonl
+uv run hyperjev control materialize \
+  --input /tmp/control-human-reviewed.jsonl \
+  --output /tmp/control-human-target.jsonl
+```
+
+그 후 human-only held-out test를 고정하고 raw Student-head, safety policy,
+integrated fast path를 분리 평가한다. synthetic OOD `40/40`은 이 human gate를
+대체하지 않는다.

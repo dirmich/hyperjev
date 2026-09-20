@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — teacher-blind control dual review gate (v1.82.0)
+
+- `docs/control_labeling.md`에 STOP 우선순위, 8개 control skill 판정 기준,
+  independent review와 표본 계획을 고정했다.
+- `control review-session --blind`는 Qwen/Gemma draft를 숨기고 reviewer가
+  `STOP`, `HOLD` 같은 typed value를 직접 입력하게 한다.
+- `control review-agreement`는 두 feedback stream의 agreement/disagreement와
+  target 제외 manifest를 만들며, `review-adjudicate`와 `review-finalize`를
+  거치지 않은 불일치는 human target으로 승격되지 않는다.
+- targeted review-pack 테스트 `12 passed`; 실제 control human label은 아직
+  `0`이므로 synthetic 정확도를 production 99%로 주장하지 않는다.
+
 ## 2026-09-21 — Qwen hard-negative human review pack (v1.81.0)
 
 - Qwen `qwen38fn` draft가 있는 hard-negative 500쌍/1,000행을 review pack으로

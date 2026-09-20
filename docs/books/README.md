@@ -189,6 +189,14 @@ counterfactual group과 167개 collision group을 uncertain-first로 정렬한�
 정확도를 더 올리는 가장 중요한 입력은 새 synthetic 문장이 아니라 reviewer의
 typed human label이다.
 
+v1.82.0에서는 이 reviewer label을 독립적인 근거로 만들기 위해
+[`control_labeling.md`](../control_labeling.md)의 기준과 teacher-blind dual review
+workflow를 추가했다. 두 사람이 같은 state/question을 독립 판정하고,
+agreement는 자동 합치되 disagreement는 제3자 adjudication을 거쳐야 최종
+feedback이 된다. 이 장은 synthetic target이나 Qwen/Gemma 답을 human truth로
+간주하지 않는 방법, 그리고 실제 human test가 생기기 전에는 99% 정확도를
+주장하지 않는 이유를 기록한다.
+
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
 100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지

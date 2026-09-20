@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.81.0
+현재 버전: 1.82.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -682,3 +682,47 @@ uv run hyperjev control review-session \
 선택/수정한다. Qwen/Gemma draft는 human label을 자동 대체하지 않는다. 현재
 human label은 `0/1,000`이고, 이 단계의 stop condition은 reviewer가 모든 row를
 확인한 뒤 `control materialize`와 `--require-human-labels`가 통과하는 것이다.
+
+### v1.82.0 teacher-blind control dual review
+
+synthetic target과 teacher draft를 사람이 정답으로 받아들이는 위험을 막기 위해
+control 전용 라벨링 기준과 teacher-blind 이중 검수 경로를 추가했다. 기준은
+[`docs/control_labeling.md`](control_labeling.md)에 고정했다. 두 reviewer는
+`state/question`을 독립적으로 보고 typed skill을 입력하며, `review-agreement`가
+완전 일치와 불일치를 기록한다. 불일치는 `review-adjudicate`에서 제3자가
+판정하고, `review-finalize`가 agreement와 adjudication을 합친 순수
+`golden_feedback`만 만든다.
+
+```bash
+uv run hyperjev control review-session \
+  --review-pack /tmp/control-qwen-hard-review-pack.jsonl \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --feedback-output /tmp/control-reviewer-a.jsonl \
+  --reviewer control-a --blind --deduplicate-exact
+uv run hyperjev control review-session \
+  --review-pack /tmp/control-qwen-hard-review-pack.jsonl \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --feedback-output /tmp/control-reviewer-b.jsonl \
+  --reviewer control-b --blind --deduplicate-exact
+uv run hyperjev control review-agreement \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --reviewer-a-feedback /tmp/control-reviewer-a.jsonl \
+  --reviewer-b-feedback /tmp/control-reviewer-b.jsonl \
+  --output /tmp/control-dual-agreement.jsonl --minimum-agreement 0.98
+uv run hyperjev control review-adjudicate \
+  --agreement /tmp/control-dual-agreement.jsonl \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --feedback-output /tmp/control-adjudication.jsonl \
+  --reviewer control-adjudicator
+uv run hyperjev control review-finalize \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --agreement /tmp/control-dual-agreement.jsonl \
+  --adjudication-feedback /tmp/control-adjudication.jsonl \
+  --output /tmp/control-human-feedback.jsonl
+```
+
+v1.82의 agreement gate는 reviewer consistency gate이지 정확도 gate가 아니다.
+현재 실제 control human label은 여전히 `0`이므로 production 99% 정확도는
+측정·주장하지 않는다. 다음 승격 조건은 이 workflow로 독립 human benchmark를
+완성한 뒤, accepted accuracy와 raw Student-head accuracy, safety STOP recall을
+각각 confidence interval과 함께 보고하는 것이다.

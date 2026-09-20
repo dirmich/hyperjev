@@ -115,6 +115,7 @@
 | 1.79.0 | 진행 중 | balanced semantic-boundary augmentation, OOD 97.5% model-only / 100% integrated, safety precision failure 기록 |
 | 1.80.0 | 진행 중 | normal APPROACH compound fast path, safety action 100% 유지, 추가 학습 ablation 비교/폐기 기록 |
 | 1.81.0 | 진행 중 | Qwen hard-negative 1,000행 human review pack, target 숨김/uncertain-first 검증 |
+| 1.82.0 | 진행 중 | control 전용 라벨 기준, teacher-blind dual review, disagreement adjudication/finalize gate |
 
 ## 다음 기록 규칙
 

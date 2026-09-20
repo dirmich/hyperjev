@@ -8,8 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .contracts import parse_task_reference
-from .golden import append_golden_feedback
+from .contracts import parse_decision_result, parse_task_reference, validate_result_for_task
+from .golden import GOLDEN_FEEDBACK_VERSION, append_golden_feedback
 from .registry import TaskRegistry
 from .samples import load_jsonl
 
@@ -246,6 +246,317 @@ def _feedback_by_sample(path: Path) -> dict[str, dict[str, Any]]:
     }
 
 
+def _validated_feedback_by_sample(
+    path: str | Path,
+    queue: Path,
+    registry: TaskRegistry,
+) -> dict[str, dict[str, Any]]:
+    """Load one reviewer stream and validate every append-only correction."""
+
+    feedback_path = Path(path)
+    if not feedback_path.exists() or not feedback_path.read_text(encoding="utf-8").strip():
+        return {}
+    queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
+    samples = {sample.sample_id: sample for sample in load_jsonl(queue, registry)}
+    latest: dict[str, dict[str, Any]] = {}
+    for record in _read_records(feedback_path):
+        if record.get("record_type") != "golden_feedback":
+            raise ValueError(f"feedback contains an unsupported record: {feedback_path}")
+        sample_id = str(record.get("sample_id", ""))
+        sample = samples.get(sample_id)
+        if sample is None:
+            raise ValueError(f"feedback references unknown sample_id: {sample_id}")
+        if record.get("queue_sha256") != queue_sha256:
+            raise ValueError(f"feedback queue digest does not match: {sample_id}")
+        if not str(record.get("reviewer", "")).strip():
+            raise ValueError(f"feedback reviewer is empty: {sample_id}")
+        expected_task = f"{sample.task_id}@{sample.task_version}"
+        if record.get("task") != expected_task:
+            raise ValueError(f"feedback task does not match queue sample: {sample_id}")
+        task = registry.get(sample.task_id, sample.task_version)
+        correction = record.get("correction")
+        if not isinstance(correction, dict):
+            raise TypeError(f"feedback correction is invalid: {sample_id}")
+        parsed = parse_decision_result(correction)
+        validate_result_for_task(task, parsed)
+        latest[sample_id] = record | {"correction": parsed.to_dict()}
+    return latest
+
+
+def _correction_signature(correction: dict[str, Any]) -> str:
+    return json.dumps(correction, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def compare_control_reviews(
+    queue_path: str | Path,
+    reviewer_a_feedback_path: str | Path,
+    reviewer_b_feedback_path: str | Path,
+    output_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    minimum_agreement: float = 0.98,
+) -> dict[str, Any]:
+    """Compare two teacher-blind reviewer streams without using synthetic targets."""
+
+    if not 0.0 <= minimum_agreement <= 1.0:
+        raise ValueError("minimum_agreement must be between 0 and 1")
+    queue = Path(queue_path)
+    samples = load_jsonl(queue, registry)
+    reviewer_a = _validated_feedback_by_sample(reviewer_a_feedback_path, queue, registry)
+    reviewer_b = _validated_feedback_by_sample(reviewer_b_feedback_path, queue, registry)
+    queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
+    items: list[dict[str, Any]] = []
+    pair_counts: dict[str, int] = {}
+    agreement_count = 0
+    disagreement_count = 0
+    missing_count = 0
+    for sample in samples:
+        first = reviewer_a.get(sample.sample_id)
+        second = reviewer_b.get(sample.sample_id)
+        first_correction = first.get("correction") if first else None
+        second_correction = second.get("correction") if second else None
+        if first_correction is None or second_correction is None:
+            status = "missing_reviewer"
+            missing_count += 1
+        elif _correction_signature(first_correction) == _correction_signature(second_correction):
+            status = "agreement"
+            agreement_count += 1
+        else:
+            status = "disagreement"
+            disagreement_count += 1
+        if first_correction is not None and second_correction is not None:
+            first_value = str(first_correction.get("selected", first_correction.get("value", "")))
+            second_value = str(second_correction.get("selected", second_correction.get("value", "")))
+            pair = f"{first_value}->{second_value}"
+            pair_counts[pair] = pair_counts.get(pair, 0) + 1
+        items.append(
+            {
+                "record_type": "control_dual_review_item",
+                "sample_id": sample.sample_id,
+                "task": f"{sample.task_id}@{sample.task_version}",
+                "state": sample.state,
+                "question": sample.question,
+                "language": sample.language,
+                "domain": sample.domain,
+                "source": {
+                    field: sample.source[field]
+                    for field in (
+                        "kind",
+                        "scenario_id",
+                        "episode_id",
+                        "semantic_group_id",
+                        "counterfactual_group_id",
+                        "pair_side",
+                    )
+                    if field in sample.source
+                },
+                "reviewer_a": {
+                    "reviewer": first.get("reviewer") if first else None,
+                    "correction": first_correction,
+                },
+                "reviewer_b": {
+                    "reviewer": second.get("reviewer") if second else None,
+                    "correction": second_correction,
+                },
+                "status": status,
+            }
+        )
+    comparable_count = agreement_count + disagreement_count
+    manifest = {
+        "record_type": "control_dual_review_manifest",
+        "review_version": "control-dual-review-v1",
+        "created_at": _utc_now(),
+        "queue_path": str(queue.resolve()),
+        "queue_sha256": queue_sha256,
+        "reviewer_a_feedback_path": str(Path(reviewer_a_feedback_path).resolve()),
+        "reviewer_b_feedback_path": str(Path(reviewer_b_feedback_path).resolve()),
+        "sample_count": len(samples),
+        "reviewer_a_count": len(reviewer_a),
+        "reviewer_b_count": len(reviewer_b),
+        "both_labeled_count": comparable_count,
+        "agreement_count": agreement_count,
+        "disagreement_count": disagreement_count,
+        "missing_count": missing_count,
+        "agreement_rate": round(agreement_count / comparable_count, 6) if comparable_count else None,
+        "minimum_agreement": minimum_agreement,
+        "agreement_gate": (
+            missing_count == 0
+            and comparable_count > 0
+            and agreement_count / comparable_count >= minimum_agreement
+        ),
+        "target_excluded": True,
+        "label_pair_counts": dict(sorted(pair_counts.items())),
+    }
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", encoding="utf-8") as handle:
+        handle.write(json.dumps(manifest, ensure_ascii=False, sort_keys=True) + "\n")
+        for item in items:
+            handle.write(json.dumps(item, ensure_ascii=False, sort_keys=True) + "\n")
+    return {"manifest": manifest, "output": str(output.resolve()), "records": len(items)}
+
+
+def finalize_control_reviews(
+    queue_path: str | Path,
+    agreement_path: str | Path,
+    adjudication_feedback_path: str | Path,
+    output_feedback_path: str | Path,
+    registry: TaskRegistry,
+) -> dict[str, Any]:
+    """Create a normal feedback stream from agreements plus adjudicated conflicts."""
+
+    queue = Path(queue_path)
+    agreement_records = _read_records(Path(agreement_path))
+    manifest = agreement_records[0]
+    if manifest.get("record_type") != "control_dual_review_manifest":
+        raise ValueError("agreement report must start with a dual-review manifest")
+    queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
+    if manifest.get("queue_sha256") != queue_sha256:
+        raise ValueError("agreement queue digest does not match the source queue")
+    adjudications = _validated_feedback_by_sample(adjudication_feedback_path, queue, registry)
+    output_records: list[dict[str, Any]] = []
+    agreement_count = 0
+    adjudicated_count = 0
+    for item in agreement_records[1:]:
+        status = item.get("status")
+        if status == "agreement":
+            correction = item["reviewer_a"]["correction"]
+            reviewer_ids = (item["reviewer_a"].get("reviewer"), item["reviewer_b"].get("reviewer"))
+            reviewer = "dual-agreement:" + "+".join(str(value) for value in reviewer_ids)
+            reason = "control dual-review agreement"
+            agreement_count += 1
+        elif status == "disagreement":
+            adjudication = adjudications.get(str(item["sample_id"]))
+            if adjudication is None:
+                raise ValueError(f"disagreement is not adjudicated: {item['sample_id']}")
+            correction = adjudication["correction"]
+            reviewer = str(adjudication["reviewer"])
+            reason = "control dual-review adjudication"
+            adjudicated_count += 1
+        else:
+            raise ValueError(f"dual review is incomplete: {item['sample_id']}")
+        output_records.append(
+            {
+                "record_type": "golden_feedback",
+                "feedback_version": GOLDEN_FEEDBACK_VERSION,
+                "created_at": _utc_now(),
+                "sample_id": item["sample_id"],
+                "task": item["task"],
+                "queue_sha256": queue_sha256,
+                "correction": correction,
+                "reviewer": reviewer,
+                "reason": reason,
+            }
+        )
+    output = Path(output_feedback_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", encoding="utf-8") as handle:
+        for record in output_records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    return {
+        "record_type": "control_dual_review_finalization",
+        "output": str(output.resolve()),
+        "sample_count": len(output_records),
+        "agreement_count": agreement_count,
+        "adjudicated_count": adjudicated_count,
+        "ready": len(output_records) == int(manifest.get("sample_count", -1)),
+    }
+
+
+def run_adjudication_session(
+    agreement_path: str | Path,
+    queue_path: str | Path,
+    feedback_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    reviewer: str,
+    input_fn: Any = input,
+    output_fn: Any = print,
+) -> dict[str, Any]:
+    """Resolve dual-review disagreements with a third typed human decision."""
+
+    agreement_records = _read_records(Path(agreement_path))
+    manifest = agreement_records[0]
+    if manifest.get("record_type") != "control_dual_review_manifest":
+        raise ValueError("agreement report must start with a dual-review manifest")
+    queue = Path(queue_path)
+    queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
+    if manifest.get("queue_sha256") != queue_sha256:
+        raise ValueError("agreement queue digest does not match the source queue")
+    items = [item for item in agreement_records[1:] if item.get("status") == "disagreement"]
+    feedback = Path(feedback_path)
+    latest = _validated_feedback_by_sample(feedback, queue, registry)
+    index = next((position for position, item in enumerate(items) if item["sample_id"] not in latest), 0)
+    saved = 0
+    stopped = False
+    while 0 <= index < len(items):
+        item = items[index]
+        sample_id = str(item["sample_id"])
+        output_fn("")
+        output_fn(f"[adjudication {index + 1}/{len(items)}] {sample_id}  {item.get('task')}")
+        output_fn(f"state: {item.get('state')}")
+        output_fn(f"question: {item.get('question')}")
+        output_fn("Reviewer A: " + json.dumps(item["reviewer_a"], ensure_ascii=False, sort_keys=True))
+        output_fn("Reviewer B: " + json.dumps(item["reviewer_b"], ensure_ascii=False, sort_keys=True))
+        if sample_id in latest:
+            output_fn("Current adjudication: " + json.dumps(latest[sample_id]["correction"], ensure_ascii=False))
+        output_fn("Commands: [e]nter final value  [n]ext  [p]revious  [s]kip  [q]uit")
+        try:
+            command = input_fn("> ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            stopped = True
+            break
+        if command in {"q", "quit"}:
+            stopped = True
+            break
+        if command in {"n", "next", "s", "skip"}:
+            if index < len(items) - 1:
+                index += 1
+            continue
+        if command in {"p", "previous", "prev"}:
+            if index > 0:
+                index -= 1
+            continue
+        if command not in {"e", "edit"}:
+            output_fn("Use e, n, p, s, or q.")
+            continue
+        try:
+            raw_value = input_fn("final value: ")
+            correction = _correction_from_value(item, raw_value, registry)
+            record = append_golden_feedback(
+                queue,
+                feedback,
+                registry,
+                sample_id=sample_id,
+                correction=correction,
+                reviewer=reviewer,
+                reason="control dual-review adjudication",
+            )
+        except (EOFError, KeyboardInterrupt):
+            stopped = True
+            break
+        except (TypeError, ValueError) as exc:
+            output_fn(f"Correction rejected: {exc}")
+            continue
+        latest[sample_id] = {
+            "sample_id": sample_id,
+            "correction": correction,
+            "created_at": record.get("created_at"),
+        }
+        saved += 1
+        if index < len(items) - 1:
+            index += 1
+        else:
+            break
+    return {
+        "disagreement_count": len(items),
+        "adjudicated_count": len(latest),
+        "pending_count": len(items) - len(latest),
+        "saved_in_session": saved,
+        "stopped": stopped,
+    }
+
+
 def _correction_from_value(item: dict[str, Any], raw_value: str, registry: TaskRegistry) -> dict[str, Any]:
     """Build a valid typed correction from one human-entered task value."""
 
@@ -310,6 +621,7 @@ def run_review_session(
     input_fn: Any = input,
     output_fn: Any = print,
     deduplicate_exact: bool = False,
+    blind_teacher: bool = False,
 ) -> dict[str, Any]:
     """Review a pack in one resumable session with next/previous navigation.
 
@@ -317,7 +629,8 @@ def run_review_session(
     the corrected task value), ``n``/``p`` (next/previous), ``s`` (leave pending and
     move next), and ``q`` (save and quit). Every accepted or edited label is
     appended immediately; revising an earlier item appends a newer record that
-    wins when feedback is applied.
+    wins when feedback is applied. With ``blind_teacher=True``, teacher output
+    is hidden and only ``e`` can create a label.
     """
 
     pack_records = _read_records(Path(review_pack_path))
@@ -409,23 +722,27 @@ def run_review_session(
             output_fn(f"[{index + 1}/{len(items)}] {sample_id}  {item.get('task')}")
         output_fn(f"state: {item.get('state')}")
         output_fn(f"question: {item.get('question')}")
-        output_fn(
-            "Qwen draft: "
-            + json.dumps(teacher.get("normalized_result"), ensure_ascii=False, sort_keys=True)
-        )
-        if teacher.get("comparison"):
+        if not blind_teacher:
             output_fn(
-                "Qwen/Gemma comparison: "
-                + json.dumps(teacher["comparison"], ensure_ascii=False, sort_keys=True)
+                "Qwen draft: "
+                + json.dumps(teacher.get("normalized_result"), ensure_ascii=False, sort_keys=True)
             )
-        if teacher.get("error"):
-            output_fn(f"Qwen error: {teacher['error']}")
+            if teacher.get("comparison"):
+                output_fn(
+                    "Qwen/Gemma comparison: "
+                    + json.dumps(teacher["comparison"], ensure_ascii=False, sort_keys=True)
+                )
+            if teacher.get("error"):
+                output_fn(f"Qwen error: {teacher['error']}")
         if sample_id in latest:
             output_fn(
                 "Current human label: "
                 + json.dumps(latest[sample_id].get("correction"), ensure_ascii=False, sort_keys=True)
             )
-        output_fn("Commands: [a]ccept  [e]dit  [n]ext  [p]revious  [s]kip  [q]uit")
+        if blind_teacher:
+            output_fn("Commands: [e]nter label  [n]ext  [p]revious  [s]kip  [q]uit")
+        else:
+            output_fn("Commands: [a]ccept  [e]dit  [n]ext  [p]revious  [s]kip  [q]uit")
         try:
             command = input_fn("> ").strip().lower()
         except (EOFError, KeyboardInterrupt):
@@ -446,11 +763,12 @@ def run_review_session(
             else:
                 output_fn("Already at the first item.")
             continue
-        if command not in {"a", "accept", "e", "edit"}:
+        allowed_decisions = {"e", "edit"} if blind_teacher else {"a", "accept", "e", "edit"}
+        if command not in allowed_decisions:
             output_fn("Use a, e, n, p, s, or q.")
             continue
 
-        if command in {"a", "accept"}:
+        if command in {"a", "accept"} and not blind_teacher:
             correction = teacher.get("normalized_result")
             if not isinstance(correction, dict):
                 output_fn("Qwen draft is not schema-valid; use e to enter a correction.")
@@ -509,4 +827,5 @@ def run_review_session(
         "deduplicated_exact": deduplicate_exact,
         "propagated_count": propagated,
         "stopped": stopped,
+        "blind_teacher": blind_teacher,
     }
