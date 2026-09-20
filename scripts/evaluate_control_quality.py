@@ -100,20 +100,48 @@ def _skill_report(evaluation: dict[str, Any], registry: TaskRegistry) -> dict[st
     """Expose per-target accuracy and confusion instead of only aggregate accuracy."""
 
     candidates = [str(candidate) for candidate in registry.get("control.skill", 1).output["candidates"]]
-    counts = {candidate: {"count": 0, "correct": 0} for candidate in candidates}
+    counts = {
+        candidate: {
+            "count": 0,
+            "correct": 0,
+            "accepted_count": 0,
+            "accepted_correct": 0,
+        }
+        for candidate in candidates
+    }
     confusion = {candidate: {predicted: 0 for predicted in candidates} for candidate in candidates}
     for row in evaluation["predictions"]:
         target = str(row["target"])
         predicted = str(row.get("prediction", {}).get("selected", ""))
-        counts.setdefault(target, {"count": 0, "correct": 0})
+        counts.setdefault(
+            target,
+            {"count": 0, "correct": 0, "accepted_count": 0, "accepted_correct": 0},
+        )
         counts[target]["count"] += 1
         counts[target]["correct"] += int(bool(row["correct"]))
+        if row.get("accepted"):
+            counts[target]["accepted_count"] += 1
+            counts[target]["accepted_correct"] += int(bool(row["correct"]))
         confusion.setdefault(target, {})[predicted] = confusion.setdefault(target, {}).get(predicted, 0) + 1
     metrics = {
         skill: {
             "count": values["count"],
             "correct": values["correct"],
             "accuracy": round(values["correct"] / values["count"], 6) if values["count"] else None,
+            "accuracy_ci95": _binomial_interval(values["correct"], values["count"]),
+            "accepted_count": values["accepted_count"],
+            "accepted_correct": values["accepted_correct"],
+            "accepted_accuracy": (
+                round(values["accepted_correct"] / values["accepted_count"], 6)
+                if values["accepted_count"]
+                else None
+            ),
+            "accepted_coverage": (
+                round(values["accepted_count"] / values["count"], 6) if values["count"] else None
+            ),
+            "accepted_accuracy_ci95": _binomial_interval(
+                values["accepted_correct"], values["accepted_count"]
+            ),
         }
         for skill, values in sorted(counts.items())
     }

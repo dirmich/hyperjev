@@ -10,10 +10,42 @@ from evaluate_control_quality import (
     _binomial_interval,
     _human_label_status,
     _quality_gate_failures,
+    _skill_report,
 )
+
+from hyperjev.registry import TaskRegistry
 
 
 class ControlQualityEvaluatorTests(unittest.TestCase):
+    def test_skill_report_exposes_accepted_metrics_and_intervals(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        report = _skill_report(
+            {
+                "predictions": [
+                    {
+                        "target": "STOP",
+                        "prediction": {"selected": "STOP"},
+                        "correct": True,
+                        "accepted": True,
+                    },
+                    {
+                        "target": "STOP",
+                        "prediction": {"selected": "HOLD"},
+                        "correct": False,
+                        "accepted": False,
+                    },
+                ]
+            },
+            registry,
+        )
+        stop = report["metrics"]["STOP"]
+        self.assertEqual(stop["count"], 2)
+        self.assertEqual(stop["accuracy"], 0.5)
+        self.assertEqual(stop["accepted_count"], 1)
+        self.assertEqual(stop["accepted_accuracy"], 1.0)
+        self.assertEqual(stop["accepted_coverage"], 0.5)
+        self.assertLess(stop["accuracy_ci95"]["lower"], 0.5)
+
     def test_wilson_interval_does_not_treat_two_of_two_as_proven_100_percent(self) -> None:
         interval = _binomial_interval(2, 2)
         self.assertLess(interval["lower"], 0.5)

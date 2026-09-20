@@ -11,7 +11,16 @@
   분리해 validation synthetic 점수와 human test 점수를 혼동하지 않는다.
 - 현재 human label이 `0`인 synthetic dataset에서는 gate가 실패하는 것이
   정상이며, human review 후 test group을 training에서 제외한 checkpoint를
-  다시 평가해야 한다.
+다시 평가해야 한다.
+
+## 2026-09-21 — per-skill accepted diagnostics (v1.85.0)
+
+- control skill별 raw/accepted accuracy, accepted coverage, Wilson interval을
+  report한다.
+- confusion matrix를 함께 유지해 `HOLD → STOP`, `APPROACH → MOVE` 같은 경계를
+  human test에서 바로 추적할 수 있게 했다.
+- targeted evaluator tests `5 passed`; human label이 없으므로 현재 지표는
+  synthetic 연구용이고 production gate는 여전히 false다.
 
 ## 2026-09-21 — raw/accepted/safety evaluator hardening (v1.83.0)
 

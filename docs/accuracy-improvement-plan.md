@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.84.0
+현재 버전: 1.85.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -772,3 +772,23 @@ uv run python scripts/evaluate_control_quality.py \
 human review가 끝난 뒤에도 training/validation row의 label과 held-out test row의
 label을 같은 것으로 재사용하지 않고, test group을 학습에서 제외한 checkpoint로
 재평가해야 한다.
+
+### v1.85.0 per-skill accepted diagnostics
+
+per-skill report에 raw accuracy뿐 아니라 skill별 accepted count, accepted
+accuracy, accepted coverage, Wilson 95% interval을 추가했다. human test가
+완성되면 전체 점수만 보고 다음 학습을 결정하지 않고, 예를 들어 `APPROACH`와
+`MOVE`의 경계에서 accepted coverage가 낮은지, `STOP`의 confidence가 과도하게
+보수적인지, `HOLD`가 `STOP`으로 혼동되는지를 분리할 수 있다.
+
+이 지표는 다음 데이터 개선 순서를 결정하는 기준이다.
+
+1. STOP false negative가 하나라도 있으면 해당 semantic group과 counterfactual
+   pair를 safety adjudication 우선순위로 올린다.
+2. STOP false positive가 높으면 `HOLD`/normal action boundary를 추가하되,
+   explicit safety signal을 약화하지 않는다.
+3. accepted coverage가 낮고 accepted accuracy가 높으면 calibration/abstention을
+   조정하고, accuracy를 희생해 threshold를 무작정 낮추지 않는다.
+4. 한 skill의 human-only test lower bound가 기준 미달이면 해당 skill만 train
+   augmentation하는 것이 아니라 episode/group이 겹치지 않는 새 human examples를
+   추가한다.

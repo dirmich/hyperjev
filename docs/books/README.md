@@ -207,6 +207,10 @@ v1.84.0에서는 held-out test 전체에 human label이 있는지 별도 gate로
 `human_label_gate`와 `human_test_gate`를 나누었기 때문에 validation의 synthetic
 점수와 독립 test의 human 점수를 섞어 production 승인을 내릴 수 없다.
 
+v1.85.0에서는 skill별 accepted accuracy와 coverage를 기록한다. 이 정보가
+있어야 “전체 99%” 뒤에 숨은 `HOLD → STOP` 보수 오류나 `APPROACH → MOVE`
+경계 오류를 찾아 새 human group을 추가할 수 있다.
+
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
 100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지

@@ -2536,3 +2536,19 @@ point accuracy만 보면 전부 100%지만 STOP 사례가 2개라 confidence 하
 `--require-human-test` 승격 조건을 충족하지 않는다. 이 gate는 human reviewer가
 검수한 test를 train에 섞거나 synthetic validation 점수로 대체하는 실수를
 막기 위한 것이다. targeted evaluator test는 `4 passed`로 확인했다.
+
+### 14.63 per-skill accepted diagnostics (v1.85.0)
+
+quality report의 각 control skill에 다음 필드를 추가했다.
+
+| field | 의미 |
+| --- | --- |
+| `accuracy`, `accuracy_ci95` | 해당 target skill의 raw Student-head 정확도와 Wilson interval |
+| `accepted_accuracy`, `accepted_accuracy_ci95` | confidence gate를 통과한 행의 정확도와 interval |
+| `accepted_coverage` | 해당 skill 중 fallback 없이 accepted된 비율 |
+| `confusion_matrix` | target skill에서 각 predicted skill로 간 횟수 |
+
+targeted evaluator test는 `5 passed`였다. 실제 human benchmark가 들어오면 이
+표를 기준으로 `STOP` false negative, `STOP` false positive, `HOLD`/`MOVE`/
+`APPROACH` 경계와 low-coverage skill을 각각 보강한다. 현재는 human label이
+없으므로 이 진단도 synthetic 연구용이며 production 정확도 근거가 아니다.
