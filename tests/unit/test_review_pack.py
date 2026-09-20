@@ -2,7 +2,9 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from hyperjev import cli as cli_module
 from hyperjev.cli import build_parser
 from hyperjev.config import load_config
 from hyperjev.control_data import generate_control_hard_negative_queue
@@ -64,6 +66,34 @@ class ReviewPackTests(unittest.TestCase):
         self.assertTrue(args.blind)
         self.assertEqual(args.offset, 50)
         self.assertEqual(args.limit, 25)
+
+    def test_control_review_session_forwards_batch_flags_to_handler(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-session",
+                "--review-pack",
+                "pack.jsonl",
+                "--queue",
+                "queue.jsonl",
+                "--feedback-output",
+                "feedback.jsonl",
+                "--reviewer",
+                "human-a",
+                "--blind",
+                "--offset",
+                "50",
+                "--limit",
+                "25",
+            ]
+        )
+        with (
+            patch.object(cli_module, "run_review_session", return_value={}) as review_session,
+            patch("builtins.print"),
+        ):
+            args.handler(args)
+        self.assertEqual(review_session.call_args.kwargs["batch_offset"], 50)
+        self.assertEqual(review_session.call_args.kwargs["batch_limit"], 25)
 
     def test_review_session_limits_deterministic_blind_batches(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")

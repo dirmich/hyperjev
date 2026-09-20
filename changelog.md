@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — verify control batch handler wiring (v1.98.0)
+
+- v1.97에서 추가한 `--offset`/`--limit`이 control handler에 실제 전달되도록
+  연결을 교정했다. generic `golden review-session`은 기존 동작을 유지한다.
+- 실제 1,000-item control pack에서 `--blind --offset 0 --limit 50`을 실행해
+  report의 `batch_count=50`, `batch_pending_count=50`, 전체 `pending_count=1000`을
+  확인했다. `q` 종료에서는 feedback 파일이 생성되지 않는다.
+- handler forwarding regression test를 추가했다. 이는 human label이나 정확도를
+  생성하지 않는 CLI wiring 검증이다.
+
 ## 2026-09-21 — bounded blind human-review batches (v1.97.0)
 
 - `control review-session`에 결정론적 `--offset`/`--limit` 배치를 추가했다.

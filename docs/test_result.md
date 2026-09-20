@@ -2788,3 +2788,22 @@ uv run python scripts/evaluate_control_quality.py \
 따라서 50개씩 사람 검수하고 `q`로 종료한 뒤 다음 offset으로 안전하게 재개할 수
 있다. 이 테스트는 입력 UX와 provenance 경로를 검증한 것이며, 테스트에 넣은
 값을 실제 golden truth로 승격하지 않는다.
+
+### 14.75 control batch handler wiring (v1.98.0)
+
+v1.97에서 발견한 CLI forwarding 오류를 교정했다. batch 옵션이 generic golden
+handler가 아니라 control handler로 전달되는지 unit test와 실제 pack으로 재검증했다.
+
+| 검증 항목 | 결과 |
+| --- | ---: |
+| handler forwarding test | 통과 |
+| 실제 pack rows | `1,000` |
+| 실행 옵션 | `--blind --offset 0 --limit 50` |
+| report `batch_count` | `50` |
+| report `batch_pending_count` | `50` |
+| report 전체 `pending_count` | `1,000` |
+| `q` 후 feedback file | 생성되지 않음 |
+| human label 생성 | `0` |
+
+이 smoke는 CLI wiring과 batch 범위만 검증한다. control 정확도나 human target의
+존재를 의미하지 않는다.

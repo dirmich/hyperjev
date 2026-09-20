@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.97.0
+현재 버전: 1.98.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1026,3 +1026,12 @@ uv run hyperjev control review-session \
 현재 정확도 승격 상태는 바뀌지 않았다. 이 기능은 사람이 판단할 수 있는
 control target을 만들기 위한 unblock이며, 사람이 실제로 입력한 label이 없는
 동안에는 control accuracy 99%를 주장하지 않는다.
+
+### v1.98.0 batch handler wiring verification
+
+v1.97의 batch 기능을 실제 `/tmp` control review pack에 실행해
+`batch_limit=50`, `batch_count=50`, 전체 pending `1000`을 확인했다. 첫 prompt에서
+`q`로 종료하면 feedback 파일은 생성되지 않고 process exit은 `0`이다. 이 smoke는
+사람 label을 만들지 않으며, batch가 실제 control handler까지 전달되는지를 검증한다.
+추가 handler forwarding unit test로 generic `golden review-session`과 control
+`review-session`의 인자 경로를 분리해 고정했다.

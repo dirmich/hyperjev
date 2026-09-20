@@ -246,8 +246,6 @@ def _golden_review_session(args: argparse.Namespace) -> int:
         reviewer=args.reviewer,
         deduplicate_exact=args.deduplicate_exact,
         blind_teacher=args.blind,
-        batch_offset=args.offset,
-        batch_limit=args.limit,
     )
     print(json.dumps(report, ensure_ascii=False))
     return 0
@@ -491,6 +489,8 @@ def _control_review_session(args: argparse.Namespace) -> int:
         reviewer=args.reviewer,
         deduplicate_exact=args.deduplicate_exact,
         blind_teacher=args.blind,
+        batch_offset=args.offset,
+        batch_limit=args.limit,
     )
     print(json.dumps(report, ensure_ascii=False))
     return 0
