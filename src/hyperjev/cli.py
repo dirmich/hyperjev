@@ -19,6 +19,7 @@ from .calibration import fit_temperature
 from .config import ConfigError, load_config
 from .contracts import DecisionRequest
 from .control import ControlObservation, ControlSafetyPolicy, ControlStudentClient
+from .control_data import generate_control_review_queue
 from .dataset_factory import build_dataset, validate_dataset
 from .doctor import system_checks
 from .evaluation import evaluate_run, validate_golden_set
@@ -342,6 +343,20 @@ def _control_train(args: argparse.Namespace) -> int:
             precision=args.precision,
         ),
         device=args.device,
+    )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _control_seed(args: argparse.Namespace) -> int:
+    config = load_config(args.config)
+    registry = TaskRegistry.load(args.registry)
+    output = args.output or config.runs_path / "control-review-queue.jsonl"
+    report = generate_control_review_queue(
+        output,
+        registry,
+        count_per_skill=args.count_per_skill,
+        seed=args.seed,
     )
     print(json.dumps(report, ensure_ascii=False))
     return 0
@@ -751,6 +766,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     control = subparsers.add_parser("control")
     control_subparsers = control.add_subparsers(dest="control_command", required=True)
+    control_seed = control_subparsers.add_parser("seed")
+    _config_argument(control_seed)
+    control_seed.add_argument("--registry", default="registry/control_tasks")
+    control_seed.add_argument("--output")
+    control_seed.add_argument("--count-per-skill", type=int, default=100)
+    control_seed.add_argument("--seed", type=int, default=7)
+    control_seed.set_defaults(handler=_control_seed)
     control_train = control_subparsers.add_parser("train")
     control_train.add_argument("--registry", default="registry/control_tasks")
     control_train.add_argument("--dataset", required=True)

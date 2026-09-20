@@ -1460,3 +1460,29 @@ human label 0개이며, 144건의 필수 provenance 오류로 `FAIL`했다. 이 
 reference Student 실험용 synthetic 입력으로는 보존하지만, human golden
 control 정확도 산정용으로 승격하지 않는다. 이 gate를 통과하는 데이터만
 향후 99% 목표의 validation/test 분모로 사용한다.
+
+### 14.23 human-review control seed generator (v1.45.0)
+
+다음 명령으로 8개 skill을 균형 있게 가진 검수 queue를 생성할 수 있다.
+
+```bash
+uv run hyperjev control seed \
+  --output runs/control/control-review-queue.jsonl \
+  --count-per-skill 1000 \
+  --seed 7
+```
+
+각 row에는 `scenario_id`, `episode_id`, `semantic_group_id`, deterministic
+split, generator provenance가 들어간다. `target`은 synthetic seed의 초안이고
+`labels.human`은 null로 시작한다. 따라서 다음 두 결과가 모두 의도된 동작이다.
+
+| 시험 | 결과 |
+| --- | --- |
+| 16개 seed 생성 후 provenance validator | PASS, 16개 unique episode/group |
+| 같은 queue에 `--require-human-labels` 적용 | FAIL, human label 0개 |
+
+실제 review에서는 Qwen/Gemma draft를 참고 자료로만 사용하고, 사람이
+state/question을 확인해 typed choice를 확정한다. human feedback을 apply한 뒤
+에야 `--require-human-labels`를 통과한 dataset을 정확도 학습/평가에 사용한다.
+seed의 반복 문구는 데이터 파이프라인과 UI 검증용이며, 99% 상용 일반화 증거가
+아니다.

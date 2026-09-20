@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.44.0
+현재 버전: 1.45.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -64,6 +64,23 @@ uv run python scripts/validate_control_dataset.py \
 검사한다. 기존 smoke fixture는 이 메타데이터가 없어 실패하며, 이것은
 정확도를 낮춘 것이 아니라 아직 production-quality 데이터가 아님을 명시한
 것이다.
+
+v1.45.0에는 검수용 seed queue가 추가됐다.
+
+```bash
+uv run hyperjev control seed \
+  --output runs/control/control-review-queue.jsonl \
+  --count-per-skill 1000 \
+  --seed 7
+uv run python scripts/validate_control_dataset.py \
+  runs/control/control-review-queue.jsonl
+```
+
+8개 skill이 각각 1,000개인 8,000개 queue를 만들 수 있지만, seed의 `target`은
+synthetic draft이고 `labels.human`은 null이다. Qwen/Gemma 결과도 보조 draft로만
+기록하고, reviewer가 state/question을 보고 직접 선택한 human typed label이
+최종 target이다. `--require-human-labels`가 통과하기 전에는 이 queue로
+production 정확도를 계산하지 않는다.
 
 simulation safety scenario는 40회 replay에서 action accuracy 100%, safety STOP
 recall 100%였지만, 이는 contract regression 증거이지 새로운 state 일반화 증거가

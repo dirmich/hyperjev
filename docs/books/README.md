@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.44.0까지 진행되어 있다. Python 테스트 102개와
+현재 `main`은 origin에 push될 1.45.0까지 진행되어 있다. Python 테스트 103개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -79,6 +79,11 @@ v1.44.0에서는 control dataset에 scenario/episode/semantic-group provenance�
 요구하고, normalized exact input과 episode/group이 split 사이에 섞이면
 실패시키는 validator를 추가했다. 기존 smoke fixture는 이 계약을 만족하지
 않으므로 human golden seed를 만들기 전까지 품질 dataset으로 취급하지 않는다.
+
+v1.45.0에서는 `hyperjev control seed`로 8개 skill을 균형 있게 만들고, 기존
+human review/apply 흐름에 넣을 수 있는 pending queue를 추가했다. seed target은
+synthetic draft이고 human label은 비어 있으므로, validator의 human-required
+gate를 통과하기 전에는 정확도 학습/출시 데이터로 사용하지 않는다.
 
 각 구현 단계는 다음 순서를 따른다.
 

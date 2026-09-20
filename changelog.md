@@ -3,6 +3,20 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — human-review control seed generator (v1.45.0)
+
+- `hyperjev control seed`가 8개 control skill을 균형 있게 생성하고,
+  `scenario_id`, `episode_id`, `semantic_group_id`, split, generator provenance를
+  각 row에 기록한다.
+- seed의 `target`은 synthetic draft일 뿐 human truth가 아니다. `labels.human`
+  은 항상 null로 시작하며, `validate_control_dataset --require-human-labels`
+  는 검수 전 queue를 실패시킨다.
+- 16개 seed smoke를 생성해 validator가 leakage 없이 통과하고, human-required
+  mode가 16개 pending row를 모두 거부하는 것을 확인했다.
+- 기본 100개/skill 생성 결과를 바로 production dataset으로 사용하지 않는다.
+  Qwen/Gemma draft와 human review/apply가 끝난 뒤 human label 수와 agreement를
+  다시 측정해야 한다.
+
 ## 2026-09-20 — control dataset provenance/leakage gate (v1.44.0)
 
 - `src/hyperjev/control_data.py`와 `scripts/validate_control_dataset.py`를
