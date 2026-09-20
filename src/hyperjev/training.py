@@ -228,7 +228,7 @@ def _encode_reference_sample(
     if vocab_size <= 2:
         raise TrainingDataError("vocab_size must be greater than 2")
     text = f"{sample.state}\n{sample.question}"
-    if backbone == "reference-token-encoder":
+    if backbone in {"reference-token-encoder", "reference-bow-encoder"}:
         words = re.findall(r"\w+", text.casefold(), flags=re.UNICODE)[:max_length]
         token_ids = [
             2

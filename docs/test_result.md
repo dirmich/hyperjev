@@ -1523,3 +1523,18 @@ think 활성화 generation probe가 4분 이상 무응답이라 중단했다. �
 틀렸다는 정확도 판정이 아니라 현재 설정에서 동기 호출로 사용할 수 없다는
 latency/operability 결과다. Gemma는 별도 async judge worker, timeout, retry,
 disagreement queue에서 실행하며 motor/control tick은 기다리지 않는다.
+
+### 14.26 reference BOW encoder ablation (v1.48.0)
+
+token count를 직접 linear projection하는 `reference-bow-encoder` 후보를
+추가하고, 기존 48개 control smoke에서 validation으로 비교했다.
+
+| 후보 | validation | 판정 |
+| --- | ---: | --- |
+| token/ngram | 4/8 (50.00%) | 기존 기준 |
+| BOW count projection | 4/8 (50.00%) | FAIL, 개선 없음 |
+
+이 실험은 작은 smoke에서 hidden size나 pooling만 바꾸는 것이 99%에 가까운
+일반화를 만들지 못한다는 증거다. 따라서 BOW checkpoint는 production 후보로
+승격하지 않고, human semantic group·counterfactual hard-negative·episode
+split이 추가된 뒤 다시 비교한다.

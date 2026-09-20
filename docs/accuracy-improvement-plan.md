@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.47.0
+현재 버전: 1.48.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -112,6 +112,10 @@ Qwen은 빠른 초안/확장, Gemma는 독립 judge로 사용하되 Gemma genera
 control tick에서 기다리지 않는다. timeout/error/teacher disagreement는
 human review queue로 보내며, normalized result가 있어도 `labels.human`을
 자동으로 채우지 않는다.
+
+reference BOW ablation은 validation `4/8 (50.00%)`로 token/ngram과 동일했다.
+따라서 48개 smoke test를 보고 architecture를 고르지 않고, 다음 후보 비교는
+human-labeled validation에서 class-balanced hard-negative와 함께 수행한다.
 
 simulation safety scenario는 40회 replay에서 action accuracy 100%, safety STOP
 recall 100%였지만, 이는 contract regression 증거이지 새로운 state 일반화 증거가

@@ -94,6 +94,10 @@ v1.47.0에서는 control queue를 Qwen/Gemma draft 경로에 직접 연결했다
 느려 비동기 judge queue가 필요하다는 운영 결과를 남겼다. 두 teacher 모두
 human label을 대체하지 않는다.
 
+v1.48.0에서는 BOW count encoder를 ablation했다. validation 50%로 token/ngram과
+같아 승격하지 않았으며, control accuracy 상승의 우선순위를 human semantic
+group과 hard-negative 데이터로 확정했다.
+
 각 구현 단계는 다음 순서를 따른다.
 
 ```text

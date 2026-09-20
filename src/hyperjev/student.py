@@ -112,10 +112,13 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
                 for index, spec in enumerate(specs)
             }
             self.embedding = nn.Embedding(selected.vocab_size, selected.hidden_size)
+            self.use_bow_encoder = selected.backbone == "reference-bow-encoder"
             self.use_ngram_encoder = selected.backbone in {
                 "reference-ngram-encoder",
                 "reference-token-encoder",
             }
+            if self.use_bow_encoder:
+                self.bow_projection = nn.Linear(selected.vocab_size, selected.hidden_size)
             if self.use_ngram_encoder:
                 self.ngram_encoder = nn.Sequential(
                     nn.Conv1d(
@@ -161,6 +164,18 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
             if input_ids.ndim != 2:
                 raise ValueError("input_ids must have shape [batch, sequence]")
             embedded = self.embedding(input_ids)
+            if self.use_bow_encoder:
+                mask = attention_mask.to(dtype=embedded.dtype) if attention_mask is not None else None
+                counts = torch.zeros(
+                    input_ids.shape[0],
+                    selected.vocab_size,
+                    dtype=embedded.dtype,
+                    device=input_ids.device,
+                )
+                weights = mask if mask is not None else torch.ones_like(input_ids, dtype=embedded.dtype)
+                counts.scatter_add_(1, input_ids, weights)
+                pooled = counts / weights.sum(dim=1, keepdim=True).clamp_min(1.0)
+                return self.encoder(self.bow_projection(pooled))
             if self.use_ngram_encoder:
                 mask = attention_mask.to(dtype=embedded.dtype) if attention_mask is not None else None
                 features = self.ngram_encoder(embedded.transpose(1, 2)).transpose(1, 2)

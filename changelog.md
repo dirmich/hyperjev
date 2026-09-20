@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — reference BOW encoder ablation (v1.48.0)
+
+- token count를 직접 linear projection하는 `reference-bow-encoder`를 추가해
+  token/ngram 후보와 비교했다. typed head와 checkpoint contract는 동일하다.
+- 48개 control smoke에서 validation은 `4/8 (50.00%)`로 token/ngram과 같았고,
+  개선되지 않았다. test는 validation으로 선택한 뒤에만 확인해야 하므로 이
+  단계에서는 승격 후보로 사용하지 않는다.
+- 결과는 architecture보다 클래스당 독립 semantic group과 hard-negative가
+  부족한 것이 현재 병목임을 보여준다. BOW 경로는 추후 human dataset에서
+  다시 비교할 수 있도록 유지한다.
+
 ## 2026-09-21 — control Qwen/Gemma draft routing (v1.47.0)
 
 - `hyperjev control draft`가 control registry queue를 Qwen 또는 Gemma teacher에
