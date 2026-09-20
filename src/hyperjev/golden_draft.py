@@ -23,6 +23,19 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _write_draft_file(output: Path, manifest: dict[str, Any], records: list[dict[str, Any]]) -> None:
+    with output.open("w", encoding="utf-8") as handle:
+        handle.write(json.dumps(manifest, ensure_ascii=False, sort_keys=True) + "\n")
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def _append_draft_record(output: Path, record: dict[str, Any]) -> None:
+    with output.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        handle.flush()
+
+
 def generate_teacher_draft(
     config: Phase0Config,
     registry: TaskRegistry,
@@ -33,6 +46,7 @@ def generate_teacher_draft(
     limit: int | None = None,
     timeout_s: float | None = None,
     max_tokens: int = 256,
+    resume: bool = False,
 ) -> dict[str, Any]:
     """Generate non-human teacher draft labels bound to one queue hash.
 
@@ -54,9 +68,49 @@ def generate_teacher_draft(
         raise ValueError(f"teacher is not configured: {provider}")
     client = TeacherClient(settings, timeout_s=timeout_s)
     queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    records: list[dict[str, Any]] = []
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    existing_manifest: dict[str, Any] | None = None
+    existing_records: dict[str, dict[str, Any]] = {}
+    if resume and output.exists():
+        existing_manifest, existing_records = _draft_records(output)
+        if existing_manifest.get("record_type") != "golden_teacher_draft_manifest":
+            raise ValueError("resume output must be a teacher draft, not an adjudication")
+        if existing_manifest.get("queue_sha256") != queue_sha256:
+            raise ValueError("resume output queue SHA-256 does not match queue")
+        if existing_manifest.get("provider") != provider:
+            raise ValueError("resume output provider does not match provider")
+        selected_ids = {sample.sample_id for sample in samples}
+        if not set(existing_records).issubset(selected_ids):
+            raise ValueError("resume output contains samples outside the selected queue range")
+    run_id = str(existing_manifest.get("run_id")) if existing_manifest else datetime.now(
+        timezone.utc
+    ).strftime("%Y%m%dT%H%M%SZ")
+    records: list[dict[str, Any]] = [
+        existing_records[sample.sample_id] for sample in samples if sample.sample_id in existing_records
+    ]
+    initial_manifest = {
+        "record_type": "golden_teacher_draft_manifest",
+        "draft_version": GOLDEN_DRAFT_VERSION,
+        "created_at": existing_manifest.get("created_at", _utc_now()) if existing_manifest else _utc_now(),
+        "run_id": run_id,
+        "queue_path": str(queue.resolve()),
+        "queue_sha256": queue_sha256,
+        "provider": provider,
+        "model": settings.model,
+        "prompt_version": PROMPT_VERSION,
+        "max_tokens": max_tokens,
+        "sample_count": len(samples),
+        "schema_valid_count": sum(record["schema_valid"] is True for record in records),
+        "completed_count": sum(record["status"] == "completed" for record in records),
+        "error_count": sum(record["status"] == "error" for record in records),
+        "resumable": True,
+    }
+    if not resume or not output.exists():
+        _write_draft_file(output, initial_manifest, records)
     for sample in samples:
+        if sample.sample_id in existing_records:
+            continue
         task = registry.get(sample.task_id, sample.task_version)
         record: dict[str, Any] = {
             "record_type": "golden_teacher_draft",
@@ -97,6 +151,7 @@ def generate_teacher_draft(
             record["status"] = "error"
             record["error"] = f"{type(exc).__name__}: {exc}"
         records.append(record)
+        _append_draft_record(output, record)
 
     manifest = {
         "record_type": "golden_teacher_draft_manifest",
@@ -113,13 +168,9 @@ def generate_teacher_draft(
         "schema_valid_count": sum(record["schema_valid"] is True for record in records),
         "completed_count": sum(record["status"] == "completed" for record in records),
         "error_count": sum(record["status"] == "error" for record in records),
+        "resumable": True,
     }
-    output = Path(output_path)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("w", encoding="utf-8") as handle:
-        handle.write(json.dumps(manifest, ensure_ascii=False, sort_keys=True) + "\n")
-        for record in records:
-            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    _write_draft_file(output, manifest, records)
     return {"output": str(output.resolve()), "manifest": manifest, "records": records}
 
 
@@ -132,6 +183,7 @@ def generate_gemma_draft(
     limit: int | None = None,
     timeout_s: float | None = None,
     max_tokens: int = 256,
+    resume: bool = False,
 ) -> dict[str, Any]:
     """Backward-compatible Gemma-specific wrapper."""
 
@@ -144,6 +196,7 @@ def generate_gemma_draft(
         limit=limit,
         timeout_s=timeout_s,
         max_tokens=max_tokens,
+        resume=resume,
     )
 
 

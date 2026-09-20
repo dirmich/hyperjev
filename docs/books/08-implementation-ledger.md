@@ -89,6 +89,7 @@
 | 1.53.0 | 진행 중 | control registry 기반 human review pack/session/apply CLI |
 | 1.54.0 | 진행 중 | Qwen/Gemma typed adjudication과 disagreement human gate |
 | 1.55.0 | 진행 중 | per-skill accuracy/recall과 confusion matrix production gate |
+| 1.56.0 | 진행 중 | long-running Qwen/Gemma draft resume와 shared-slot 기록 |
 
 ## 다음 기록 규칙
 

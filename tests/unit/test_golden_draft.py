@@ -142,6 +142,32 @@ class GoldenDraftTests(unittest.TestCase):
         self.assertIsNone(records[1]["normalized_result"])
         self.assertIn("qwen", records[1]["teacher_comparison"])
 
+    def test_teacher_draft_resume_skips_completed_records(self) -> None:
+        config = load_config(ROOT / "configs" / "phase0.toml")
+        registry = TaskRegistry.load(config.registry_path)
+
+        class _CountingQwen(_FakeQwen):
+            calls = 0
+
+            def complete(self, messages, *, max_tokens=256):
+                type(self).calls += 1
+                return super().complete(messages, max_tokens=max_tokens)
+
+        with tempfile.TemporaryDirectory() as directory:
+            queue = Path(directory) / "queue.jsonl"
+            output = Path(directory) / "draft.jsonl"
+            generate_review_queue(queue, registry, count=2, seed=7)
+            with patch("hyperjev.golden_draft.TeacherClient", _CountingQwen):
+                generate_teacher_draft(config, registry, queue, output, provider="qwen", limit=1)
+                report = generate_teacher_draft(
+                    config, registry, queue, output, provider="qwen", resume=True
+                )
+            records = output.read_text(encoding="utf-8").splitlines()
+
+        self.assertEqual(_CountingQwen.calls, 2)
+        self.assertEqual(report["manifest"]["sample_count"], 2)
+        self.assertEqual(len(records), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

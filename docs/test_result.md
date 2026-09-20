@@ -1716,3 +1716,29 @@ session `reviewed_count=8`, feedback 8건, apply `ready=true`를 확인했다.
 이제 각 row에서 state/question을 보고 `e`로 `STOP` 같은 value만 입력할 수
 있고, next/previous 이동과 재검수가 가능하다. 이는 human label을 수집하는
 경로의 회귀 증거이며, 아직 실제 control 1,000개 golden 결과는 아니다.
+
+### 14.34 resumable teacher draft (v1.56.0)
+
+장시간 Qwen/Gemma draft 작업이 중단될 때 완료된 teacher 결과를 잃지 않도록
+`control draft --resume`를 추가했다.
+
+```bash
+uv run hyperjev control draft \
+  --config configs/phase0.toml \
+  --queue runs/control/control-review-queue.jsonl \
+  --provider qwen \
+  --output runs/control/qwen-control-draft.jsonl \
+  --max-tokens 256 \
+  --timeout 300 \
+  --resume
+```
+
+draft 파일은 manifest와 완료 row를 즉시 flush하고, 재실행 시 같은 queue
+SHA/provider의 기존 sample을 skip한다. unit test에서 2개 queue를 첫 실행
+1개 후 resume해 실제 teacher 호출이 총 2회이고 최종 row가 2개임을 확인했다.
+
+실제 800개 Qwen 실행은 llama-server가 `-np 1`이고 다른 Node client가 slot을
+점유한 상태에서 8분 이상 HTTP response header를 기다려 중단했다. output은
+생성되지 않았고, 이는 Qwen label 정확도 실패가 아니라 shared inference-slot
+operability 결과다. 기존 16개 Qwen probe는 `16/16 schema-valid`로 유지되며,
+재시도는 server slot이 비었을 때 `--resume`로 수행한다.

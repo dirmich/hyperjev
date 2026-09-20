@@ -61,6 +61,16 @@
   synthetic checkpoint는 8개 skill 모두 validation/test 100%였지만 human
   label 0이라 production gate는 여전히 별도다.
 
+## 2026-09-21 — resumable teacher draft (v1.56.0)
+
+- `control draft --resume`가 manifest/queue SHA/provider를 확인하고 완료된
+  sample을 skip하며, 각 teacher record를 즉시 flush한다.
+- 2개 queue를 1개 처리 후 재개하는 unit test에서 호출 2회와 최종 2 row를
+  확인했다.
+- 800개 Qwen 실측은 llama-server `-np 1`의 다른 Node client 점유로 8분 이상
+  대기해 중단했다. output은 없으며, 이는 정확도 실패가 아니라 shared-slot
+  운영 문제다.
+
 ## 2026-09-21 — control counterfactual hard-negative queue (v1.49.0)
 
 - `hyperjev control hard-negative`가 STOP↔RETREAT, MOVE↔APPROACH,

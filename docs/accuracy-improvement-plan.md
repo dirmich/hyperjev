@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.55.0
+현재 버전: 1.56.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -163,6 +163,12 @@ validation/test 각각에 skill별 count, correct, accuracy와 confusion matrix�
 기록한다. 기본 gate는 각 skill accuracy도 99% 이상이어야 하며, 표본이 0인
 skill은 실패한다. 따라서 STOP이 100%여도 MOVE/APPROACH가 부족하면 전체
 control gate는 통과하지 않는다.
+
+teacher queue는 장시간 local generation 중에도 resume할 수 있어야 한다.
+`control draft --resume`는 manifest와 완료된 record를 먼저 읽고, 중단된
+sample만 다시 호출한다. 각 완료 record는 즉시 flush되므로 process 종료나
+server slot 대기로 전체 queue가 사라지지 않는다. 다만 queue SHA와 provider가
+바뀌면 resume을 거부한다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적

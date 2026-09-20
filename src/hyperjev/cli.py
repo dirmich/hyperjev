@@ -181,6 +181,7 @@ def _golden_draft(args: argparse.Namespace) -> int:
         provider=provider,
         limit=args.limit,
         timeout_s=args.timeout,
+        resume=args.resume,
     )
     print(json.dumps(report["manifest"], ensure_ascii=False))
     return 0 if report["manifest"]["error_count"] == 0 else 1
@@ -381,6 +382,7 @@ def _control_draft(args: argparse.Namespace) -> int:
         limit=args.limit,
         timeout_s=args.timeout,
         max_tokens=args.max_tokens,
+        resume=args.resume,
     )
     print(json.dumps(report["manifest"], ensure_ascii=False))
     return 0 if report["manifest"]["error_count"] == 0 else 1
@@ -764,6 +766,7 @@ def build_parser() -> argparse.ArgumentParser:
     golden_draft.add_argument("--output")
     golden_draft.add_argument("--limit", type=int)
     golden_draft.add_argument("--timeout", type=float)
+    golden_draft.add_argument("--resume", action="store_true")
     golden_draft.set_defaults(handler=_golden_draft)
     golden_review = golden_subparsers.add_parser("review")
     _config_argument(golden_review)
@@ -888,6 +891,7 @@ def build_parser() -> argparse.ArgumentParser:
     control_draft.add_argument("--limit", type=int)
     control_draft.add_argument("--timeout", type=float)
     control_draft.add_argument("--max-tokens", type=int, default=256)
+    control_draft.add_argument("--resume", action="store_true")
     control_draft.set_defaults(handler=_control_draft)
     control_hard_negative = control_subparsers.add_parser("hard-negative")
     _config_argument(control_hard_negative)
