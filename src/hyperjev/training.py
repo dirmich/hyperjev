@@ -214,7 +214,13 @@ def write_training_plan(
     return plan | {"output_path": str(output.resolve())}
 
 
-def _encode_reference_sample(sample: CanonicalSample, *, vocab_size: int, max_length: int) -> tuple[list[int], list[int]]:
+def _encode_reference_sample(
+    sample: CanonicalSample,
+    *,
+    vocab_size: int,
+    max_length: int,
+    pad_to_max: bool = True,
+) -> tuple[list[int], list[int]]:
     """Encode text deterministically for the dependency-light reference trainer."""
 
     if vocab_size <= 2:
@@ -222,8 +228,9 @@ def _encode_reference_sample(sample: CanonicalSample, *, vocab_size: int, max_le
     raw = f"{sample.state}\n{sample.question}".encode()[:max_length]
     token_ids = [2 + (byte % (vocab_size - 2)) for byte in raw]
     attention = [1] * len(token_ids)
-    token_ids.extend([0] * (max_length - len(token_ids)))
-    attention.extend([0] * (max_length - len(attention)))
+    if pad_to_max:
+        token_ids.extend([0] * (max_length - len(token_ids)))
+        attention.extend([0] * (max_length - len(attention)))
     return token_ids, attention
 
 

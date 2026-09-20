@@ -96,6 +96,7 @@ class StudentClient:
             sample,
             vocab_size=self.config.vocab_size,
             max_length=self.config.max_sequence_length,
+            pad_to_max=False,
         )
         input_ids = self._torch.tensor([token_ids], dtype=self._torch.long, device=self.device)
         attention_mask = self._torch.tensor([attention], dtype=self._torch.long, device=self.device)

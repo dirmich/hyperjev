@@ -87,6 +87,7 @@ def _predict_sample(
         sample,
         vocab_size=config.vocab_size,
         max_length=config.max_sequence_length,
+        pad_to_max=False,
     )
     input_ids = torch.tensor([token_ids], dtype=torch.long, device=device)
     attention_mask = torch.tensor([attention], dtype=torch.long, device=device)

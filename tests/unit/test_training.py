@@ -8,11 +8,13 @@ from pathlib import Path
 
 from hyperjev.cli import main
 from hyperjev.registry import TaskRegistry
+from hyperjev.samples import CanonicalSample
 from hyperjev.student import StudentConfig
 from hyperjev.training import (
     TrainingConfig,
     TrainingDataError,
     TrainingDependencyError,
+    _encode_reference_sample,
     build_training_plan,
     load_training_dataset,
     run_reference_training,
@@ -43,6 +45,37 @@ def _record(sample_id: str, task_id: str, target: object, split: str, soft_targe
 
 
 class TrainingTests(unittest.TestCase):
+    def test_reference_encoder_supports_dynamic_inference_padding(self) -> None:
+        sample = CanonicalSample(
+            sample_id="sample",
+            task_id="memory.remember_worthy",
+            task_version=1,
+            state="테스트 상태",
+            question="테스트 질문",
+            target=True,
+            language="ko",
+            domain="test",
+            source={"kind": "synthetic"},
+            labels={"human": None},
+            provenance={"prompt_version": 1, "split": "train", "privacy_raw_inputs_stored": False},
+        )
+        padded, padded_mask = _encode_reference_sample(
+            sample,
+            vocab_size=32768,
+            max_length=1024,
+        )
+        dynamic, dynamic_mask = _encode_reference_sample(
+            sample,
+            vocab_size=32768,
+            max_length=1024,
+            pad_to_max=False,
+        )
+        self.assertEqual(len(padded), 1024)
+        self.assertEqual(len(padded_mask), 1024)
+        self.assertEqual(len(dynamic), sum(dynamic_mask))
+        self.assertLess(len(dynamic), len(padded))
+        self.assertEqual(padded[: len(dynamic)], dynamic)
+
     def test_dataset_validation_and_plan_are_reproducible(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "tasks")
         with tempfile.TemporaryDirectory() as directory:

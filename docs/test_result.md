@@ -1235,3 +1235,28 @@ golden group, 새로운 domain/language, calibration set이 추가로 필요하�
 부정 표현은 commitment detection보다 먼저 적용하며, `want` 단독 단어는
 rule 신호에서 제외했다. 이 보정 후에도 unique 36 group 결과는 `36/36`
 정확도와 `29/29` accepted accuracy를 유지했다.
+
+### 14.15 JEv형 low-latency Student inference
+
+Jev처럼 빠른 1차 판단을 하기 위해 학습 시에는 batch tensor 모양을 맞추는
+고정 padding을 유지하고, serving/evaluation 시에는 `state + question`의
+실제 byte 길이까지만 encoder에 전달하도록 분리했다. 모델 구조와 typed
+output contract는 바뀌지 않는다.
+
+측정 조건:
+
+- checkpoint: `runs/phase3/human-reference-ngram-groups.pt`
+- device: CPU, PyTorch inference mode, single thread
+- warm-up 20회 후 200회 단건 측정
+- task: `memory.remember_worthy`, 동일 입력
+
+| 경로 | p50 | p95 | 처리량 |
+| --- | ---: | ---: | ---: |
+| 기존 fixed length 1,024 | 2.42ms | 2.44ms | 약 413 decisions/s |
+| dynamic padding | 0.455ms | 0.464ms | 약 2,193 decisions/s |
+
+6개 task를 한 request처럼 연속 실행한 dynamic 결과는 전체 p50 `2.539ms`,
+p95 약 `2.576ms`, 약 `236 requests/s`(6 decisions/request)였다.
+이는 JEv형 빠른 local Student 경로가 실제로 동작한다는 증거다. 다만 현재
+CPU reference benchmark이며, DGX Spark에서의 GPU kernel, concurrent batch,
+HTTP server overhead, Qwen/Gemma fallback latency는 별도 benchmark가 필요하다.

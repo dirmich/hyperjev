@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — low-latency Student inference path (v1.38.0)
+
+- Student inference가 학습용 고정 1,024 token padding을 그대로 사용하지 않고,
+  실제 입력 길이까지만 encoder에 전달하도록 dynamic padding을 적용했다.
+- 동일 checkpoint, CPU single-thread warm benchmark에서 단건 p50 `0.455ms`,
+  p95 `0.464ms`, 약 `2,193 decisions/s`를 측정했다.
+- 6개 typed decision을 연속 처리한 경우 전체 p50 `2.539ms`, 약 `236
+  requests/s`였다. 이는 CPU reference benchmark이며 DGX Spark GPU production
+  latency를 대신하지 않는다.
+
 ## 2026-09-20 — high-precision remember rule negatives (v1.37.0)
 
 - `want` 단독 substring을 commitment로 취급하지 않도록 제거했다. 과거
