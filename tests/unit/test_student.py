@@ -1,7 +1,12 @@
+import json
+import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 
 from hyperjev.calibration import fit_temperature, probabilities
+from hyperjev.cli import main
 from hyperjev.config import load_config
 from hyperjev.registry import TaskRegistry
 from hyperjev.student import (
@@ -51,6 +56,31 @@ class CalibrationTests(unittest.TestCase):
         values = probabilities((3.0, 0.0), result.temperature)
         self.assertAlmostEqual(sum(values), 1.0, places=6)
         self.assertGreater(values[0], values[1])
+
+    def test_calibrate_cli_writes_versioned_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "heldout.json"
+            output_path = Path(directory) / "calibration.json"
+            input_path.write_text(
+                json.dumps(
+                    {
+                        "logits": [[3.0, 0.0], [2.0, 0.0], [0.2, 1.0], [0.0, 2.0]],
+                        "labels": [0, 0, 1, 1],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    ["calibrate", "--input", str(input_path), "--output", str(output_path)]
+                )
+            manifest = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(manifest["record_type"], "calibration_manifest")
+        self.assertTrue(manifest["calibration_version"].startswith("cal-"))
+        self.assertEqual(json.loads(stdout.getvalue())["result"], manifest["result"])
 
 
 if __name__ == "__main__":

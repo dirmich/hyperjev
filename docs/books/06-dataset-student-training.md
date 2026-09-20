@@ -82,6 +82,15 @@ deterministic temperature fitting과 probability conversion을 제공한다. 평
 confidence는 route와 fallback 비용에도 쓰이므로 calibration은 장식용 report가
 아니다. 잘못된 confidence로 auto-accept하면 Hyper Memory가 오염될 수 있다.
 
+CLI는 held-out logits/labels JSON을 받아 temperature와 before/after NLL,
+sample count, input hash를 포함한 `calibration_manifest`를 만든다.
+
+```bash
+uv run hyperjev calibrate \
+  --input heldout-logits.json \
+  --output runs/phase3/calibration.json
+```
+
 ## 6.4 실제 학습과 이 책의 정직한 경계
 
 현재 구현은 dataset validator와 training plan까지다. 실제 학습은 DGX image에

@@ -39,6 +39,7 @@ uv run pytest
 uv run hyperjev registry validate
 uv run hyperjev teacher check
 uv run hyperjev benchmark --dry-run --limit 1
+uv run hyperjev calibrate --input heldout-logits.json --output runs/phase3/calibration.json
 uv run hyperjev serve --host 127.0.0.1 --port 6777
 uv run hyperjev serve --mode router --host 127.0.0.1 --port 6777
 ```

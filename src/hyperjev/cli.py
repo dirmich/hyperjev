@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import platform
 import shutil
@@ -12,6 +13,7 @@ from pathlib import Path
 
 from . import __version__
 from .baseline import run_benchmark
+from .calibration import fit_temperature
 from .config import ConfigError, load_config
 from .contracts import DecisionRequest
 from .dataset_factory import build_dataset, validate_dataset
@@ -30,6 +32,10 @@ from .training import (
     run_reference_training,
     write_training_plan,
 )
+
+
+class CalibrationInputError(ValueError):
+    """Raised when the calibration CLI input envelope is malformed."""
 
 
 def _config_argument(parser: argparse.ArgumentParser) -> None:
@@ -97,6 +103,36 @@ def _evaluate(args: argparse.Namespace) -> int:
         with open(args.output, "w", encoding="utf-8") as handle:
             handle.write(serialized + "\n")
     print(serialized)
+    return 0
+
+
+def _calibrate(args: argparse.Namespace) -> int:
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise CalibrationInputError("calibration input must be a JSON object")
+    logits = payload.get("logits")
+    labels = payload.get("labels")
+    if not isinstance(logits, list) or not isinstance(labels, list):
+        raise CalibrationInputError("calibration input requires logits and labels lists")
+    result = fit_temperature(
+        logits,
+        labels,
+        minimum=args.minimum,
+        maximum=args.maximum,
+        steps=args.steps,
+    )
+    input_digest = hashlib.sha256(Path(args.input).read_bytes()).hexdigest()
+    manifest = {
+        "record_type": "calibration_manifest",
+        "calibration_version": f"cal-{input_digest[:12]}",
+        "input_sha256": input_digest,
+        "result": result.to_dict(),
+    }
+    if args.output:
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps(manifest, ensure_ascii=False))
     return 0
 
 
@@ -333,6 +369,15 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--samples")
     evaluate.add_argument("--output")
     evaluate.set_defaults(handler=_evaluate)
+
+    calibrate = subparsers.add_parser("calibrate")
+    _config_argument(calibrate)
+    calibrate.add_argument("--input", required=True, help="JSON object containing held-out logits and labels")
+    calibrate.add_argument("--output", help="calibration manifest JSON path")
+    calibrate.add_argument("--minimum", type=float, default=0.25)
+    calibrate.add_argument("--maximum", type=float, default=4.0)
+    calibrate.add_argument("--steps", type=int, default=76)
+    calibrate.set_defaults(handler=_calibrate)
 
     golden = subparsers.add_parser("golden")
     golden_subparsers = golden.add_subparsers(dest="golden_command", required=True)
