@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — content-based split fallback (v1.34.0)
+
+- `document_id`, `entity_id`, `source_id`, `split_group`이 모두 없는 seed는
+  더 이상 `sample_id`만으로 train/validation/test를 정하지 않는다.
+- task, language, domain, redacted state, redacted question의 deterministic
+  content group을 hash해 같은 의미 입력이 항상 같은 split에 가도록 했다.
+- 서로 다른 sample ID지만 동일한 내용인 두 row가 같은 split을 받는 회귀
+  테스트를 추가했다. 이는 duplicate/near-duplicate가 train과 test를 동시에
+  차지해 정확도를 부풀리는 위험을 줄인다.
+
 ## 2026-09-20 — human-target retraining and remember rule coverage (v1.33.0)
 
 - reference trainer가 `TrainingConfig.batch_size`를 실제 task별 mini-batch에

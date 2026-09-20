@@ -67,6 +67,7 @@
 | 1.31.0 | 진행 중 | exact duplicate review group과 label propagation |
 | 1.32.0 | 진행 중 | 1,000건 feedback 적용과 human-source Student 전체 평가 |
 | 1.33.0 | 진행 중 | 실제 mini-batch 학습과 human-target 재학습, remember 규칙 보강 |
+| 1.34.0 | 진행 중 | source group 부재 시 내용 기반 split으로 leakage 방지 |
 
 ## 다음 기록 규칙
 

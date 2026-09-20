@@ -1157,3 +1157,23 @@ artifact SHA-256:
 | `runs/phase3/human-target-ngram-groups.jsonl` | `8a4e3c83...` |
 | `runs/phase3/human-reference-ngram-groups.pt` | `fd9e03cd83d801e4e2790cb34b95055dc8b762a26478b9127974424382b73cf0` |
 | `runs/phase3/human-reference-ngram-groups-evaluation-rules-v2.json` | `70fc52c3b464dd71313eb9600927a43bb4b940b898aced3efb6b975c06277136` |
+
+### 14.11 source group 없는 데이터의 split leakage 방지
+
+기존 dataset factory는 `document_id`, `entity_id`, `source_id`가 없으면
+`sample_id`를 hash해 split을 정했다. 그러면 같은 state/question을 가진
+중복 row가 서로 다른 split에 배치될 수 있어, 특히 reference encoder의
+성능이 실제 일반화보다 높게 보일 위험이 있었다.
+
+이제 fallback group은 다음 redacted content를 canonical JSON으로 직렬화한
+뒤 hash한다.
+
+```text
+task + language + domain + redacted state + redacted question
+```
+
+회귀 테스트에서 sample ID만 다른 동일 content 두 row가 같은 split을 받는
+것을 확인했다. source/entity group이 명시된 경우에는 기존 source group을
+계속 우선하므로 서로 다른 문서의 같은 문구를 무조건 합치지는 않는다.
+이 변경은 기존 1,000건 artifact를 소급 변경하지 않으며, 다음 dataset
+build부터 적용된다.

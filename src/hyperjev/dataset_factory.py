@@ -129,17 +129,32 @@ def _same_label(task: TaskDefinition, first: DecisionResult, second: DecisionRes
     return False
 
 
-def _split_for(seed: Mapping[str, Any], redacted_source: Mapping[str, Any]) -> str:
-    """Assign by source/entity group, never by an ungrouped random row."""
+def _split_for(
+    seed: Mapping[str, Any],
+    redacted_source: Mapping[str, Any],
+    *,
+    redacted_state: str,
+    redacted_question: str,
+) -> str:
+    """Assign by source/entity group or stable content group, never by sample id."""
 
     group = (
         redacted_source.get("split_group")
         or redacted_source.get("document_id")
         or redacted_source.get("entity_id")
         or redacted_source.get("source_id")
-        or seed.get("sample_id")
     )
-    bucket = int(hashlib.sha256(str(group).encode("utf-8")).hexdigest()[:8], 16) % 100
+    if group is None:
+        group = {
+            "task": seed.get("task")
+            or f"{seed.get('task_id', '')}@{seed.get('task_version', '')}",
+            "language": seed.get("language", ""),
+            "domain": seed.get("domain", ""),
+            "state": redacted_state,
+            "question": redacted_question,
+        }
+    serialized_group = json.dumps(group, ensure_ascii=False, sort_keys=True)
+    bucket = int(hashlib.sha256(serialized_group.encode("utf-8")).hexdigest()[:8], 16) % 100
     if bucket < 80:
         return "train"
     if bucket < 90:
@@ -370,7 +385,12 @@ def build_dataset(
                         "gemma": config.teachers["gemma"].model,
                     },
                     "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-                    "split": _split_for(seed, redacted_source),
+                    "split": _split_for(
+                        seed,
+                        redacted_source,
+                        redacted_state=redacted_state,
+                        redacted_question=redacted_question,
+                    ),
                     "redaction_applied": state_changed or question_changed or source_changed,
                     "privacy_raw_inputs_stored": config.privacy_store_raw_inputs,
                 },

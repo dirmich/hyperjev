@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from hyperjev.config import load_config
-from hyperjev.dataset_factory import build_dataset, validate_dataset
+from hyperjev.dataset_factory import _split_for, build_dataset, validate_dataset
 from hyperjev.registry import TaskRegistry
 from hyperjev.teachers import TeacherCompletion
 
@@ -55,6 +55,29 @@ class DatasetFactoryTests(unittest.TestCase):
     def setUp(self) -> None:
         self.config = load_config(ROOT / "configs" / "phase0.toml")
         self.registry = TaskRegistry.load(self.config.registry_path)
+
+    def test_missing_source_group_uses_content_not_sample_id(self) -> None:
+        source = {"kind": "synthetic", "document_id": None, "entity_id": None, "source_id": None}
+        first = {
+            "sample_id": "row-a",
+            "task": "memory.remember_worthy@1",
+            "language": "ko",
+            "domain": "conversation",
+        }
+        second = {**first, "sample_id": "row-b"}
+        first_split = _split_for(
+            first,
+            source,
+            redacted_state="같은 내용",
+            redacted_question="기억할 가치가 있는가?",
+        )
+        second_split = _split_for(
+            second,
+            source,
+            redacted_state="같은 내용",
+            redacted_question="기억할 가치가 있는가?",
+        )
+        self.assertEqual(first_split, second_split)
 
     def test_build_filters_redacts_deduplicates_and_splits(self) -> None:
         seeds = [
