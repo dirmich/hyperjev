@@ -858,3 +858,31 @@ Prompt v2 재시험 결과는 다음과 같다.
 
 이는 prompt 제약이 transport/schema 품질을 개선했다는 20건 탐색 결과다.
 human golden 1,000건 정확도는 아직 측정되지 않았다.
+
+### 14.4 Qwen prompt v2 1,000-sample 실행
+
+동일한 deterministic queue 전체를 `qwen38fn`으로 실행했다. 실행 manifest는
+run ID `20260920T091225Z`, queue SHA-256
+`463b00f91257b34a837f8eaa184d5fb4efec49f2028f086dd78aa0e3bdbd873f`를 사용했다.
+
+| 항목 | 결과 |
+| --- | --- |
+| provider / model | `qwen` / `qwen38fn` |
+| prompt version | 2 |
+| sample count | 1,000 |
+| completed | 1,000/1,000 |
+| schema-valid | 1,000/1,000 (100%) |
+| synthetic target match | 874/1,000 (87.40%) |
+| mean latency | 1,483.361ms |
+| p50 / p95 | 1,189.115ms / 2,331.728ms |
+| min / max | 831.740ms / 2,497.942ms |
+| human labels | 0/1,000 |
+| golden validate | `ready=false`, exit 1 |
+
+Task별 synthetic target match는 `memory.remember_worthy` 167/167,
+`query.route` 167/167, `wiki.semantic_change` 166/166,
+`memory.relation` 156/166, `memory.type` 126/167,
+`memory.importance` 92/167이었다. 이는 Qwen 초안의 오류 집중 영역을
+보여주는 탐색 결과이며, synthetic target은 human label이 아니므로 상용
+정확도나 99% gate를 의미하지 않는다. 다음 단계는 draft를 참고해 사람이
+원문을 확인하고 `golden review` feedback을 append하는 것이다.

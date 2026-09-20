@@ -56,6 +56,7 @@
 | 1.24.1 | 진행 중 | qwen38fn 실제 20-sample draft probe와 schema/latency 결과 |
 | 1.25.0 | 진행 중 | choice probability 합 prompt hardening과 prompt v2 provenance |
 | 1.25.1 | 진행 중 | Qwen prompt v2 20-sample 재시험 결과 |
+| 1.25.2 | 진행 중 | qwen38fn 1,000-sample draft 전체 실행과 task별 결과 |
 
 ## 다음 기록 규칙
 

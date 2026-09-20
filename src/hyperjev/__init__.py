@@ -1,3 +1,3 @@
 """HyperJev Phase 0 package."""
 
-__version__ = "1.25.1"
+__version__ = "1.25.2"

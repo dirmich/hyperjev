@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — Qwen 1,000-sample golden draft (v1.25.2)
+
+- `localhost:8081/v1`, `qwen38fn`, prompt v2로 1,000건을 실행했다.
+- completed `1000/1000`, schema-valid `1000/1000 (100%)`, 오류 `0`이었다.
+- synthetic target 탐색 일치는 `874/1000 (87.4%)`였다. human golden 정확도가
+  아니며 production gate 근거로 사용하지 않는다.
+- task별 target match: remember `100%`, route `100%`, wiki `100%`, relation
+  `93.98%`, type `75.45%`, importance `55.09%`.
+- 평균 latency `1,483.361ms`, p50 `1,189.115ms`, p95 `2,331.728ms`였다.
+- `golden validate`는 human label `0/1000`, `ready=false`, exit 1이었다.
+
 ## 2026-09-20 — Qwen prompt v2 re-probe (v1.25.1)
 
 - `qwen38fn` 20건 재시험에서 완료 `20/20`, schema-valid `20/20 (100%)`를
