@@ -23,6 +23,12 @@ uv run hyperjev golden --help
 Golden review, metric, training validator, torch dependency gate가 포함되어
 있다.
 
+Parent LLM과 HyperJev 경계의 실제 성능 측정은 [`docs/test_result.md`](../test_result.md)에
+기록했다. Qwen endpoint는 6개 smoke에서 HTTP 6/6, typed schema 5/6,
+p50 1,127.542ms였고, Gemma는 model discovery 후 generation timeout 상태였다.
+Rule/mock 수치는 production Student 성능이 아니므로 Student checkpoint가 준비될
+때까지 별도 gate로 남긴다.
+
 ## 7.2 DGX Spark runbook
 
 ```bash

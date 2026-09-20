@@ -116,3 +116,7 @@ curl http://127.0.0.1:6777/metrics
 - model registry canary/rollback/drift 증거
 - Hyper Memory ingestion corruption 및 failure-injection 결과
 
+현재 실행된 parent/teacher 및 rule/mock 경계 시험의 원본 기록은
+[`docs/test_result.md`](../test_result.md)다. 이 기록은 production Student의
+성능 통과를 의미하지 않으며, checkpoint·동일 golden·동시성 matrix가 추가로
+필요하다.
