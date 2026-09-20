@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.106.0
+현재 버전: 1.107.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -1176,12 +1176,12 @@ uv run hyperjev control train \
 | 기존 boundary token checkpoint | `39/40 (97.5%)` | `11/40 (27.5%)` | Korean baseline |
 | Korean token augmentation | `36/40 (90%)` | `25/40 (62.5%)` | English regression으로 폐기 |
 | Korean token + class-balanced | `40/40 (100%)` | `26/40 (65%)` | Korean 부족으로 폐기 |
-| Korean BOW + class-balanced | `39/40 (97.5%)` | `39/40 (97.5%)` | 현재 synthetic 연구 후보 |
+| Korean BOW + class-balanced | `39/40 (97.5%)` | `36/40 (90.0%)` | bilingual baseline 후보 |
 
 BOW 후보의 independent synthetic validation/test는 각각 `180/180 (100%)`,
 500-case safety replay는 accuracy/STOP recall 모두 `500/500`이었다. Korean
 integrated fast path도 `40/40`, STOP recall `5/5`였다. 그러나 human label이
-없고 Korean model-only p99가 `5.386ms`이므로 production 승격은 보류한다.
+없고 Korean raw model-only OOD가 `36/40 (90.0%)`이므로 production 승격은 보류한다.
 다음 단계는 Korean human golden을 dual-review로 확보하고, BOW/typed-head의
 DGX Spark GPU latency를 다시 측정하는 것이다.
 
@@ -1194,10 +1194,10 @@ test fixture를 학습 데이터에 섞지 않은 synthetic ablation이며, huma
 
 | 실험 | English OOD | Korean OOD | model-only latency | 판정 |
 | --- | ---: | ---: | --- | --- |
-| HOLD 8개 추가, BOW + class-balanced | 39/40 (97.5%) | 39/40 (97.5%) | p99 5.248/5.737ms | 정확도 개선 없음, latency 회귀 |
-| BOW vocab 8,192 | 39/40 (97.5%) | 36/40 (90.0%) | p99 2.877/2.588ms | latency는 낮지만 정확도 회귀 |
-| BOW vocab 16,384 | 39/40 (97.5%) | 36/40 (90.0%) | English p99 34.157ms outlier | 폐기 |
-| v1.105 BOW vocab 32,768 | 39/40 (97.5%) | 39/40 (97.5%) | p99 4.715/5.386ms | 현재 synthetic best |
+| HOLD 8개 추가, BOW + class-balanced | 37/40 (92.5%) | 36/40 (90.0%) | p99 5.248/5.737ms | 정확도 개선 없음, latency 회귀 |
+| BOW vocab 8,192 | 39/40 (97.5%) | 34/40 (85.0%) | p99 2.877/2.588ms | Korean 정확도 회귀 |
+| BOW vocab 16,384 | 36/40 (90.0%) | 37/40 (92.5%) | English p99 34.157ms outlier | bilingual baseline 회귀 |
+| v1.105 BOW vocab 32,768 | 39/40 (97.5%) | 36/40 (90.0%) | p99 4.807/5.091ms 재생 | 현재 bilingual baseline |
 
 추가 HOLD queue의 merged SHA는
 `3ef7faf1f12a1944d28e42b12df09830089d59452c72e8223b451f67659d0d73`이고, 각
@@ -1210,3 +1210,24 @@ checkpoint SHA와 실행 결과는 `docs/test_result.md`의 14.83절에 고정�
 train/validation/test label 수집, (3) human-only materialize 및 재학습, (4) held-out
 test accuracy/Wilson 하한/STOP recall/latency 동시 평가다. human label 없이
 threshold를 조정하거나 test 문장을 train에 복사하지 않는다.
+
+### v1.107.0 multilingual raw replay correction and char/hybrid ablation
+
+이전 보고서의 Korean `39/40`은 raw Student와 integrated rule/fast-path 경계를
+섞은 기록이었다. 현재 동일 checkpoint를 `evaluate_student_checkpoint`로 raw
+재생한 기준은 English `39/40`, Korean `36/40`이다. integrated runtime은 별도
+결과로 Korean `40/40`일 수 있지만, 이를 raw model 정확도로 기록하지 않는다.
+
+| backbone | English raw OOD | Korean raw OOD | English raw p95/p99 | Korean raw p95/p99 | 판정 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| reference-bow-encoder | 39/40 (97.5%) | 36/40 (90.0%) | 4.807/5.202ms | 4.748/5.091ms | bilingual baseline |
+| reference-char-bow-encoder | 32/40 (80.0%) | 38/40 (95.0%) | 4.970/7.842ms | 5.011/5.582ms | English regression, 폐기 |
+| reference-hybrid-bow-encoder | 34/40 (85.0%) | 39/40 (97.5%) | 4.689/5.114ms | 5.037/5.787ms | English regression, 폐기 |
+
+char-only checkpoint SHA는
+`8c0eb82d077608660da024f37e7d0e940ae794caae95cbec77c223e57e53be79`, hybrid
+checkpoint SHA는
+`ed263699ba4aaeda322bd35d348a34bce526ce9047e1adb93af725939cedc100`이다. 두
+후보 모두 Korean 단독 개선을 보였지만 bilingual 최저 정확도와 latency를 동시에
+만족하지 못했다. 다음은 human-labeled Korean/English test에서 같은 비교를
+반복하는 것이며, synthetic OOD 결과만으로 promotion하지 않는다.

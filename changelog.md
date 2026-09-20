@@ -3,6 +3,24 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — multilingual replay correction and char/hybrid ablation (v1.107.0)
+
+- 독립 raw Student replay로 이전 기록의 측정 경계를 교정했다. v1.105 BOW
+  checkpoint는 English `39/40 (97.5%)`, Korean `36/40 (90.0%)`이며, Korean
+  `40/40`은 rule/fast-path를 포함한 integrated 결과다. 두 경로를 production
+  accuracy로 합치지 않는다.
+- `reference-char-bow-encoder`를 추가했다. 동일 dataset/seed의 checkpoint
+  SHA-256은 `8c0eb82d077608660da024f37e7d0e940ae794caae95cbec77c223e57e53be79`이며
+  raw English/Korean은 각각 `32/40 (80.0%)`와 `38/40 (95.0%)`였다.
+- word bucket과 character bucket을 분리한 `reference-hybrid-bow-encoder`도
+  추가했다. checkpoint SHA-256은
+  `ed263699ba4aaeda322bd35d348a34bce526ce9047e1adb93af725939cedc100`이고
+  raw English/Korean은 `34/40 (85.0%)`와 `39/40 (97.5%)`였다. Korean 개선만으로
+  English regression을 허용할 수 없어 기본 후보로 승격하지 않았다.
+- 모든 OOD target은 synthetic이고 human label은 `0/1000`이다. 이번 단계는
+  multilingual raw model 경계를 정확히 측정하고 후보를 폐기한 단계이며,
+  production accuracy 99% 달성으로 해석하지 않는다.
+
 ## 2026-09-21 — multilingual accuracy ablation boundary (v1.106.0)
 
 - v1.105의 64개 Korean train-only queue를 기준선으로 유지하고, HOLD만 8개 더한
@@ -10,13 +28,13 @@
   SHA-256은 `3ef7faf1f12a1944d28e42b12df09830089d59452c72e8223b451f67659d0d73`다.
 - 추가 HOLD 증강 BOW + class-balanced checkpoint
   (`6c4151802eee969eedce7e56687647802bee5502acd0d135c408df098ed92072`)는
-  English/Korean OOD 각각 `39/40 (97.5%)`로 v1.105 정확도를 넘지 못했다.
+  English/Korean OOD 각각 `37/40 (92.5%)`, `36/40 (90.0%)`로 v1.105 정확도를 넘지 못했다.
   model-only p99도 English `5.248ms`, Korean `5.737ms`로 악화되어 채택하지 않았다.
 - BOW vocabulary 8,192 checkpoint
   (`0386c11dcd69c6a5e1eea002481636f13be227ede5ac7e330c29c4954142db92`)는
-  Korean `36/40 (90%)`으로 회귀했다. 16,384 checkpoint
+  Korean `34/40 (85%)`으로 회귀했다. 16,384 checkpoint
   (`af61509f617a5a7bdbc0a9ec4e8f28bb28fcfa53b19e4b7e72b963fa6192aa51`)도
-  Korean `36/40 (90%)`이고 English latency outlier가 있어 모두 폐기했다.
+  Korean `37/40 (92.5%)`이고 English 정확도/latency 변동성이 있어 모두 폐기했다.
 - 따라서 현재 synthetic best는 v1.105의 default BOW 32,768 후보 그대로다.
   v1.106은 데이터 양·feature vocabulary를 늘리면 정확도가 자동으로 오르지
   않으며, accuracy와 latency를 함께 gate해야 한다는 실험 경계를 남긴다.
@@ -32,7 +50,7 @@
   Korean `26/40 (65%)`로 채택하지 않았다.
 - BOW + class-balanced 후보 SHA-256
   `3ae6df70072feca352bd0c6ae959a04323ec27ce5b9569bec43c0a2506e9b0a6`는
-  English model-only `39/40 (97.5%)`, Korean `39/40 (97.5%)`를 보였다.
+  English model-only `39/40 (97.5%)`, Korean `36/40 (90.0%)`를 보였다.
 - Korean phrase-level fast path를 추가해 integrated Korean fixture는
   `40/40`, STOP recall `5/5`가 됐다. 이는 rule 포함 결과이며 model-only와
   분리해 기록한다.

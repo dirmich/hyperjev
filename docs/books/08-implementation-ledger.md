@@ -140,6 +140,7 @@
 | 1.104.0 | 진행 중 | production materialize의 선택적 strict dual-review provenance gate |
 | 1.105.0 | 진행 중 | Korean OOD/augmentation, BOW 후보 비교, multilingual fast path 검증 |
 | 1.106.0 | 진행 중 | Korean HOLD/vocabulary ablation 비교, latency·정확도 gate로 후보 폐기 |
+| 1.107.0 | 진행 중 | raw/integrated 측정 경계 정정, char/hybrid BOW ablation 및 후보 폐기 |
 
 ## 다음 기록 규칙
 

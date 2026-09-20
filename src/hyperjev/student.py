@@ -112,7 +112,11 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
                 for index, spec in enumerate(specs)
             }
             self.embedding = nn.Embedding(selected.vocab_size, selected.hidden_size)
-            self.use_bow_encoder = selected.backbone == "reference-bow-encoder"
+            self.use_bow_encoder = selected.backbone in {
+                "reference-bow-encoder",
+                "reference-char-bow-encoder",
+                "reference-hybrid-bow-encoder",
+            }
             self.use_ngram_encoder = selected.backbone in {
                 "reference-ngram-encoder",
                 "reference-token-encoder",

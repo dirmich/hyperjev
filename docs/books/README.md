@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.106.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.107.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -70,7 +70,7 @@ strict 모드에서 거부되며, 기본 연구 workflow는 호환성을 유지�
 위한 품질 경계다.
 
 v1.105.0에서는 Korean held-out OOD와 train-only augmentation을 추가했다. BOW
-class-balanced candidate가 English/Korean model-only에서 각각 97.5%를 보였고,
+class-balanced candidate가 English/Korean raw model-only에서 97.5%/90.0%를 보였고,
 Korean integrated fast path는 100%였지만 human label은 0건이다. 따라서 이 장은
 다국어 synthetic 개선과 실제 human production gate를 분리해 기록한다.
 
@@ -79,6 +79,11 @@ v1.106.0에서는 Korean HOLD 증강과 BOW vocabulary 8,192/16,384 ablation을
 또는 Korean OOD 정확도가 악화되어 폐기했다. 실패한 실험도 checkpoint 선정
 근거와 함께 기록하며, human label `0/1000` 상태에서는 production 승격을
 보류한다.
+
+v1.107.0에서는 raw Student와 integrated rule/fast-path의 측정 경계를 다시
+분리했다. char-BOW와 hybrid-BOW는 Korean raw OOD를 각각 95.0%와 97.5%까지
+올렸지만 English가 80.0%와 85.0%로 회귀해 폐기했다. 이 실패를 기록한 이유는
+한국어 단일 지표를 올리는 것이 다국어 상용 정확도 향상과 같지 않기 때문이다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

@@ -75,6 +75,59 @@ class TrainingTests(unittest.TestCase):
         with self.assertRaises(TrainingDataError):
             TrainingConfig(hard_negative_weight=0.0).validate()
 
+    def test_char_bow_reference_encoder_emits_deterministic_character_features(self) -> None:
+        sample = CanonicalSample(
+            sample_id="char-bow",
+            task_id="memory.remember_worthy",
+            task_version=1,
+            state="목표에 접근한다",
+            question="장기 기억에 저장할 가치가 있는가?",
+            target=True,
+            language="ko",
+            domain="test",
+            source={},
+            labels={},
+            provenance={"prompt_version": 1, "split": "train"},
+        )
+        first = _encode_reference_sample(
+            sample,
+            vocab_size=32768,
+            max_length=64,
+            backbone="reference-char-bow-encoder",
+        )
+        second = _encode_reference_sample(
+            sample,
+            vocab_size=32768,
+            max_length=64,
+            backbone="reference-char-bow-encoder",
+        )
+        self.assertEqual(first, second)
+        self.assertEqual(len(first[0]), 64)
+        self.assertGreater(len(set(first[0])), 2)
+
+    def test_hybrid_bow_reference_encoder_keeps_word_and_character_buckets_separate(self) -> None:
+        sample = CanonicalSample(
+            sample_id="hybrid-bow",
+            task_id="memory.remember_worthy",
+            task_version=1,
+            state="stable deployment decision",
+            question="is this worth long-term memory?",
+            target=True,
+            language="en",
+            domain="test",
+            source={},
+            labels={},
+            provenance={"prompt_version": 1, "split": "train"},
+        )
+        token_ids, _attention = _encode_reference_sample(
+            sample,
+            vocab_size=32768,
+            max_length=256,
+            backbone="reference-hybrid-bow-encoder",
+        )
+        self.assertTrue(any(token_id < 16384 for token_id in token_ids))
+        self.assertTrue(any(token_id >= 16384 for token_id in token_ids))
+
     def test_sample_loss_weight_only_targets_counterfactual_provenance(self) -> None:
         training = TrainingConfig(hard_negative_weight=3.0)
         hard = CanonicalSample(

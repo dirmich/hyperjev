@@ -256,7 +256,57 @@ def _encode_reference_sample(
     if vocab_size <= 2:
         raise TrainingDataError("vocab_size must be greater than 2")
     text = f"{sample.state}\n{sample.question}"
-    if backbone in {"reference-token-encoder", "reference-bow-encoder"}:
+    if backbone == "reference-hybrid-bow-encoder":
+        words = re.findall(r"\w+", text.casefold(), flags=re.UNICODE)
+        char_words = re.findall(r"\S+", text.casefold(), flags=re.UNICODE)
+        word_vocab_size = max(3, vocab_size // 2)
+        char_vocab_offset = word_vocab_size
+        char_vocab_size = vocab_size - char_vocab_offset
+        word_ids = [
+            2
+            + (
+                int.from_bytes(hashlib.sha256(f"w:{word}".encode()).digest()[:4], "big")
+                % (word_vocab_size - 2)
+            )
+            for word in words
+        ]
+        char_features: list[str] = []
+        for word in char_words:
+            bounded = f"^{word}$"
+            char_features.extend(
+                bounded[index : index + width]
+                for width in range(2, min(5, len(bounded)) + 1)
+                for index in range(len(bounded) - width + 1)
+            )
+        char_ids = [
+            char_vocab_offset
+            + (
+                int.from_bytes(hashlib.sha256(f"c:{feature}".encode()).digest()[:4], "big")
+                % char_vocab_size
+            )
+            for feature in char_features
+        ]
+        token_ids = (word_ids + char_ids)[:max_length]
+    elif backbone == "reference-char-bow-encoder":
+        words = re.findall(r"\S+", text.casefold(), flags=re.UNICODE)
+        features: list[str] = []
+        for word in words:
+            bounded = f"^{word}$"
+            features.extend(
+                bounded[index : index + width]
+                for width in range(2, min(5, len(bounded)) + 1)
+                for index in range(len(bounded) - width + 1)
+            )
+        features = features[:max_length]
+        token_ids = [
+            2
+            + (
+                int.from_bytes(hashlib.sha256(feature.encode("utf-8")).digest()[:4], "big")
+                % (vocab_size - 2)
+            )
+            for feature in features
+        ]
+    elif backbone in {"reference-token-encoder", "reference-bow-encoder"}:
         words = re.findall(r"\w+", text.casefold(), flags=re.UNICODE)[:max_length]
         token_ids = [
             2

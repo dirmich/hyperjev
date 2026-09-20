@@ -2981,7 +2981,7 @@ model-only 후보 비교:
 | 기존 `reference-token-encoder` | `39/40 (97.5%)` | `11/40 (27.5%)` | Korean baseline |
 | Korean token augmentation | `36/40 (90%)` | `25/40 (62.5%)` | 폐기 |
 | Korean token + class-balanced | `40/40 (100%)` | `26/40 (65%)` | 폐기 |
-| Korean BOW + class-balanced | `39/40 (97.5%)` | `39/40 (97.5%)` | synthetic best candidate |
+| Korean BOW + class-balanced | `39/40 (97.5%)` | `36/40 (90.0%)` | bilingual baseline candidate |
 
 BOW 후보의 Korean model-only latency는 p95 `4.223ms`, p99 `5.386ms`였고,
 English는 p95 `4.302ms`, p99 `4.715ms`였다. Korean integrated fast path는
@@ -3010,9 +3010,10 @@ count는 2,000개다. checkpoint SHA와 결과는 다음과 같다.
 
 | checkpoint | English OOD | Korean OOD | English p95/p99 | Korean p95/p99 | 판정 |
 | --- | ---: | ---: | ---: | ---: | --- |
-| `6c4151802eee969eedce7e56687647802bee5502acd0d135c408df098ed92072` | 39/40 (97.5%) | 39/40 (97.5%) | 4.685/5.248ms | 5.246/5.737ms | v1.105보다 latency 악화, 폐기 |
+| `6c4151802eee969eedce7e56687647802bee5502acd0d135c408df098ed92072` | 37/40 (92.5%) | 36/40 (90.0%) | 4.685/5.248ms | 5.246/5.737ms | v1.105보다 정확도·latency 악화, 폐기 |
 
-정확도는 v1.105의 `39/40`을 넘지 못했고 Korean p99는 5ms 목표를 넘었다.
+정확도는 v1.105의 English `39/40`, Korean `36/40`을 넘지 못했고 Korean p99는
+5ms 목표를 넘었다.
 따라서 repository의 기본 generator와 선택 checkpoint는 v1.105의 64개 queue와
 32,768 BOW 설정으로 유지한다.
 
@@ -3023,15 +3024,39 @@ v1.105의 64개 Korean queue merged dataset을 그대로 사용하고 vocabulary
 
 | checkpoint | vocab | English OOD | Korean OOD | latency 관찰 | 판정 |
 | --- | ---: | ---: | ---: | --- | --- |
-| `0386c11dcd69c6a5e1eea002481636f13be227ede5ac7e330c29c4954142db92` | 8,192 | 39/40 (97.5%) | 36/40 (90.0%) | p99 2.877/2.588ms | Korean 정확도 회귀 |
-| `af61509f617a5a7bdbc0a9ec4e8f28bb28fcfa53b19e4b7e72b963fa6192aa51` | 16,384 | 39/40 (97.5%) | 36/40 (90.0%) | English p99 34.157ms outlier | Korean 정확도 회귀/변동성 |
-| `3ae6df70072feca352bd0c6ae959a04323ec27ce5b9569bec43c0a2506e9b0a6` | 32,768 | 39/40 (97.5%) | 39/40 (97.5%) | p99 4.715/5.386ms | 현재 synthetic best |
+| `0386c11dcd69c6a5e1eea002481636f13be227ede5ac7e330c29c4954142db92` | 8,192 | 39/40 (97.5%) | 34/40 (85.0%) | p99 2.877/2.588ms | Korean 정확도 회귀 |
+| `af61509f617a5a7bdbc0a9ec4e8f28bb28fcfa53b19e4b7e72b963fa6192aa51` | 16,384 | 36/40 (90.0%) | 37/40 (92.5%) | English p99 34.157ms outlier | bilingual 회귀/변동성 |
+| `3ae6df70072feca352bd0c6ae959a04323ec27ce5b9569bec43c0a2506e9b0a6` | 32,768 | 39/40 (97.5%) | 36/40 (90.0%) | p99 4.807/5.091ms 재생 | 현재 bilingual baseline |
 
 #### 판정과 다음 gate
 
 v1.106 실험은 데이터 양·vocabulary 축소가 자동으로 정확도를 높이지 않음을
 확인했다. 현재 best candidate는 v1.105 BOW checkpoint이며, synthetic OOD
-`39/40`은 production accuracy가 아니다. human label status는
+English `39/40`과 Korean `36/40`은 production accuracy가 아니다. human label status는
 `reviewed=0`, `pending=1000`, `test_ready=false`다. 다음 gate는 blind dual
 human review와 human-only materialize이며, 그 전에는 checkpoint promotion을
 수행하지 않는다.
+
+### 14.84 multilingual raw replay correction and char/hybrid ablation (v1.107.0)
+
+v1.105/v1.106의 Korean raw 수치가 integrated rule/fast-path와 혼재된 것을
+정정하기 위해, 모든 checkpoint를 동일한 `evaluate_student_checkpoint` raw
+model-only 경로와 `control fast-path`의 `enable_fast_path=False` 경로로 다시
+재생했다. raw 정확도와 runtime safety fallback은 별도 기록한다.
+
+| checkpoint/backbone | English raw | Korean raw | English runtime accuracy | Korean runtime accuracy | 판정 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| v1.105 BOW, `3ae6df...` | 39/40 (97.5%) | 36/40 (90.0%) | 39/40 (97.5%) | 39/40 (97.5%) | bilingual baseline |
+| v1.107 char-BOW, `8c0eb82...` | 32/40 (80.0%) | 38/40 (95.0%) | 29/40 (72.5%) | 23/40 (57.5%) | English/safety regression |
+| v1.107 hybrid-BOW, `ed263699...` | 34/40 (85.0%) | 39/40 (97.5%) | 33/40 (82.5%) | 28/40 (70.0%) | English/safety regression |
+
+raw model-only CPU latency (p95/p99)은 각각 BOW English `4.807/5.202ms`, Korean
+`4.748/5.091ms`, char English `4.970/7.842ms`, Korean `5.011/5.582ms`, hybrid
+English `4.689/5.114ms`, Korean `5.037/5.787ms`였다. 이 값은 DGX Spark
+production benchmark가 아니며 CPU run의 변동성을 포함한다.
+
+char/hybrid checkpoint는 Korean raw OOD만 개선했지만 English와 safety fallback
+정확도가 악화되어 승격하지 않았다. v1.105 BOW integrated path의 Korean
+`40/40`은 phrase/rule 포함 결과이고 raw Student `36/40`과 혼동하지 않는다.
+human label은 여전히 `0/1000`이며 다음 promotion gate는 blind dual human
+review, human-only materialize, held-out test 재평가다.
