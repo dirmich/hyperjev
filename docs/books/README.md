@@ -40,8 +40,9 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.71.0까지 진행되어 있다. Python 테스트 128개와
-1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
+현재 `main`은 origin에 push될 1.72.0까지 진행되어 있다. Python 테스트와 skip
+수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
+상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
 경계의 성능 시험 기록까지 완료됐다. training plan·calibration·checkpoint를
@@ -128,6 +129,13 @@ hard-negative가 들어온 뒤 같은 실험을 재현하되, STOP 안전 gate�
 v1.71.0에서는 Gemma4 hard-negative 1건 probe가 30초 timeout으로 실패한 결과를
 기록했다. Gemma는 control tick의 parent가 아니라 async judge로 격리하고, 실제
 golden target은 human reviewer가 확정해야 한다는 운영 경계를 재검증했다.
+
+v1.72.0에서는 hard-negative의 `APPROACH↔MOVE`, `HOLD↔STOP` 혼동을 보완하는
+compound-phrase control fast path를 추가했다. hard-negative 1,000행은 synthetic
+target 기준 100%를 약 10.11µs/행 평균으로 처리했고, seed 800행은 750행을
+규칙으로 확정했다. 이는 human label이 0건인 synthetic regression 결과이므로
+production accuracy로 해석하지 않는다. 모호한 입력은 model/fallback으로
+남기고 explicit STOP은 safety rule로 먼저 처리한다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

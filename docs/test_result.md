@@ -2062,6 +2062,40 @@ Qwen review pack과 control motor loop에서는 기다리지 않는다. 이 time
 Gemma 정확도가 0%라는 뜻이 아니라, 이번 deadline 안에 판단을 반환하지 않았다는
 operability 결과다.
 
+### 14.50 control deterministic fast path (v1.72.0)
+
+Qwen hard-negative에서 관측된 semantic collision을 줄이기 위해, 모호한 단어가
+아닌 compound phrase만 인식하는 control rule을 `ControlStudentClient` 앞단에
+추가했다. 둘 이상의 skill이 동시에 매칭되면 rule을 적용하지 않고 model 경로로
+남기며, STOP collision signal은 별도의 safety rule로 먼저 평가한다.
+
+검증 명령:
+
+```bash
+uv run pytest -q tests/unit/test_control.py
+uv run ruff check src/hyperjev/control.py tests/unit/test_control.py
+```
+
+| 측정 대상 | 결과 |
+| --- | ---: |
+| hard-negative queue | 1,000 rows |
+| fast-path coverage | 1,000/1,000 (100.00%) |
+| fast-path synthetic target match | 1,000/1,000 (100.00%) |
+| seed queue fast-path coverage | 750/800 (93.75%) |
+| seed resolved target match | 750/750 (100.00%) |
+| `ControlStudentClient` hard queue target match | 1,000/1,000 (100.00%) |
+| client in-process total / mean | 10.11ms / 10.11µs per row |
+| rule-only observed mean range | 9.97~15.84µs per row |
+| human labels | 0/1,000 |
+| production eligible | false |
+
+client source count는 `safety-rule=250`, `control-rule=750`이었다. 이 결과는
+hard-negative generator가 만든 synthetic phrase를 deterministic rule이 정확히
+분리한다는 뜻이다. 새로운 game/robot scene의 human accuracy, OOD robustness,
+GPU/e2e motor latency를 증명하지 않으며, 규칙에 매칭되지 않는 입력은 기존
+typed Student와 safe STOP policy로 처리한다. 따라서 이 단계는 production
+accuracy 승격이 아니라 낮은 지연의 고정밀 안전 보조 경로다.
+
 ### 14.46 pair-collision active review priority (v1.68.0)
 
 hard-negative Qwen 결과의 confidence 분포를 오류 여부와 분리해 분석했다.

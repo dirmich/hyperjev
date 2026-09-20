@@ -16,6 +16,7 @@ from hyperjev.control import (
     ControlSafetyPolicy,
     ControlStudentClient,
     apply_safety_policy,
+    deterministic_control_action,
     explicit_stop_signal,
     safe_stop,
 )
@@ -64,7 +65,24 @@ class ControlContractTests(unittest.TestCase):
 
     def test_explicit_collision_signal_is_a_planned_stop(self) -> None:
         self.assertTrue(explicit_stop_signal("Obstacle is directly ahead"))
+        self.assertTrue(explicit_stop_signal("Emergency hazard is detected inside the collision zone"))
         self.assertFalse(explicit_stop_signal("obstacle is far behind"))
+
+    def test_control_fast_path_requires_compound_semantics(self) -> None:
+        action = deterministic_control_action("the reachable target is locked directly ahead")
+        self.assertIsNotNone(action)
+        assert action is not None
+        self.assertEqual(action.skill, "APPROACH")
+        self.assertEqual(action.source, "control-rule")
+        self.assertEqual(action.confidence, 1.0)
+        self.assertIsNone(deterministic_control_action("target ahead"))
+
+    def test_control_fast_path_covers_hold_without_confusing_stop(self) -> None:
+        action = deterministic_control_action("pause safely while the pose is stable and no hazard is present")
+        self.assertIsNotNone(action)
+        assert action is not None
+        self.assertEqual(action.skill, "HOLD")
+        self.assertFalse(explicit_stop_signal("pause safely while the pose is stable and no hazard is present"))
 
     def test_low_confidence_and_long_ttl_are_rejected(self) -> None:
         policy = ControlSafetyPolicy(minimum_confidence=0.95, max_action_ttl_ms=100)
@@ -248,6 +266,40 @@ class ControlContractTests(unittest.TestCase):
         self.assertEqual(action.skill, "STOP")
         self.assertEqual(action.source, "safety-rule")
         self.assertFalse(action.abstained)
+
+    def test_control_student_uses_fast_path_before_model(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        config = StudentConfig(model_id="control-fast-path-test", backbone="reference-ngram-encoder", precision="fp32")
+        model = build_torch_model(registry, config)
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "control.pt"
+            torch.save(
+                {"student": student_manifest(registry, config), "model_state_dict": model.state_dict()},
+                checkpoint,
+            )
+            client = ControlStudentClient(checkpoint, registry)
+            called = False
+
+            def fail_if_called(*_args, **_kwargs):
+                nonlocal called
+                called = True
+                raise AssertionError("model should not run for a high-precision fast path")
+
+            client._client.complete_decision = fail_if_called
+            observation = ControlObservation(
+                observation_id="approach-frame",
+                state="the reachable target is locked directly ahead",
+                domain="simulation",
+                timestamp_ms=1000.0,
+            )
+            action = client.decide(observation, now_ms=1001.0)
+        self.assertFalse(called)
+        self.assertEqual(action.skill, "APPROACH")
+        self.assertEqual(action.source, "control-rule")
 
 
 if __name__ == "__main__":

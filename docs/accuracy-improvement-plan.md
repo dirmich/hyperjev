@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.71.0
+현재 버전: 1.72.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -227,6 +227,26 @@ v1.71.0의 Gemma hard-negative probe는 30초 timeout에서 `completed=0`,
 유지하지만, 현재 label throughput이나 control latency의 동기 경로에 넣지 않는다.
 Gemma가 실제 결과를 내는 경우에도 Qwen/Gemma 합의는 silver 후보일 뿐이며,
 human label gate를 대체하지 않는다.
+
+v1.72.0에서는 Qwen hard-negative에서 반복된 `APPROACH↔MOVE`와 `HOLD↔STOP`
+혼동을 줄이기 위해 보수적인 control fast path를 추가했다. 단일 keyword가 아니라
+완전한 compound phrase를 요구하고, 둘 이상의 skill pattern이 동시에 맞으면
+모델로 넘긴다. STOP은 별도 명시적 collision rule로 먼저 처리한다. 따라서 이
+경로는 일반 자연어 분류기가 아니며, 애매한 state의 정확도를 과장하지 않는다.
+
+| queue | fast-path coverage | fast-path target match | human labels |
+| --- | ---: | ---: | ---: |
+| hard-negative 1,000 | 1,000/1,000 (100.00%) | 1,000/1,000 (100.00%) | 0/1,000 |
+| seed 800 | 750/800 (93.75%) | 750/750 (100.00%) | 0/800 |
+
+실제 `ControlStudentClient`에 hard-negative 1,000행을 넣었을 때 모든 판단이
+`safety-rule` 또는 `control-rule`로 처리됐고 synthetic target match는 100%였다.
+초기화 이후 in-process 측정의 총 시간은 10.11ms(평균 약 10.11µs/행)였다.
+별도의 rule-only 측정은 약 9.97~15.84µs/행 범위였다. 이는 synthetic target과
+local CPU 경로의 증거일 뿐 human generalization이나 end-to-end motor deadline
+증거가 아니다. 사람 라벨은 여전히 0건이고 production eligibility는 false다.
+fast path에 매칭되지 않은 state는 기존 typed Student와 safety fallback을 그대로
+사용한다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적

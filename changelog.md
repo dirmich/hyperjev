@@ -3,6 +3,20 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — compound-phrase control fast path (v1.72.0)
+
+- Qwen hard-negative에서 반복된 `APPROACH↔MOVE`, `HOLD↔STOP` semantic collision을
+  보완하기 위해 compound phrase 기반의 보수적 `control-rule` fast path를 추가했다.
+- hard-negative 1,000행에서 fast-path coverage와 synthetic target match가 각각
+  `100.00%`였고, `ControlStudentClient` 평균 in-process 비용은 약 `10.11µs/행`이었다.
+- seed queue에서는 `750/800`행만 규칙으로 결정하고 나머지는 model 경로로 남겼다.
+  규칙이 둘 이상 맞는 문장은 적용하지 않으며, explicit STOP은 별도 safety rule로
+  먼저 평가한다.
+- human label은 `0/1000`이므로 production accuracy나 일반화 정확도는 여전히
+  미달이다. 이 단계는 저지연 보조 경로이며 human golden gate를 대체하지 않는다.
+- 검증: control unit `16 passed`, Ruff, hard-negative/seed synthetic replay,
+  실제 `ControlStudentClient` smoke.
+
 ## 2026-09-21 — Gemma hard-negative judge timeout gate (v1.71.0)
 
 - 현재 hard-negative queue의 첫 샘플을 `google/gemma-4-12b`로 30초 probe했다.

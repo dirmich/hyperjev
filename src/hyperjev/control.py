@@ -29,12 +29,103 @@ MAX_MEMORY_CONTEXT_ITEMS = 8
 MAX_MEMORY_CONTEXT_CHARS = 2048
 _EXPLICIT_STOP_SIGNALS = (
     "obstacle is directly ahead",
+    "obstacle is inside the safety zone",
     "immediate collision risk",
     "collision risk is immediate",
+    "collision risk is inside the safety zone",
     "emergency collision risk",
+    "emergency hazard is detected inside the collision zone",
+    "sensor reports an emergency collision risk",
+    "충돌 위험이 즉시 발생해 정지가 필수다",
+    "충돌 구역 안에서 비상 위험이 감지됐다",
     "장애물이 바로 앞",
     "즉시 충돌 위험",
     "비상 충돌 위험",
+)
+
+# These are intentionally compound, phrase-level signals. A control fast path
+# must be more specific than a single keyword because ``target``, ``safe``, and
+# ``wait`` occur in several skills. Ambiguous text is left to the typed model.
+_CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
+    (
+        "APPROACH",
+        (
+            ("target is ahead", "approached safely"),
+            ("reachable target", "getting closer"),
+            ("reachable target", "locked directly ahead"),
+            ("object is still far", "approached first"),
+            ("목표가 앞에 있고", "접근"),
+            ("접근 가능한 목표", "가까워지고"),
+            ("물체가 아직 멀어", "먼저 접근"),
+        ),
+    ),
+    (
+        "HOLD",
+        (
+            ("pose is stable", "no new command"),
+            ("pose is stable", "no hazard is present"),
+            ("wait safely", "next sensor update"),
+            ("stable pose", "maintained"),
+            ("자세가 안정적이고", "새 명령이 없다"),
+            ("센서 업데이트까지", "안전하게 기다린다"),
+            ("안정된 자세", "유지"),
+            ("위험이 없고 자세가 안정적이므로", "안전하게 잠시 멈춘다"),
+        ),
+    ),
+    (
+        "MOVE",
+        (
+            ("corridor is clear", "forward motion"),
+            ("corridor is clear", "continue forward"),
+            ("free space is available", "route"),
+            ("heading is aligned", "open route", "straight ahead"),
+            ("통로가 비어 있어", "앞으로 움직일"),
+            ("경로에 자유 공간",),
+        ),
+    ),
+    (
+        "ROTATE",
+        (
+            ("heading is wrong", "turn space is clear"),
+            ("turn toward", "next waypoint"),
+            ("heading is wrong", "clear turn"),
+            ("방향이 틀렸고", "회전 공간"),
+            ("웨이포인트 방향으로", "회전"),
+        ),
+    ),
+    (
+        "RETREAT",
+        (
+            ("hazard is approaching", "move away"),
+            ("safe space behind",),
+            ("reverse away", "blocked area"),
+            ("위험이 다가오므로", "멀어져야"),
+            ("뒤쪽에 안전한 공간",),
+            ("위험이 다가오지만", "뒤의 빈 경로는 안전하다"),
+        ),
+    ),
+    (
+        "INTERACT",
+        (
+            ("aligned object", "within reach"),
+            ("nearby switch", "ready to activate"),
+            ("button is aligned", "within hand reach"),
+            ("정렬된 물체", "손이 닿는 거리"),
+            ("근처 스위치", "작동할 준비"),
+            ("버튼이 정렬됐고", "손이 닿는 거리에 있다"),
+        ),
+    ),
+    (
+        "RECOVER",
+        (
+            ("localization is lost", "recovery is needed"),
+            ("localization is lost", "no collision risk is present"),
+            ("controller reports", "balance fault"),
+            ("robot needs to regain balance",),
+            ("위치를 잃어", "복구가 필요"),
+            ("제어기가 균형 오류",),
+        ),
+    ),
 )
 
 
@@ -232,6 +323,31 @@ def explicit_stop_action() -> ControlAction:
     )
 
 
+def deterministic_control_action(state: str) -> ControlAction | None:
+    """Return one high-precision non-STOP action, or defer to the model.
+
+    The matcher deliberately requires a complete phrase pattern and rejects
+    collisions between patterns. STOP remains a separate safety rule and is
+    evaluated before this helper by :class:`ControlStudentClient`.
+    """
+
+    normalized = " ".join(state.casefold().split())
+    matches: list[str] = []
+    for skill, patterns in _CONTROL_FAST_PATHS:
+        if any(all(phrase in normalized for phrase in pattern) for pattern in patterns):
+            matches.append(skill)
+    if len(matches) != 1:
+        return None
+    return ControlAction(
+        skill=matches[0],
+        ttl_ms=50,
+        confidence=1.0,
+        source="control-rule",
+        abstained=False,
+        reason=f"high_precision_{matches[0].lower()}_signal",
+    )
+
+
 def apply_safety_policy(
     observation: ControlObservation,
     action: ControlAction,
@@ -292,6 +408,14 @@ class ControlStudentClient:
             return safe_stop(reason="stale_observation")
         if explicit_stop_signal(observation.state):
             return explicit_stop_action()
+        fast_path_action = deterministic_control_action(observation.state)
+        if fast_path_action is not None:
+            return apply_safety_policy(
+                observation,
+                fast_path_action,
+                now_ms=now_ms,
+                policy=self.policy,
+            )
         try:
             completion = self._client.complete_decision(
                 self._task,
