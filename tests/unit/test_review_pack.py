@@ -101,6 +101,27 @@ class ReviewPackTests(unittest.TestCase):
         self.assertEqual(args.student_checkpoint, "checkpoint.pt")
         self.assertEqual(args.student_device, "cpu")
 
+    def test_control_review_pack_exposes_focus_actions(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-pack",
+                "--queue",
+                "queue.jsonl",
+                "--draft",
+                "draft.jsonl",
+                "--output",
+                "pack.jsonl",
+                "--allow-raw",
+                "--prioritize",
+                "--focus-action",
+                "APPROACH",
+                "--focus-action",
+                "HOLD",
+            ]
+        )
+        self.assertEqual(args.focus_action, ["APPROACH", "HOLD"])
+
     def test_golden_review_pack_exposes_priority_flag(self) -> None:
         args = build_parser().parse_args(
             [
@@ -239,6 +260,29 @@ class ReviewPackTests(unittest.TestCase):
             ["student-disagrees", "student-uncertain"],
         )
 
+    def test_focus_action_precedes_non_focus_without_dropping_items(self) -> None:
+        items = [
+            {
+                "sample_id": "move",
+                "source": {"counterfactual_group_id": "move"},
+                "teacher": {
+                    "schema_valid": True,
+                    "normalized_result": {"type": "choice", "selected": "MOVE"},
+                },
+            },
+            {
+                "sample_id": "approach",
+                "source": {"counterfactual_group_id": "approach"},
+                "teacher": {
+                    "schema_valid": True,
+                    "normalized_result": {"type": "choice", "selected": "APPROACH"},
+                },
+            },
+        ]
+        ordered = _prioritize_review_items(items, focus_actions={"APPROACH"})
+        self.assertEqual([item["sample_id"] for item in ordered], ["approach", "move"])
+        self.assertEqual({item["sample_id"] for item in ordered}, {"move", "approach"})
+
     def test_prioritized_pack_keeps_counterfactual_pair_adjacent_without_target(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
         with tempfile.TemporaryDirectory() as directory:
@@ -280,7 +324,15 @@ class ReviewPackTests(unittest.TestCase):
             draft.write_text(
                 "\n".join(json.dumps(record) for record in draft_records) + "\n", encoding="utf-8"
             )
-            export_review_pack(queue, draft, output, registry, include_raw=True, prioritize=True)
+            export_review_pack(
+                queue,
+                draft,
+                output,
+                registry,
+                include_raw=True,
+                prioritize=True,
+                focus_actions={"STOP"},
+            )
             output_text = output.read_text(encoding="utf-8")
             records = [json.loads(line) for line in output_text.splitlines()]
 
@@ -288,9 +340,11 @@ class ReviewPackTests(unittest.TestCase):
         group_ids = [item["source"]["counterfactual_group_id"] for item in items]
         self.assertEqual(group_ids[:2], [group_ids[0], group_ids[0]])
         self.assertEqual(group_ids[2:], [group_ids[2], group_ids[2]])
-        self.assertEqual(records[0]["priority_order"], "uncertain_first")
+        self.assertEqual(records[0]["priority_order"], "focus_action_then_teacher")
         self.assertEqual(records[0]["priority_stats"]["counterfactual_group_count"], 2)
         self.assertEqual(records[0]["priority_stats"]["collision_group_count"], 0)
+        self.assertEqual(records[0]["priority_stats"]["focus_action_item_count"], 1)
+        self.assertEqual(records[0]["focus_actions"], ["STOP"])
         self.assertNotIn('"target"', output_text)
 
     def test_pack_includes_context_but_excludes_target(self) -> None:

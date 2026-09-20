@@ -79,6 +79,15 @@ def _teacher_signature(item: dict[str, Any]) -> tuple[str, Any] | None:
     return None
 
 
+def _teacher_action(item: dict[str, Any]) -> str | None:
+    """Return a teacher-selected choice for focus ordering, if available."""
+
+    signature = _teacher_signature(item)
+    if signature is None or signature[0] != "choice":
+        return None
+    return str(signature[1])
+
+
 def _student_signature(prediction: dict[str, Any]) -> tuple[str, Any] | None:
     rendered = prediction.get("prediction") or {}
     result_type = rendered.get("type")
@@ -101,6 +110,7 @@ def _prioritize_review_items(
     *,
     student_confidence: dict[str, float] | None = None,
     student_disagreement: set[str] | None = None,
+    focus_actions: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Order uncertain items while keeping counterfactual siblings adjacent.
 
@@ -120,6 +130,10 @@ def _prioritize_review_items(
         group_order,
         key=lambda group_id: (
             0 if _is_teacher_collision(groups[group_id]) else 1,
+            0
+            if focus_actions is not None
+            and any(_teacher_action(item) in focus_actions for item in groups[group_id])
+            else 1,
             0
             if student_disagreement is not None
             and any(str(item.get("sample_id", "")) in student_disagreement for item in groups[group_id])
@@ -162,6 +176,7 @@ def export_review_pack(
     prioritize: bool = False,
     student_checkpoint: str | Path | None = None,
     student_device: str = "cpu",
+    focus_actions: set[str] | None = None,
 ) -> dict[str, Any]:
     """Join queue text and a teacher draft for explicit local human review.
 
@@ -174,6 +189,8 @@ def export_review_pack(
         raise ValueError("review pack requires explicit include_raw=True")
     if student_checkpoint is not None and not prioritize:
         raise ValueError("student checkpoint priority requires prioritize=True")
+    if focus_actions and not prioritize:
+        raise ValueError("action focus priority requires prioritize=True")
     queue = Path(queue_path)
     draft = Path(draft_path)
     samples = load_jsonl(queue, registry)
@@ -251,6 +268,7 @@ def export_review_pack(
         if student_checkpoint is not None
         else None,
         "student_checkpoint_sha256": student_checkpoint_sha256,
+        "focus_actions": sorted(focus_actions) if focus_actions else None,
     }
     output_records: list[dict[str, Any]] = [pack_manifest]
     for sample in samples:
@@ -295,6 +313,10 @@ def export_review_pack(
         )
     if prioritize:
         pack_manifest["priority_stats"] = _priority_stats(output_records[1:])
+        if focus_actions:
+            pack_manifest["priority_stats"]["focus_action_item_count"] = sum(
+                _teacher_action(item) in focus_actions for item in output_records[1:]
+            )
         if student_confidence is not None:
             student_disagreement = {
                 str(item["sample_id"])
@@ -316,10 +338,22 @@ def export_review_pack(
                 pack_manifest["priority_order"] = (
                     "student_disagreement_then_uncertainty_then_teacher"
                 )
+            if focus_actions:
+                if student_disagreement:
+                    pack_manifest["priority_order"] = (
+                        "focus_action_then_student_disagreement_then_uncertainty_then_teacher"
+                    )
+                elif student_confidence is not None:
+                    pack_manifest["priority_order"] = "focus_action_then_uncertainty_then_teacher"
+                else:
+                    pack_manifest["priority_order"] = "focus_action_then_teacher"
+        elif focus_actions:
+            pack_manifest["priority_order"] = "focus_action_then_teacher"
         output_records[1:] = _prioritize_review_items(
             output_records[1:],
             student_confidence=student_confidence,
             student_disagreement=student_disagreement,
+            focus_actions=focus_actions,
         )
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)

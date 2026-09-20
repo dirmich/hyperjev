@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.89.0
+현재 버전: 1.90.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -862,3 +862,23 @@ adjudication이 끝난 뒤에만 materialized target과 held-out human test를 �
 `control review-agreement --show-action-summary`는 같은 진단을 사람이 읽기 쉬운
 표로 먼저 출력한 뒤 기존 manifest JSON을 출력한다. 기본 출력은 바꾸지 않았기
 때문에 CI나 후속 스크립트는 기존 JSON 경로를 계속 사용할 수 있다.
+
+### v1.90.0 action focus review ordering
+
+action별 agreement가 낮은 경계가 확인되면 다음과 같이 전체 pack을 보존하면서
+해당 action을 선택한 teacher item을 먼저 검수할 수 있다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --draft /tmp/qwen-control-hard-500.jsonl \
+  --output /tmp/control-focus-review-pack.jsonl \
+  --allow-raw --prioritize \
+  --focus-action APPROACH --focus-action HOLD
+```
+
+`focus_actions`와 `focus_action_item_count`는 manifest에 남지만 item의 target이나
+Student prediction은 추가하지 않는다. counterfactual sibling은 계속 붙어 있어
+경계의 양쪽을 함께 검수한다. 이 기능은 low-agreement action을 먼저 보는
+active-review 도구이며, teacher 선택이 틀릴 수 있으므로 전체 sample coverage와
+blind human correction을 유지해야 한다.

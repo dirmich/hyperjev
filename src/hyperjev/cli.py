@@ -463,6 +463,7 @@ def _control_review_pack(args: argparse.Namespace) -> int:
         prioritize=args.prioritize,
         student_checkpoint=args.student_checkpoint,
         student_device=args.student_device,
+        focus_actions=set(args.focus_action) if args.focus_action else None,
     )
     print(json.dumps(report["manifest"], ensure_ascii=False))
     return 0
@@ -1033,6 +1034,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("cpu", "cuda"),
         default="cpu",
         help="device used for optional Student uncertainty ranking",
+    )
+    control_review_pack.add_argument(
+        "--focus-action",
+        action="append",
+        metavar="ACTION",
+        help="prioritize teacher-selected action; repeat for multiple actions",
     )
     control_review_pack.set_defaults(handler=_control_review_pack)
     control_review_session = control_subparsers.add_parser("review-session")

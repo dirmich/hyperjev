@@ -123,6 +123,7 @@
 | 1.87.0 | 진행 중 | Student–Qwen disagreement 우선순위로 overconfident 오류 수집 |
 | 1.88.0 | 진행 중 | blind dual review manifest에 action별 agreement/disagreement 진단 추가 |
 | 1.89.0 | 진행 중 | review-agreement에 낮은 agreement 우선 human-readable summary 추가 |
+| 1.90.0 | 진행 중 | low-agreement action을 먼저 배치하는 focus review ordering 추가 |
 
 ## 다음 기록 규칙
 

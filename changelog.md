@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — action focus review ordering (v1.90.0)
+
+- `control review-pack --focus-action ACTION --prioritize`를 추가해 낮은
+  action agreement 경계를 먼저 배치한다. 여러 action은 flag를 반복한다.
+- 전체 review item과 counterfactual sibling adjacency는 유지하며, manifest에
+  focus action과 실제 teacher-selected item 수를 기록한다.
+- focus는 review 순서일 뿐 teacher를 정답으로 승격하지 않으며, 전체 held-out
+  human test와 production gate를 대체하지 않는다.
+- targeted review-pack 테스트 `19 passed`; 전체 suite와 Ruff를 version bump 후
+  다시 실행한다.
+
 ## 2026-09-21 — action agreement CLI 요약 (v1.89.0)
 
 - `control review-agreement --show-action-summary`를 추가해 action별 agreement

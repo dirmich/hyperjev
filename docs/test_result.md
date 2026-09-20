@@ -2624,3 +2624,21 @@ accuracy가 아니며 disagreement 양쪽 action에 중복 반영된다.
 직접 열지 않고 확인할 수 있게 했다. 요약은 낮은 action agreement부터 보여주며,
 마지막에 기존 JSON manifest를 그대로 출력한다. targeted review-pack 테스트는
 `17 passed`로 확인했다.
+
+### 14.67 action focus review ordering (v1.90.0)
+
+`--focus-action`을 반복해 지정하면 전체 review pack을 삭제하거나 필터링하지
+않고, 해당 action을 teacher가 선택한 group을 먼저 배치한다. counterfactual
+sibling은 함께 유지한다.
+
+| 검증 항목 | 결과 |
+| --- | --- |
+| focus example | `APPROACH`, `HOLD` |
+| all items retained | 예 |
+| counterfactual sibling adjacency | 예 |
+| target / Student prediction copied | 아니오 |
+| manifest fields | `focus_actions`, `focus_action_item_count` |
+| targeted review-pack test | `19 passed` |
+
+focus item 수는 teacher 선택 기반의 검수 순서 지표이며 human accuracy가 아니다.
+최종 target은 여전히 blind human correction과 adjudication으로만 만든다.
