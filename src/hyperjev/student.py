@@ -104,6 +104,12 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
     class HyperJevTypedHeads(nn.Module):
         def __init__(self) -> None:
             super().__init__()
+            # PyTorch ModuleDict keys cannot contain '.', while registry task ids
+            # intentionally use dotted names such as ``memory.type``.
+            self.task_keys = {
+                spec.task_id: f"task_{index}"
+                for index, spec in enumerate(specs)
+            }
             self.embedding = nn.Embedding(selected.vocab_size, selected.hidden_size)
             self.encoder = nn.Sequential(
                 nn.LayerNorm(selected.hidden_size),
@@ -113,21 +119,21 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
             )
             self.boolean_heads = nn.ModuleDict(
                 {
-                    spec.task_id: nn.Linear(selected.hidden_size, 2)
+                    self.task_keys[spec.task_id]: nn.Linear(selected.hidden_size, 2)
                     for spec in specs
                     if spec.output_type == "boolean"
                 }
             )
             self.choice_heads = nn.ModuleDict(
                 {
-                    spec.task_id: nn.Linear(selected.hidden_size, len(spec.candidates))
+                    self.task_keys[spec.task_id]: nn.Linear(selected.hidden_size, len(spec.candidates))
                     for spec in specs
                     if spec.output_type == "choice"
                 }
             )
             self.score_heads = nn.ModuleDict(
                 {
-                    spec.task_id: nn.Linear(selected.hidden_size, 2)
+                    self.task_keys[spec.task_id]: nn.Linear(selected.hidden_size, 2)
                     for spec in specs
                     if spec.output_type == "score"
                 }
@@ -150,12 +156,15 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
             attention_mask: Any | None = None,
         ) -> Mapping[str, Any]:
             hidden = self.encode(input_ids, attention_mask)
-            if task_id in self.boolean_heads:
-                return {"type": "boolean", "logits": self.boolean_heads[task_id](hidden)}
-            if task_id in self.choice_heads:
-                return {"type": "choice", "logits": self.choice_heads[task_id](hidden)}
-            if task_id in self.score_heads:
-                return {"type": "score", "parameters": self.score_heads[task_id](hidden)}
+            key = self.task_keys.get(task_id)
+            if key is None:
+                raise KeyError(f"unknown task head: {task_id}")
+            if key in self.boolean_heads:
+                return {"type": "boolean", "logits": self.boolean_heads[key](hidden)}
+            if key in self.choice_heads:
+                return {"type": "choice", "logits": self.choice_heads[key](hidden)}
+            if key in self.score_heads:
+                return {"type": "score", "parameters": self.score_heads[key](hidden)}
             raise KeyError(f"unknown task head: {task_id}")
 
     return HyperJevTypedHeads()

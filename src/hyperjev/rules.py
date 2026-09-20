@@ -62,16 +62,16 @@ def match_rule(task: TaskDefinition, *, state: str, question: str) -> RuleMatch 
                 reason="explicit_commitment_or_preference_signal",
             )
     if task.id == "wiki.semantic_change":
+        if any(term in lowered for term in _STYLE_TERMS):
+            return RuleMatch(
+                rule_id="wiki.style_only",
+                result=BooleanDecision(value=False, probability=0.97),
+                reason="style_or_format_only_signal",
+            )
         if _CHANGE_PATTERN.search(text):
             return RuleMatch(
                 rule_id="wiki.factual_change",
                 result=BooleanDecision(value=True, probability=0.95),
                 reason="explicit_factual_change_signal",
-            )
-        if any(term in lowered for term in _STYLE_TERMS) and not _CHANGE_PATTERN.search(text):
-            return RuleMatch(
-                rule_id="wiki.style_only",
-                result=BooleanDecision(value=False, probability=0.97),
-                reason="style_or_format_only_signal",
             )
     return None

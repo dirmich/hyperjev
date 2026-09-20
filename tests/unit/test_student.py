@@ -45,6 +45,18 @@ class StudentContractTests(unittest.TestCase):
         else:
             self.assertTrue(hasattr(model, "forward"))
 
+    def test_torch_backend_supports_dotted_registry_task_ids(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        model = build_torch_model(self.registry)
+        input_ids = torch.zeros((1, 8), dtype=torch.long)
+        attention = torch.ones((1, 8), dtype=torch.long)
+        for task_id in self.registry.ids():
+            output = model(task_id, input_ids, attention)
+            self.assertIn(output["type"], {"boolean", "choice", "score"})
+
 
 class CalibrationTests(unittest.TestCase):
     def test_temperature_fit_and_probability_are_deterministic(self) -> None:

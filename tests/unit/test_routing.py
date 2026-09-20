@@ -8,6 +8,7 @@ from hyperjev.contracts import DecisionRequest
 from hyperjev.registry import TaskRegistry
 from hyperjev.review import FeedbackStore, ReviewStore
 from hyperjev.routing import DecisionRouter
+from hyperjev.rules import match_rule
 from hyperjev.teachers import TeacherCompletion
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -75,6 +76,17 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(qwen.calls, 0)
         self.assertEqual(gemma.calls, 0)
         self.assertEqual(outcome.traces[0].attempts[0]["rule_id"], "remember.greeting_only")
+
+    def test_wiki_style_change_does_not_match_factual_change_keyword(self) -> None:
+        task = self.registry.get("wiki.semantic_change", 1)
+        match = match_rule(
+            task,
+            state="Only the document title style changed.",
+            question="What changed?",
+        )
+        self.assertIsNotNone(match)
+        self.assertEqual(match.rule_id, "wiki.style_only")  # type: ignore[union-attr]
+        self.assertFalse(match.result.value)  # type: ignore[union-attr]
 
     def test_qwen_acceptance_does_not_call_gemma(self) -> None:
         qwen = _FakeClient('{"type":"score","value":0.86,"interval_90":[0.8,0.9]}')
