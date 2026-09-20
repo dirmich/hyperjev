@@ -13,6 +13,8 @@ human labels and therefore do not make the golden gate pass.
 Qwen `qwen38fn` 또는 Gemma4를 human 검수용 초안으로 사용할 수 있다. Qwen은
 빠른 초안 생성에 적합하지만, 초안은 human label이 아니며,
 사용자가 원문 `state`와 `question`을 확인한 뒤에만 `golden review`로 승인한다.
+구체적인 `memory.remember_worthy` 판정 기준은
+[`docs/human_labeling.md`](../../docs/human_labeling.md)를 따른다.
 
 ```bash
 uv run hyperjev golden draft \

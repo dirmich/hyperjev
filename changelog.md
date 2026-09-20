@@ -3,6 +3,13 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — human remember-worthiness rubric (v1.27.0)
+
+- `memory.remember_worthy`를 판단하는 미래 재사용 가치 기준과 true/false
+  예시를 `docs/human_labeling.md`에 고정했다.
+- synthetic target, teacher draft, semantic memory value, privacy storage
+  permission을 서로 다른 판단으로 분리했다.
+
 ## 2026-09-20 — 1,000-item review pack generation (v1.26.1)
 
 - Qwen 1,000건 draft와 source queue를 join한 local review pack을 생성했다.
