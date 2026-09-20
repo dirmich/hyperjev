@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — bounded blind human-review batches (v1.97.0)
+
+- `control review-session`에 결정론적 `--offset`/`--limit` 배치를 추가했다.
+- `--blind`와 함께 사용하면 Qwen/Gemma draft를 숨긴 채 25~50건 단위로
+  사람 label을 입력하고, feedback append-only 파일로 중단 후 재개할 수 있다.
+- 결과 report에 전체 progress와 batch progress를 함께 기록해 다음 배치 위치를
+  잃지 않는다. synthetic target이나 teacher output을 `labels.human`으로 복사하는
+  경로는 추가하지 않았다.
+- targeted review-pack tests `23 passed`; 실제 human label 수와 control 정확도는
+  여전히 0/미측정이며, 이 기능은 라벨 수집 병목을 줄이는 기반이다.
+
 ## 2026-09-21 — reproducible 500-case safety matrix (v1.96.0)
 
 - `scripts/generate_control_safety_scenarios.py`를 추가해 emergency stop,

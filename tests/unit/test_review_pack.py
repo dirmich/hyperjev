@@ -41,6 +41,120 @@ class ReviewPackTests(unittest.TestCase):
         )
         self.assertTrue(args.prioritize)
 
+    def test_control_review_session_exposes_batch_flags(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-session",
+                "--review-pack",
+                "pack.jsonl",
+                "--queue",
+                "queue.jsonl",
+                "--feedback-output",
+                "feedback.jsonl",
+                "--reviewer",
+                "human-a",
+                "--blind",
+                "--offset",
+                "50",
+                "--limit",
+                "25",
+            ]
+        )
+        self.assertTrue(args.blind)
+        self.assertEqual(args.offset, 50)
+        self.assertEqual(args.limit, 25)
+
+    def test_review_session_limits_deterministic_blind_batches(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            draft = root / "draft.jsonl"
+            pack = root / "review-pack.jsonl"
+            feedback = root / "feedback.jsonl"
+            generate_control_hard_negative_queue(queue, registry, pair_count=2, seed=7)
+            samples = [json.loads(line) for line in queue.read_text(encoding="utf-8").splitlines()]
+            queue_sha256 = __import__("hashlib").sha256(queue.read_bytes()).hexdigest()
+            draft_records = [
+                {
+                    "record_type": "golden_teacher_draft_manifest",
+                    "queue_sha256": queue_sha256,
+                    "provider": "qwen",
+                    "model": "qwen38fn",
+                    "prompt_version": 2,
+                }
+            ]
+            for sample in samples:
+                candidates = ("STOP", "HOLD", "MOVE", "ROTATE", "APPROACH", "RETREAT", "INTERACT", "RECOVER")
+                draft_records.append(
+                    {
+                        "record_type": "golden_teacher_draft",
+                        "sample_id": sample["sample_id"],
+                        "provider": "qwen",
+                        "model": "qwen38fn",
+                        "normalized_result": {
+                            "type": "choice",
+                            "selected": sample["target"],
+                            "probabilities": {
+                                candidate: float(candidate == sample["target"])
+                                for candidate in candidates
+                            },
+                            "abstained": False,
+                        },
+                        "schema_valid": True,
+                        "status": "completed",
+                        "error": None,
+                        "response_sha256": "hash",
+                    }
+                )
+            draft.write_text(
+                "\n".join(json.dumps(record) for record in draft_records) + "\n",
+                encoding="utf-8",
+            )
+            export_review_pack(queue, draft, pack, registry, include_raw=True)
+
+            first_batch = iter(["e", "STOP"])
+            first_report = run_review_session(
+                pack,
+                queue,
+                feedback,
+                registry,
+                reviewer="human-a",
+                input_fn=lambda _prompt: next(first_batch),
+                output_fn=lambda _message: None,
+                blind_teacher=True,
+                batch_offset=0,
+                batch_limit=1,
+            )
+            first_feedback = [
+                json.loads(line) for line in feedback.read_text(encoding="utf-8").splitlines()
+            ]
+
+            second_batch = iter(["e", "RETREAT"])
+            second_report = run_review_session(
+                pack,
+                queue,
+                feedback,
+                registry,
+                reviewer="human-a",
+                input_fn=lambda _prompt: next(second_batch),
+                output_fn=lambda _message: None,
+                blind_teacher=True,
+                batch_offset=1,
+                batch_limit=1,
+            )
+
+        self.assertEqual(first_report["batch_count"], 1)
+        self.assertEqual(first_report["saved_in_session"], 1)
+        self.assertEqual(first_report["reviewed_count"], 1)
+        self.assertEqual(first_report["pending_count"], 3)
+        self.assertEqual(first_report["batch_pending_count"], 0)
+        self.assertEqual(len(first_feedback), 1)
+        self.assertEqual(second_report["batch_offset"], 1)
+        self.assertEqual(second_report["reviewed_count"], 2)
+        self.assertEqual(second_report["pending_count"], 2)
+
     def test_control_review_agreement_exposes_action_summary_flag(self) -> None:
         args = build_parser().parse_args(
             [

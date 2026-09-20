@@ -843,6 +843,8 @@ def run_review_session(
     output_fn: Any = print,
     deduplicate_exact: bool = False,
     blind_teacher: bool = False,
+    batch_offset: int = 0,
+    batch_limit: int | None = None,
 ) -> dict[str, Any]:
     """Review a pack in one resumable session with next/previous navigation.
 
@@ -851,9 +853,15 @@ def run_review_session(
     move next), and ``q`` (save and quit). Every accepted or edited label is
     appended immediately; revising an earlier item appends a newer record that
     wins when feedback is applied. With ``blind_teacher=True``, teacher output
-    is hidden and only ``e`` can create a label.
+    is hidden and only ``e`` can create a label. ``batch_offset`` and
+    ``batch_limit`` bound the deterministic review-group slice for resumable
+    batch labeling.
     """
 
+    if batch_offset < 0:
+        raise ValueError("batch_offset must be non-negative")
+    if batch_limit is not None and batch_limit < 1:
+        raise ValueError("batch_limit must be positive")
     pack_records = _read_records(Path(review_pack_path))
     manifest = pack_records[0]
     if manifest.get("record_type") != "golden_review_pack_manifest":
@@ -875,9 +883,15 @@ def run_review_session(
     else:
         groups = [[item] for item in items]
 
+    selected_groups = groups[batch_offset:]
+    if batch_limit is not None:
+        selected_groups = selected_groups[:batch_limit]
+    if not selected_groups:
+        raise ValueError("review batch is empty")
+
     propagated = 0
     if deduplicate_exact:
-        for group in groups:
+        for group in selected_groups:
             reviewed = [
                 str(item.get("sample_id"))
                 for item in group
@@ -915,17 +929,17 @@ def run_review_session(
     index = next(
         (
             position
-            for position, group in enumerate(groups)
+            for position, group in enumerate(selected_groups)
             if not all(str(item.get("sample_id")) in latest for item in group)
         ),
-        0,
+        len(selected_groups),
     )
     saved = 0
     decisions = 0
     stopped = False
 
-    while 0 <= index < len(groups):
-        group = groups[index]
+    while 0 <= index < len(selected_groups):
+        group = selected_groups[index]
         item = group[0]
         sample_id = str(item.get("sample_id", ""))
         teacher = item.get("teacher", {})
@@ -933,14 +947,18 @@ def run_review_session(
         if deduplicate_exact:
             group_ids = [str(member.get("sample_id", "")) for member in group]
             output_fn(
-                f"[group {index + 1}/{len(groups)}] {item.get('task')} "
+                f"[group {batch_offset + index + 1}/{len(groups)}; "
+                f"batch {index + 1}/{len(selected_groups)}] {item.get('task')} "
                 f"exact_duplicates={len(group)}"
             )
             output_fn("sample_ids: " + ", ".join(group_ids[:5]))
             if len(group_ids) > 5:
                 output_fn(f"... and {len(group_ids) - 5} more")
         else:
-            output_fn(f"[{index + 1}/{len(items)}] {sample_id}  {item.get('task')}")
+            output_fn(
+                f"[{batch_offset + index + 1}/{len(items)}; "
+                f"batch {index + 1}/{len(selected_groups)}] {sample_id}  {item.get('task')}"
+            )
         output_fn(f"state: {item.get('state')}")
         output_fn(f"question: {item.get('question')}")
         if not blind_teacher:
@@ -973,7 +991,7 @@ def run_review_session(
             stopped = True
             break
         if command in {"n", "next", "s", "skip"}:
-            if index < len(groups) - 1:
+            if index < len(selected_groups) - 1:
                 index += 1
             else:
                 output_fn("Already at the last item.")
@@ -1033,7 +1051,7 @@ def run_review_session(
             continue
         decisions += 1
         output_fn(f"Saved {len(affected)} label(s). Moving to the next review group.")
-        if index < len(groups) - 1:
+        if index < len(selected_groups) - 1:
             index += 1
         else:
             break
@@ -1045,6 +1063,15 @@ def run_review_session(
         "saved_in_session": saved,
         "decisions_in_session": decisions,
         "review_group_count": len(groups),
+        "batch_offset": batch_offset,
+        "batch_limit": batch_limit,
+        "batch_count": len(selected_groups),
+        "batch_pending_count": sum(
+            1
+            for group in selected_groups
+            for item in group
+            if str(item.get("sample_id")) not in latest
+        ),
         "deduplicated_exact": deduplicate_exact,
         "propagated_count": propagated,
         "stopped": stopped,

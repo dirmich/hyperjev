@@ -2767,3 +2767,24 @@ uv run python scripts/evaluate_control_quality.py \
 명령의 process exit은 `1`이다. 이는 safety 실패가 아니라 human test gate가
 아직 충족되지 않았다는 뜻이다. 따라서 이 결과는 fail-closed safety evidence로
 기록하며, control action accuracy 99% 이상을 주장하는 근거로 사용하지 않는다.
+
+### 14.74 bounded blind human-review batches (v1.97.0)
+
+`control review-session`에 `--offset`/`--limit`을 추가하고 control 전용
+`--blind` 경로와 함께 검증했다.
+
+| 검증 항목 | 결과 |
+| --- | ---: |
+| targeted review-pack tests | `23 passed` |
+| batch 1 (`offset=0`, `limit=1`) | 1개 저장, 전체 `1/4` reviewed |
+| batch 2 (`offset=1`, `limit=1`) | 1개 저장, 전체 `2/4` reviewed |
+| teacher output in blind mode | 숨김 |
+| blind accept command | 비활성화 |
+| feedback format | typed correction append-only |
+| control accuracy effect | human 입력 전에는 미측정 |
+
+배치 report는 `batch_offset`, `batch_limit`, `batch_count`,
+`batch_pending_count`와 전체 `reviewed_count`, `pending_count`를 함께 출력한다.
+따라서 50개씩 사람 검수하고 `q`로 종료한 뒤 다음 offset으로 안전하게 재개할 수
+있다. 이 테스트는 입력 UX와 provenance 경로를 검증한 것이며, 테스트에 넣은
+값을 실제 golden truth로 승격하지 않는다.

@@ -246,6 +246,8 @@ def _golden_review_session(args: argparse.Namespace) -> int:
         reviewer=args.reviewer,
         deduplicate_exact=args.deduplicate_exact,
         blind_teacher=args.blind,
+        batch_offset=args.offset,
+        batch_limit=args.limit,
     )
     print(json.dumps(report, ensure_ascii=False))
     return 0
@@ -1086,6 +1088,17 @@ def build_parser() -> argparse.ArgumentParser:
     control_review_session.add_argument("--feedback-output", required=True)
     control_review_session.add_argument("--reviewer", required=True)
     control_review_session.add_argument("--deduplicate-exact", action="store_true")
+    control_review_session.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="zero-based review-group offset for a deterministic batch",
+    )
+    control_review_session.add_argument(
+        "--limit",
+        type=int,
+        help="maximum number of review groups in this batch",
+    )
     control_review_session.add_argument(
         "--blind",
         action="store_true",

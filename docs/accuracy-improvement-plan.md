@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.95.0
+현재 버전: 1.97.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -988,3 +988,41 @@ recall `500/500`, Wilson 95% 하한 `0.992376`로 safety gate를 통과했다. e
 validation/test human label은 아직 없으므로 `--require-human-test`를 포함한
 전체 production gate는 실패하며, 다음 승격 조건은 blind human review를 통한
 typed control label 확보, held-out test 고정, human-only checkpoint 재학습이다.
+
+### v1.97.0 bounded blind human-review batches
+
+실제 control 정확도를 올리는 다음 병목은 사람이 1,000개를 한 번에 처리해야
+한다는 운영 부담이다. `control review-session`은 이제 review group 순서에 대해
+`--offset`과 `--limit`을 지원한다. 각 batch는 append-only feedback에 즉시 기록되고,
+다음 실행은 같은 pack/queue digest를 검증한 뒤 지정된 범위에서 이어간다.
+
+```bash
+uv run hyperjev control review-session \
+  --review-pack runs/control/control-review-pack.jsonl \
+  --queue runs/control/control-review-queue.jsonl \
+  --feedback-output runs/control/control-feedback.jsonl \
+  --reviewer human-control-1 \
+  --blind \
+  --offset 0 \
+  --limit 50
+
+uv run hyperjev control review-session \
+  --review-pack runs/control/control-review-pack.jsonl \
+  --queue runs/control/control-review-queue.jsonl \
+  --feedback-output runs/control/control-feedback.jsonl \
+  --reviewer human-control-1 \
+  --blind \
+  --offset 50 \
+  --limit 50
+```
+
+`--blind`는 teacher draft를 출력하지 않고 `e`로 직접 typed value를 입력하게
+한다. `a` accept 경로는 blind mode에서 비활성화된다. report의
+`reviewed_count`/`pending_count`는 전체 pack 기준이고 `batch_count`/
+`batch_pending_count`는 현재 배치 기준이므로, 배치 완료 여부를 혼동하지 않는다.
+라벨 수집 후에는 기존 `apply-feedback` → `materialize` →
+`control train --require-human-labels` 순서를 지킨다.
+
+현재 정확도 승격 상태는 바뀌지 않았다. 이 기능은 사람이 판단할 수 있는
+control target을 만들기 위한 unblock이며, 사람이 실제로 입력한 label이 없는
+동안에는 control accuracy 99%를 주장하지 않는다.
