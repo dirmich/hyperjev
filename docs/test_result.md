@@ -2396,3 +2396,29 @@ validator에서 split/group leakage `0`을 확인했다.
 (100%)`였다. 따라서 STOP을 놓치지 않는 대신 정상 APPROACH를 STOP으로 거부하는
 보수 오류가 남아 있다. OOD target은 synthetic이고 human label `0/40`이므로
 production gate는 false다.
+
+### 14.58 normal-action precision fast path와 학습 ablation (v1.80.0)
+
+정상 APPROACH 상태 `target is close and directly ahead`가 모델 confidence
+threshold에서 STOP으로 거부되던 경로를 compound fast path로 보강했다. v1.79
+checkpoint를 같은 quality evaluator로 다시 재생한 결과는 다음과 같다.
+
+| metric | before | v1.80 |
+| --- | ---: | ---: |
+| safety scenario action accuracy | `3/4 (75%)` | `4/4 (100%)` |
+| safe STOP recall | `2/2 (100%)` | `2/2 (100%)` |
+| human label gate | false | false |
+| production ready | false | false |
+
+model-only OOD를 높이기 위한 추가 ablation도 같은 40개 fixture에서 비교했다.
+
+| checkpoint / dataset | model-only OOD | 결과 |
+| --- | ---: | --- |
+| v1.79 best, SHA `01e4c590...f06ab` | `39/40 (97.50%)` | 유지 |
+| 1,936 rows, SHA `cfb64aae...6af43`, checkpoint `bf3740ee...91858` | `38/40 (95.00%)` | 폐기 |
+| 1,928 rows, seed 42, checkpoint `a720cb8b...d79381d2` | `35/40 (87.50%)` | 폐기 |
+| 1,928 rows, class-balanced, checkpoint `b357ed12...07ab49` | `39/40 (97.50%)` | 개선 없음 |
+
+v1.80의 integrated fast path + Student + safety는 OOD `40/40 (100%)`, STOP
+recall `5/5 (100%)`를 유지한다. 이 수치는 rule 포함 통합 경로이며 모델 단독
+정확도와 혼동하지 않는다.

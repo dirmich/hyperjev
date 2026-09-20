@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — normal-action precision fast path (v1.80.0)
+
+- `target is close and directly ahead` compound signal을 APPROACH fast path에
+  추가했다. v1.79 checkpoint 재생에서 safety scenario action accuracy는
+  `3/4 (75%) → 4/4 (100%)`, safe STOP recall은 `2/2 (100%)`를 유지했다.
+- v1.79 best model-only OOD `39/40 (97.5%)`보다 나은 학습 seed는 확인하지
+  못했다. 1,936-row 확장은 `95%`, seed 42는 `87.5%`, class-balanced는
+  `97.5%`였고 모두 승격하지 않았다.
+- integrated OOD는 `40/40 (100%)`, STOP recall `5/5 (100%)`를 유지한다.
+  human label `0`이므로 production-ready가 아니다.
+- 검증: control/data targeted tests, full suite, Ruff, dataset validator,
+  quality evaluator, OOD replay, diff check.
+
 ## 2026-09-21 — semantic boundary augmentation (v1.79.0)
 
 - 모든 control skill에 boundary 문장 8개씩, 총 64개를 train-only로 추가했다.

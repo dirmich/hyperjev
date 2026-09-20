@@ -56,6 +56,7 @@ _CONTROL_FAST_PATHS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
         "APPROACH",
         (
             ("target is ahead", "approached safely"),
+            ("target is close", "directly ahead"),
             ("reachable target", "getting closer"),
             ("reachable target", "locked directly ahead"),
             ("object is still far", "approached first"),

@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.79.0
+현재 버전: 1.80.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -634,3 +634,25 @@ integrated `40/40 (100%)`, STOP recall `5/5 (100%)`였다. v1.78의 model-only
 recall은 `2/2 (100%)`이므로 안전 recall과 정상 action precision을 별도 최적화한다.
 human label은 여전히 `0`이며, 다음 단계는 남은 HOLD 문장의 독립 paraphrase
 보강과 normal-approach safety false STOP 원인 분석이다.
+
+### v1.80.0 normal-action precision과 학습 ablation 선택
+
+`target is close and directly ahead`처럼 충돌 신호가 없고 목표가 명확한 compound
+문장을 APPROACH fast path에 추가했다. 이 변경은 model-only 숫자를 높이기 위한
+우회가 아니라, 통합 runtime에서 confidence 부족을 이유로 정상 action을 STOP으로
+거부하는 false STOP을 줄이는 safety/precision 경계 수정이다. v1.79 best checkpoint
+로 quality evaluator를 재실행한 결과 safety action accuracy가 `3/4 (75%)`에서
+`4/4 (100%)`로 올라갔고 safe STOP recall은 `2/2 (100%)`를 유지했다.
+
+추가 학습 ablation은 다음과 같이 선택했다.
+
+| 실험 | OOD model-only | 판정 |
+| --- | ---: | --- |
+| v1.79 balanced boundary, seed 7 | 39/40 (97.50%) | best synthetic reference |
+| boundary 9개/skill, seed 7 | 38/40 (95.00%) | 데이터 양 증가로 회귀, 폐기 |
+| v1.79 dataset, seed 42 | 35/40 (87.50%) | seed 민감도 확인, 폐기 |
+| v1.79 dataset, class-balanced | 39/40 (97.50%) | 개선 없음, 폐기 |
+
+따라서 checkpoint 선택은 test fixture를 보고 임의로 고른 것이 아니라 validation
+동률과 OOD 보조 ablation을 함께 기록한 best-effort 결과다. 여전히 OOD target은
+synthetic이고 human label은 `0`이므로 production 99% 주장으로 승격하지 않는다.

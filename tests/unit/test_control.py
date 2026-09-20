@@ -81,6 +81,10 @@ class ControlContractTests(unittest.TestCase):
                 "the target is ahead but cannot be approached safely"
             )
         )
+        action = deterministic_control_action("target is close and directly ahead")
+        self.assertIsNotNone(action)
+        assert action is not None
+        self.assertEqual(action.skill, "APPROACH")
 
     def test_control_fast_path_covers_hold_without_confusing_stop(self) -> None:
         action = deterministic_control_action("pause safely while the pose is stable and no hazard is present")
