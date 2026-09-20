@@ -90,6 +90,7 @@
 | 1.54.0 | 진행 중 | Qwen/Gemma typed adjudication과 disagreement human gate |
 | 1.55.0 | 진행 중 | per-skill accuracy/recall과 confusion matrix production gate |
 | 1.56.0 | 진행 중 | long-running Qwen/Gemma draft resume와 shared-slot 기록 |
+| 1.57.0 | 진행 중 | class-balanced training ablation과 calibration 실패 gate |
 
 ## 다음 기록 규칙
 

@@ -34,6 +34,7 @@ class TrainingConfig:
     seed: int = 7
     gradient_accumulation_steps: int = 1
     precision: str = "bf16"
+    class_balance: bool = False
 
     def validate(self) -> None:
         if self.epochs < 1 or self.batch_size < 1 or self.gradient_accumulation_steps < 1:
@@ -248,6 +249,23 @@ def _encode_reference_sample(
     return token_ids, attention
 
 
+def _balance_class_samples(samples: list[CanonicalSample]) -> list[CanonicalSample]:
+    """Deterministically oversample each target to the largest class count."""
+
+    groups: dict[str, list[CanonicalSample]] = {}
+    for sample in samples:
+        groups.setdefault(repr(sample.target), []).append(sample)
+    if len(groups) < 2:
+        return list(samples)
+    target_count = max(len(group) for group in groups.values())
+    balanced: list[CanonicalSample] = []
+    for key in sorted(groups):
+        group = groups[key]
+        repeats = (target_count + len(group) - 1) // len(group)
+        balanced.extend((group * repeats)[:target_count])
+    return balanced
+
+
 def run_reference_training(
     dataset_path: str | Path,
     output_path: str | Path,
@@ -311,6 +329,13 @@ def run_reference_training(
             task_batches.setdefault(sample.task_id, []).append(sample)
             task_versions[sample.task_id] = sample.task_version
         for task_id, task_samples in task_batches.items():
+            if selected_training.class_balance:
+                task_samples = _balance_class_samples(task_samples)
+                balance_generator = torch.Generator(device="cpu").manual_seed(
+                    selected_training.seed + _epoch + len(task_id)
+                )
+                balanced_order = torch.randperm(len(task_samples), generator=balance_generator).tolist()
+                task_samples = [task_samples[index] for index in balanced_order]
             task = registry.get(task_id, task_versions[task_id])
             for start in range(0, len(task_samples), selected_training.batch_size):
                 batch = task_samples[start : start + selected_training.batch_size]

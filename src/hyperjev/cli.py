@@ -347,6 +347,7 @@ def _control_train(args: argparse.Namespace) -> int:
             weight_decay=args.weight_decay,
             seed=args.seed,
             precision=args.precision,
+            class_balance=args.class_balanced,
         ),
         device=args.device,
     )
@@ -959,6 +960,7 @@ def build_parser() -> argparse.ArgumentParser:
     control_train.add_argument("--learning-rate", type=float, default=0.01)
     control_train.add_argument("--weight-decay", type=float, default=0.0)
     control_train.add_argument("--seed", type=int, default=7)
+    control_train.add_argument("--class-balanced", action="store_true")
     control_train.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     control_train.set_defaults(handler=_control_train)
     control_decide = control_subparsers.add_parser("decide")

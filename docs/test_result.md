@@ -1742,3 +1742,31 @@ SHA/provider의 기존 sample을 skip한다. unit test에서 2개 queue를 첫 �
 생성되지 않았고, 이는 Qwen label 정확도 실패가 아니라 shared inference-slot
 operability 결과다. 기존 16개 Qwen probe는 `16/16 schema-valid`로 유지되며,
 재시도는 server slot이 비었을 때 `--resume`로 수행한다.
+
+### 14.35 class-balanced control training ablation (v1.57.0)
+
+train target별 표본 수를 최대 class에 맞춰 oversampling하는 optional
+`--class-balanced`를 추가했다.
+
+```bash
+uv run hyperjev control train \
+  --backbone reference-token-encoder \
+  --dataset /tmp/hyperjev-control-combined-1800.jsonl \
+  --output /tmp/control-combined-balanced-100ep.pt \
+  --epochs 100 --batch-size 64 --learning-rate 0.01 \
+  --precision fp32 --device cpu --class-balanced
+```
+
+| 측정 | 결과 |
+| --- | ---: |
+| validation/test aggregate | 180/180, 180/180 (100%) |
+| validation/test per-skill | 8개 skill 모두 100% |
+| safety action accuracy | 3/4 (75%) |
+| safe STOP recall | 2/2 (100%) |
+| production 판정 | FAIL |
+
+`normal-approach`에서 confidence가 0.90 아래로 내려가 safety shield가
+STOP으로 보수적 전환됐다. threshold를 낮춰 이 실패를 숨기지 않고, class
+balance 후보는 production 승격에서 탈락시켰다. 이 결과는 accuracy와
+calibration/safety를 함께 gate해야 한다는 증거이며, 다음 단계는 validation
+기반 temperature scaling과 risk-coverage 비교다.

@@ -14,6 +14,7 @@ from hyperjev.training import (
     TrainingConfig,
     TrainingDataError,
     TrainingDependencyError,
+    _balance_class_samples,
     _encode_reference_sample,
     build_training_plan,
     load_training_dataset,
@@ -45,6 +46,29 @@ def _record(sample_id: str, task_id: str, target: object, split: str, soft_targe
 
 
 class TrainingTests(unittest.TestCase):
+    def test_class_balancer_equalizes_target_counts(self) -> None:
+        samples = [
+            CanonicalSample(
+                sample_id=f"sample-{index}",
+                task_id="memory.remember_worthy",
+                task_version=1,
+                state="state",
+                question="question",
+                target=target,
+                language="en",
+                domain="test",
+                source={},
+                labels={},
+                provenance={"prompt_version": 1, "split": "train"},
+            )
+            for index, target in enumerate([True, False, False])
+        ]
+        balanced = _balance_class_samples(samples)
+        counts = {True: 0, False: 0}
+        for sample in balanced:
+            counts[sample.target] += 1
+        self.assertEqual(counts, {True: 2, False: 2})
+
     def test_reference_encoder_supports_dynamic_inference_padding(self) -> None:
         sample = CanonicalSample(
             sample_id="sample",

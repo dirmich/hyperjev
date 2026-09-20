@@ -71,6 +71,16 @@
   대기해 중단했다. output은 없으며, 이는 정확도 실패가 아니라 shared-slot
   운영 문제다.
 
+## 2026-09-21 — class-balanced control training ablation (v1.57.0)
+
+- `control train --class-balanced`가 train target별 deterministic oversampling을
+  수행하도록 추가했다. validation/test input은 변경하지 않는다.
+- combined synthetic checkpoint는 split/per-skill 100%였지만 safety action
+  accuracy `3/4 (75%)`로 실패했다. normal approach confidence가 control
+  threshold 아래여서 safety STOP으로 전환된 결과다.
+- threshold를 낮춰 통과시키지 않고 후보를 production에서 탈락시켰으며,
+  다음은 calibration/risk-coverage 검증이다.
+
 ## 2026-09-21 — control counterfactual hard-negative queue (v1.49.0)
 
 - `hyperjev control hard-negative`가 STOP↔RETREAT, MOVE↔APPROACH,
