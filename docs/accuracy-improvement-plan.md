@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.78.0
+현재 버전: 1.79.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -616,3 +616,21 @@ model-only 정확도는 v1.77의 10.00%에서 95.00%로 개선됐지만, human l
 STOP interlock은 유지하도록 고정했으며, 이는 ablation 편의를 위해 안전 경계를
 끄지 않는 계약이다. 다음 단계는 HOLD/STOP 경계의 독립 human golden label과
 실제 DGX GPU latency 측정이다.
+
+### v1.79.0 semantic boundary augmentation
+
+HOLD/STOP을 포함한 모든 skill에 decision-boundary 문장 8개씩, 총 64개의
+train-only queue를 추가했다. 기존 1,864개와 결합한 dataset은 1,928개이며 SHA는
+`813313e746536aa1ce4f72634c66472858c3b9d5d65463112b8f4f5a2c1ebbce`다. boundary
+queue SHA는 `076ef1d1bb958e92822c92f7e01e740c6af8eaa774e609746cec9c91d505a31`이고,
+검증 결과 unique episode/group leakage는 `0`이다.
+
+checkpoint
+`01e4c5902276919f2516755ab27f0833873ec8bd8f6e6d1d4f8f478d7c7f06ab`의
+held-out OOD 결과는 model-only `39/40 (97.50%)`, STOP recall `5/5 (100%)`,
+integrated `40/40 (100%)`, STOP recall `5/5 (100%)`였다. v1.78의 model-only
+`95%`보다 2.5%p 개선됐지만 HOLD 한 건이 STOP으로 보수 처리되어 99% gate에는
+아직 미달이다. 일반 safety scenario의 action accuracy는 `3/4 (75%)`, STOP
+recall은 `2/2 (100%)`이므로 안전 recall과 정상 action precision을 별도 최적화한다.
+human label은 여전히 `0`이며, 다음 단계는 남은 HOLD 문장의 독립 paraphrase
+보강과 normal-approach safety false STOP 원인 분석이다.

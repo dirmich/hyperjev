@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — semantic boundary augmentation (v1.79.0)
+
+- 모든 control skill에 boundary 문장 8개씩, 총 64개를 train-only로 추가했다.
+  merged 1,928개 dataset SHA는
+  `813313e746536aa1ce4f72634c66472858c3b9d5d65463112b8f4f5a2c1ebbce`다.
+- held-out OOD model-only가 `39/40 (97.5%)`, STOP recall `5/5 (100%)`로
+  v1.78의 `95%`에서 개선됐다. 남은 오류는 HOLD를 STOP으로 보수 처리한 1건이다.
+- integrated runtime은 `40/40 (100%)`, STOP recall `5/5 (100%)`를 유지했다.
+  일반 safety scenario action accuracy는 `3/4 (75%)`여서 정상 action precision
+  gate는 아직 실패다.
+- human labels는 `0`이며, synthetic OOD와 reference CPU checkpoint 결과를
+  production 정확도로 승격하지 않는다.
+- 검증: targeted control/data tests, dataset validator, OOD replay, quality
+  evaluator, Ruff. quality evaluator는 safety action precision gate 때문에 실패를
+  반환했으며 이 실패를 다음 단계 입력으로 보존한다.
+
 ## 2026-09-21 — compositional augmentation과 safety interlock (v1.78.0)
 
 - held-out OOD fixture를 train에 복사하지 않고, skill별 8개씩 64개의 train-only

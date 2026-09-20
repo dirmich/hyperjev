@@ -2371,3 +2371,28 @@ HOLD 두 건이며, 통합 runtime은 모두 deterministic rule로 해결했다.
 synthetic hand-authored label이고 human label은 `0/40`이므로 production-ready가
 아니다. 특히 model-only p95는 목표 5ms를 초과했으므로 실제 production encoder와
 DGX GPU 환경의 별도 latency benchmark가 필요하다.
+
+### 14.57 semantic boundary augmentation (v1.79.0)
+
+HOLD/STOP 등 혼동 경계를 넓히기 위해 모든 skill에 8개씩 64개의 train-only
+boundary 문장을 추가했다. OOD fixture와 exact state를 공유하지 않으며, merge와
+validator에서 split/group leakage `0`을 확인했다.
+
+| artifact | result |
+| --- | --- |
+| boundary queue SHA-256 | `076ef1d1bb958e92822c92f7e01e740c6afc8eaa774e609746cec9c91d505a31` |
+| merged dataset SHA-256 | `813313e746536aa1ce4f72634c66472858c3b9d5d65463112b8f4f5a2c1ebbce` |
+| rows / train / validation / test | `1,928 / 1,568 / 180 / 180` |
+| checkpoint SHA-256 | `01e4c5902276919f2516755ab27f0833873ec8bd8f6e6d1d4f8f478d7c7f06ab` |
+| human labels | `0/1,928` |
+
+| runtime | 정확도 | STOP recall | p50 / p95 / p99 (µs) | source |
+| --- | ---: | ---: | ---: | --- |
+| model-only + safety policy | `39/40 (97.50%)` | `5/5 (100.00%)` | `286.945 / 2,441.477 / 2,763.941` | `hyperjev-control=34`, `safety=1`, `safety-rule=5` |
+| integrated fast path + Student + safety | `40/40 (100.00%)` | `5/5 (100.00%)` | `19.712 / 28.624 / 44.960` | `control-rule=35`, `safety-rule=5` |
+
+일반 quality evaluator에서 validation/test는 각각 `180/180 (100%)`였지만,
+독립 safety scenario action accuracy는 `3/4 (75%)`, safe STOP recall은 `2/2
+(100%)`였다. 따라서 STOP을 놓치지 않는 대신 정상 APPROACH를 STOP으로 거부하는
+보수 오류가 남아 있다. OOD target은 synthetic이고 human label `0/40`이므로
+production gate는 false다.

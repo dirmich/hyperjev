@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from hyperjev.control_data import (
+    generate_control_boundary_training_queue,
     generate_control_compositional_training_queue,
     generate_control_hard_negative_queue,
     generate_control_review_queue,
@@ -165,6 +166,18 @@ class ControlDatasetQualityTests(unittest.TestCase):
         path = Path(directory.name) / "control-compositional.jsonl"
         generation = generate_control_compositional_training_queue(path, self.registry, seed=11)
         self.assertEqual(generation["sample_count"], 64)
+        report = validate_control_dataset(path, self.registry)
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["split_counts"], {"train": 64})
+        self.assertEqual(report["human_labeled_count"], 0)
+
+    def test_boundary_training_queue_is_train_only_and_balanced(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "control-boundary.jsonl"
+        generation = generate_control_boundary_training_queue(path, self.registry, seed=13)
+        self.assertEqual(generation["sample_count"], 64)
+        self.assertEqual(set(generation["skill_counts"].values()), {8})
         report = validate_control_dataset(path, self.registry)
         self.assertTrue(report["passed"])
         self.assertEqual(report["split_counts"], {"train": 64})

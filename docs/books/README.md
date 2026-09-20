@@ -171,6 +171,12 @@ v1.78.0에서는 OOD 자체를 train에 복사하지 않은 64개 compositional 
 고정해 `100%`가 됐다. 다만 human label `0/40`이고 model-only HOLD 오분류가 남아
 있으므로 상용 99% gate나 모델 정확도 100%로 승격하지 않는다.
 
+v1.79.0에서는 모든 skill의 semantic boundary 문장을 균형 있게 보강해 model-only
+OOD 정확도를 `97.5%`까지 높였다. integrated runtime은 `100%`를 유지했지만 HOLD
+한 건이 STOP으로 보수 처리됐고, 독립 safety scenario의 정상 action accuracy는
+`75%`였다. STOP recall `100%`와 정상 action precision을 따로 최적화해야 하며,
+human label `0` 때문에 상용 gate는 계속 닫혀 있다.
+
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
 100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지

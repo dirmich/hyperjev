@@ -239,6 +239,89 @@ _CONTROL_COMPOSITIONAL_TRAIN_TEMPLATES = {
     ),
 }
 
+_CONTROL_BOUNDARY_TRAIN_TEMPLATES = {
+    "STOP": (
+        "braking distance is unsafe before the next waypoint",
+        "impact risk leaves no time to continue forward",
+        "the front boundary has become unsafe for motion",
+        "the vehicle must halt before reaching the barrier",
+        "collision margin is exhausted on the current route",
+        "a sudden obstruction removes the safe travel margin",
+        "continuing would enter the forbidden contact zone",
+        "the safety monitor requires an immediate halt",
+    ),
+    "HOLD": (
+        "keep this pose while awaiting a fresh instruction",
+        "remain motionless until the next command arrives",
+        "stay at the waypoint while perception refreshes",
+        "do not advance while the scene remains calm",
+        "wait in place because no hazard requires movement",
+        "preserve the current orientation until a decision arrives",
+        "pause the robot during a stable sensor interval",
+        "hold position while the target is not yet actionable",
+    ),
+    "MOVE": (
+        "advance along the unobstructed travel lane",
+        "continue ahead while the route remains open",
+        "normal forward travel is available beyond the waypoint",
+        "follow the open corridor toward the next checkpoint",
+        "the navigation lane permits steady forward motion",
+        "proceed across the clear section of the route",
+        "move ahead through the available free space",
+        "the aligned route is open for continued travel",
+    ),
+    "ROTATE": (
+        "pivot to align with the newly selected corridor",
+        "turn the platform toward the next navigation branch",
+        "the heading must change before the route continues",
+        "reorient at the junction toward the planned waypoint",
+        "rotate until the destination direction is aligned",
+        "correct the heading without advancing the robot",
+        "face the alternate corridor at the next intersection",
+        "a direction change is required at the route split",
+    ),
+    "APPROACH": (
+        "move closer to the visible destination marker",
+        "shorten the gap separating the robot from its target",
+        "the selected object is reachable after closing distance",
+        "advance nearer to the identified waypoint",
+        "the goal remains ahead and requires a closer position",
+        "reduce the remaining distance to the tracked object",
+        "continue toward the target until it is within reach",
+        "the robot should draw nearer to the locked destination",
+    ),
+    "RETREAT": (
+        "back away to widen the gap from the hazard",
+        "reverse toward the clear area behind the robot",
+        "the front risk requires increasing separation",
+        "withdraw along the safe rear route",
+        "move away from the obstacle approaching ahead",
+        "leave the blocked area by reversing carefully",
+        "retreat until the danger is outside the near zone",
+        "the rear path is the safer direction from this threat",
+    ),
+    "INTERACT": (
+        "operate the reachable control on the panel",
+        "grip the handle that is aligned with the end effector",
+        "activate the selected device within reach",
+        "press the available control button",
+        "touch the marked object at the interaction point",
+        "pick up the tool positioned for grasping",
+        "engage the nearby latch with the robot hand",
+        "use the accessible switch beside the platform",
+    ),
+    "RECOVER": (
+        "restore the pose after the estimator lost tracking",
+        "rebuild localization following the navigation fault",
+        "regain balance before normal control resumes",
+        "restart the controller after the failed maneuver",
+        "recover the robot from the unstable orientation",
+        "reinitialize perception after position confidence collapsed",
+        "stabilize the platform after the motion error",
+        "resume from the fault state with a recovery action",
+    ),
+}
+
 
 def _normalise_text(value: str) -> str:
     return _WHITESPACE.sub(" ", value.casefold()).strip()
@@ -474,6 +557,61 @@ def generate_control_compositional_training_queue(
         "output_path": str(output.resolve()),
         "sample_count": index,
         "skill_counts": {skill: len(_CONTROL_COMPOSITIONAL_TRAIN_TEMPLATES[skill]) for skill in CONTROL_SKILLS},
+        "seed": seed,
+        "split": "train",
+        "human_labeled": False,
+    }
+
+
+def generate_control_boundary_training_queue(
+    output_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    seed: int = 7,
+) -> dict[str, Any]:
+    """Create balanced train-only examples for semantic decision boundaries."""
+
+    registry.get("control.skill", 1)
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    index = 0
+    with output.open("w", encoding="utf-8") as handle:
+        for skill_index, skill in enumerate(CONTROL_SKILLS):
+            for variant, base_state in enumerate(_CONTROL_BOUNDARY_TRAIN_TEMPLATES[skill]):
+                index += 1
+                sample = {
+                    "sample_id": f"control-boundary-train-{index:05d}",
+                    "task_id": "control.skill",
+                    "task_version": 1,
+                    "state": f"{base_state}; boundary training variant {variant:04d}",
+                    "question": "select next safe high-level control skill",
+                    "target": skill,
+                    "language": "en",
+                    "domain": "control-boundary-training",
+                    "source": {
+                        "kind": "synthetic-boundary-training",
+                        "scenario_id": f"control-boundary-scenario-{index:05d}",
+                        "episode_id": f"control-boundary-episode-{index:05d}",
+                        "semantic_group_id": f"control-boundary-group-{index:05d}",
+                        "seed": seed,
+                        "skill_index": skill_index,
+                    },
+                    "labels": {"qwen": None, "gemma": None, "human": None},
+                    "review": {"status": "pending", "reviewer": None},
+                    "provenance": {
+                        "prompt_version": 1,
+                        "generator": "control-boundary-training-v1",
+                        "split": "train",
+                        "privacy_raw_inputs_stored": False,
+                        "target_source": "synthetic_boundary_only",
+                    },
+                }
+                handle.write(json.dumps(sample, ensure_ascii=False, sort_keys=True) + "\n")
+    return {
+        "record_type": "control_boundary_training_queue",
+        "output_path": str(output.resolve()),
+        "sample_count": index,
+        "skill_counts": {skill: len(_CONTROL_BOUNDARY_TRAIN_TEMPLATES[skill]) for skill in CONTROL_SKILLS},
         "seed": seed,
         "split": "train",
         "human_labeled": False,
