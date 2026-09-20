@@ -9,6 +9,7 @@ from hyperjev.calibration import fit_temperature, probabilities
 from hyperjev.cli import main
 from hyperjev.config import load_config
 from hyperjev.registry import TaskRegistry
+from hyperjev.samples import CanonicalSample
 from hyperjev.student import (
     StudentConfig,
     StudentDependencyError,
@@ -17,7 +18,11 @@ from hyperjev.student import (
     student_manifest,
 )
 from hyperjev.student_client import StudentClient
-from hyperjev.student_inference import evaluate_student_checkpoint
+from hyperjev.student_inference import (
+    _deduplicate_exact,
+    _exact_group_key,
+    evaluate_student_checkpoint,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -27,6 +32,26 @@ class StudentContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         config = load_config(ROOT / "configs" / "phase0.toml")
         cls.registry = TaskRegistry.load(config.registry_path)
+
+    def test_exact_group_evaluation_representative_is_deterministic(self) -> None:
+        common = {
+            "task_id": "memory.remember_worthy",
+            "task_version": 1,
+            "state": "같은 내용",
+            "question": "기억할 가치가 있는가?",
+            "target": True,
+            "language": "ko",
+            "domain": "conversation",
+            "source": {},
+            "labels": {},
+            "provenance": {"prompt_version": 1, "split": "test", "privacy_raw_inputs_stored": False},
+        }
+        first = CanonicalSample(sample_id="first", **common)
+        duplicate = CanonicalSample(sample_id="second", **common)
+        selected = _deduplicate_exact([first, duplicate])
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0].sample_id, "first")
+        self.assertEqual(_exact_group_key(first), _exact_group_key(duplicate))
 
     def test_manifest_has_six_registry_derived_typed_heads(self) -> None:
         specs = head_specs(self.registry)

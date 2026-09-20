@@ -69,6 +69,7 @@
 | 1.33.0 | 진행 중 | 실제 mini-batch 학습과 human-target 재학습, remember 규칙 보강 |
 | 1.34.0 | 진행 중 | source group 부재 시 내용 기반 split으로 leakage 방지 |
 | 1.35.0 | 진행 중 | human-target checkpoint의 train/validation/test split 평가 기록 |
+| 1.36.0 | 진행 중 | Student unique exact-group 평가 CLI와 group 수 report |
 
 ## 다음 기록 규칙
 

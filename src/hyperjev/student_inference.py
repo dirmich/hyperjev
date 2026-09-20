@@ -25,6 +25,33 @@ class StudentInferenceError(ValueError):
     """Raised when a Student checkpoint cannot be evaluated safely."""
 
 
+def _exact_group_key(sample: CanonicalSample) -> tuple[str, int, str, str, str, str]:
+    """Return the semantic identity used by golden exact-duplicate review."""
+
+    return (
+        sample.task_id,
+        sample.task_version,
+        sample.language,
+        sample.domain,
+        sample.state,
+        sample.question,
+    )
+
+
+def _deduplicate_exact(samples: list[CanonicalSample]) -> list[CanonicalSample]:
+    """Keep one deterministic representative per exact semantic group."""
+
+    selected: list[CanonicalSample] = []
+    seen: set[tuple[str, int, str, str, str, str]] = set()
+    for sample in samples:
+        key = _exact_group_key(sample)
+        if key in seen:
+            continue
+        seen.add(key)
+        selected.append(sample)
+    return selected
+
+
 def _load_torch() -> Any:
     try:
         import torch
@@ -165,6 +192,7 @@ def evaluate_student_checkpoint(
     minimum_accuracy: float = 0.99,
     minimum_accepted_accuracy: float = 0.995,
     minimum_task_accuracy: float = 0.98,
+    deduplicate_exact: bool = False,
     device: str = "cpu",
 ) -> dict[str, Any]:
     """Evaluate a checkpoint and report accuracy separately from safe coverage."""
@@ -202,13 +230,15 @@ def evaluate_student_checkpoint(
     model._hyperjev_student_config = config
     model.eval()
 
-    samples = [
+    selected_samples = [
         sample
         for sample in dataset.samples
         if split == "all" or sample.provenance.get("split") == split
     ]
-    if not samples:
+    if not selected_samples:
         raise StudentInferenceError(f"dataset has no samples for split: {split}")
+    unique_exact_group_count = len({_exact_group_key(sample) for sample in selected_samples})
+    samples = _deduplicate_exact(selected_samples) if deduplicate_exact else selected_samples
     targets: dict[str, tuple[Any, str]] = {}
     predictions = []
     for sample in samples:
@@ -279,6 +309,9 @@ def evaluate_student_checkpoint(
         "model_id": config.model_id,
         "backbone": config.backbone,
         "split": split,
+        "deduplicate_exact": deduplicate_exact,
+        "row_count": len(selected_samples),
+        "unique_exact_group_count": unique_exact_group_count,
         "minimum_confidence": minimum_confidence,
         "score_auto_accept": allow_score,
         "rules_enabled": with_rules,

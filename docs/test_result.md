@@ -1194,3 +1194,27 @@ build부터 적용된다.
 통계적으로 충분한 독립 test set이라고 볼 수 없다. 상용 승격 전에는 task별로
 충분한 unique human group과 새로운 domain/language를 추가하고, duplicate
 group 기준으로 confidence interval과 bootstrap 평가를 함께 기록해야 한다.
+
+### 14.13 unique exact-group evaluator
+
+반복 row가 만드는 정확도 부풀림을 CLI 수준에서 방지하기 위해 다음 옵션을
+추가했다.
+
+```bash
+uv run hyperjev student evaluate \
+  --checkpoint runs/phase3/human-reference-ngram-groups.pt \
+  --dataset runs/phase3/human-reviewed-1000-dataset.jsonl \
+  --minimum-confidence 0.95 --with-rules --deduplicate-exact \
+  --production-gate
+```
+
+결과 report는 `row_count=1000`, `unique_exact_group_count=36`을 기록하고,
+평가 분모를 36으로 바꾼다.
+
+| 평가 단위 | correct | total | accuracy | accepted | accepted accuracy | coverage |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| unique exact group | 36 | 36 | 100.00% | 29 | 100.00% | 80.56% |
+
+task별로는 6개 task가 모두 `6/6`이었다. 다만 이는 동일 fixture의 36개
+의미 group에 대한 결과이며, 실제 제품의 99% gate에는 충분한 독립 human
+golden group, 새로운 domain/language, calibration set이 추가로 필요하다.

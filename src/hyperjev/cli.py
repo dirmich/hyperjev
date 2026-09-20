@@ -307,6 +307,7 @@ def _student_evaluate(args: argparse.Namespace) -> int:
         minimum_accuracy=args.minimum_accuracy,
         minimum_accepted_accuracy=args.minimum_accepted_accuracy,
         minimum_task_accuracy=args.minimum_task_accuracy,
+        deduplicate_exact=args.deduplicate_exact,
         device=args.device,
     )
     if args.output:
@@ -586,6 +587,11 @@ def build_parser() -> argparse.ArgumentParser:
     student_evaluate_parser.add_argument("--minimum-accuracy", type=float, default=0.99)
     student_evaluate_parser.add_argument("--minimum-accepted-accuracy", type=float, default=0.995)
     student_evaluate_parser.add_argument("--minimum-task-accuracy", type=float, default=0.98)
+    student_evaluate_parser.add_argument(
+        "--deduplicate-exact",
+        action="store_true",
+        help="evaluate one representative per exact task/language/domain/state/question group",
+    )
     student_evaluate_parser.add_argument(
         "--production-gate",
         action="store_true",

@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — unique-group Student evaluation (v1.36.0)
+
+- `student evaluate --deduplicate-exact`를 추가해 exact semantic group당
+  대표 sample 하나만 평가할 수 있게 했다.
+- report에 원본 `row_count`와 `unique_exact_group_count`를 함께 기록한다.
+- human-reviewed 1,000 row를 36 group으로 평가한 결과는 `36/36 correct`,
+  accepted `29/29`, coverage `80.56%`였다. 이 경로도 quality gate를
+  통과했지만, unique group 수가 작으므로 일반화 성능을 의미하지 않는다.
+
 ## 2026-09-20 — split-specific accuracy evidence (v1.35.0)
 
 - human-target retrained checkpoint를 `test`, `validation`, `train`으로
