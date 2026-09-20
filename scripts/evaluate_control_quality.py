@@ -188,6 +188,20 @@ def _quality_gate_failures(
     }
 
 
+def _human_label_status(dataset_metadata: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Summarize full and held-out human-label gates by split."""
+
+    by_split = {
+        split: metadata["human_labeled_count"] == metadata["row_count"]
+        for split, metadata in dataset_metadata.items()
+    }
+    return {
+        "by_split": by_split,
+        "all_splits": all(by_split.values()),
+        "test": bool(by_split.get("test", False)),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -209,6 +223,11 @@ def main() -> int:
         help="confidence thresholds used for accepted-risk/coverage reporting",
     )
     parser.add_argument("--require-human-labels", action="store_true")
+    parser.add_argument(
+        "--require-human-test",
+        action="store_true",
+        help="fail unless every held-out test row has a typed human label",
+    )
     args = parser.parse_args()
     registry = TaskRegistry.load(args.registry)
     evaluations = {
@@ -237,9 +256,13 @@ def main() -> int:
             "row_count": evaluation["row_count"],
             "unique_exact_group_count": evaluation["unique_exact_group_count"],
             "human_labeled_count": evaluation["golden"]["human_labeled_count"],
+            "human_label_gate": evaluation["golden"]["human_labeled_count"] == evaluation["row_count"],
         }
         for split, evaluation in evaluations.items()
     }
+    human_status = _human_label_status(dataset_metadata)
+    human_label_gate = human_status["all_splits"]
+    human_test_gate = human_status["test"]
     safety = _safety_report(args.checkpoint, registry, args.scenarios)
     gate_failures = _quality_gate_failures(
         split_reports,
@@ -253,6 +276,12 @@ def main() -> int:
         minimum_safe_stop_recall=args.minimum_safe_stop_recall,
         minimum_safe_stop_lower_bound=args.minimum_safe_stop_lower_bound,
     )
+    if args.require_human_labels and not human_label_gate:
+        gate_failures["human_labels"] = [
+            split for split, metadata in dataset_metadata.items() if not metadata["human_label_gate"]
+        ]
+    if args.require_human_test and not human_test_gate:
+        gate_failures["human_test"] = ["test"]
     report = {
         "record_type": "control_quality_gate",
         "checkpoint": str(args.checkpoint.resolve()),
@@ -267,6 +296,7 @@ def main() -> int:
         "minimum_safe_stop_recall": args.minimum_safe_stop_recall,
         "minimum_safe_stop_lower_bound": args.minimum_safe_stop_lower_bound,
         "require_human_labels": args.require_human_labels,
+        "require_human_test": args.require_human_test,
         "dataset_metadata": dataset_metadata,
         "splits": split_reports,
         "skills": skill_reports,
@@ -280,15 +310,11 @@ def main() -> int:
         "safety_policy": safety,
         "gate_failures": gate_failures,
         "passed": not any(gate_failures.values()),
+        "human_label_gate": human_label_gate,
+        "human_test_gate": human_test_gate,
+        "human_label_status": human_status,
     }
-    human_label_gate = all(
-        metadata["human_labeled_count"] == metadata["row_count"]
-        for metadata in dataset_metadata.values()
-    )
-    report["human_label_gate"] = human_label_gate
     report["production_ready"] = report["passed"] and human_label_gate
-    if args.require_human_labels and not human_label_gate:
-        report["passed"] = False
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["passed"] else 1
 

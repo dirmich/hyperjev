@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.83.0
+현재 버전: 1.84.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -751,3 +751,24 @@ Wilson 하한 `0.342380`으로 실패했다. 따라서 evaluator exit code는 `1
 현재 모델을 상용 안전 판단기로 승격하지 않는다. 다음 작업은 blind human
 benchmark 표본을 채우고, raw Student-head와 integrated fast path를 같은
 human-only held-out set에서 따로 측정하는 것이다.
+
+### v1.84.0 held-out human test gate
+
+evaluator에 `--require-human-test`를 추가해 test split 전체가 typed human label을
+갖지 않으면 명시적으로 실패하게 했다. validation/test의 human label 상태를
+`human_label_status.by_split`에 기록하고, 전체 split gate와 held-out test gate를
+분리한다.
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /path/to/human-trained-control.pt \
+  --dataset /path/to/control-human-materialized.jsonl \
+  --scenarios tests/golden/control_scenarios.jsonl \
+  --registry registry/control_tasks \
+  --require-human-test
+```
+
+현재 dataset은 human label `0`이므로 이 옵션을 켜면 실패하는 것이 정상이다.
+human review가 끝난 뒤에도 training/validation row의 label과 held-out test row의
+label을 같은 것으로 재사용하지 않고, test group을 학습에서 제외한 checkpoint로
+재평가해야 한다.

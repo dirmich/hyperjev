@@ -2520,3 +2520,19 @@ point accuracy만 보면 전부 100%지만 STOP 사례가 2개라 confidence 하
 이 차이를 고정하며, 실제 human benchmark가 생기기 전에는 synthetic 결과를
 상용 정확도로 보고하지 않는다. evaluator 자체의 targeted test는 `3 passed`,
 전체 suite는 version bump 후 다시 실행한다.
+
+### 14.62 held-out human test gate (v1.84.0)
+
+`--require-human-test`를 추가해 test split의 모든 row가 typed human label을
+가지지 않으면 evaluator가 실패하도록 했다. report에는 다음 세 상태가 분리된다.
+
+| field | 의미 |
+| --- | --- |
+| `human_label_status.by_split` | validation/test별 완전 라벨 여부 |
+| `human_test_gate` | held-out test 전체 human label 여부 |
+| `human_label_gate` | validation과 test 모두 human label 여부 |
+
+현재 synthetic combined dataset은 validation/test 모두 human `0`이므로
+`--require-human-test` 승격 조건을 충족하지 않는다. 이 gate는 human reviewer가
+검수한 test를 train에 섞거나 synthetic validation 점수로 대체하는 실수를
+막기 위한 것이다. targeted evaluator test는 `4 passed`로 확인했다.

@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — held-out human test gate (v1.84.0)
+
+- `evaluate_control_quality.py --require-human-test`를 추가해 held-out test의
+  모든 row가 typed human label을 갖지 않으면 실패시킨다.
+- `human_label_status.by_split`, `human_test_gate`, `human_label_gate`를
+  분리해 validation synthetic 점수와 human test 점수를 혼동하지 않는다.
+- 현재 human label이 `0`인 synthetic dataset에서는 gate가 실패하는 것이
+  정상이며, human review 후 test group을 training에서 제외한 checkpoint를
+  다시 평가해야 한다.
+
 ## 2026-09-21 — raw/accepted/safety evaluator hardening (v1.83.0)
 
 - control quality report에 `raw_student_head`, `safety_policy`,

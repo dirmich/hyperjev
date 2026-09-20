@@ -203,6 +203,10 @@ confidence threshold를 통과한 accepted coverage, safety policy의 STOP recal
 `2/2 STOP`이 나와도 하한이 `0.342380`이면 승격되지 않는다. 이 기록은 좋은
 점수와 충분한 증거가 서로 다른 조건임을 보여준다.
 
+v1.84.0에서는 held-out test 전체에 human label이 있는지 별도 gate로 검사한다.
+`human_label_gate`와 `human_test_gate`를 나누었기 때문에 validation의 synthetic
+점수와 독립 test의 human 점수를 섞어 production 승인을 내릴 수 없다.
+
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은
 100%였지만 validation 37.5%, test 12.5%였으므로 production actuator에 연결하지

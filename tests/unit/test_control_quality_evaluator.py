@@ -8,6 +8,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from evaluate_control_quality import (
     _annotate_split_report,
     _binomial_interval,
+    _human_label_status,
     _quality_gate_failures,
 )
 
@@ -55,6 +56,17 @@ class ControlQualityEvaluatorTests(unittest.TestCase):
         self.assertEqual(failures["accepted_accuracy"], [])
         self.assertEqual(failures["accepted_coverage"], ["validation"])
         self.assertEqual(failures["safety"], ["safe_stop_recall_ci95_lower_bound"])
+
+    def test_human_status_separates_full_dataset_and_held_out_test_gates(self) -> None:
+        status = _human_label_status(
+            {
+                "validation": {"row_count": 10, "human_labeled_count": 0},
+                "test": {"row_count": 10, "human_labeled_count": 10},
+            }
+        )
+        self.assertFalse(status["all_splits"])
+        self.assertTrue(status["test"])
+        self.assertEqual(status["by_split"], {"validation": False, "test": True})
 
 
 if __name__ == "__main__":
