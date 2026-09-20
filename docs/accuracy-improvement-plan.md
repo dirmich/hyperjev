@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.51.0
+현재 버전: 1.52.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -96,6 +96,28 @@ uv run hyperjev control materialize \
 `human_review`로 기록한다. 미검수 row, abstain, 후보에 없는 skill, 확률 합계
 오류는 기본 거부한다. 따라서 evaluator만 human label을 참고하고 trainer는
 synthetic target을 계속 학습하는 경로를 차단한다.
+
+seed와 hard-negative를 research ablation으로 결합할 때는 다음 명령을 사용한다.
+
+```bash
+uv run hyperjev control merge \
+  --input runs/control/control-human-target.jsonl \
+  --input runs/control/control-hard-reviewed.jsonl \
+  --output runs/control/control-human-combined.jsonl \
+  --require-human-labels
+```
+
+merge는 sample ID 중복과 결합 후 cross-split exact/episode/semantic-group
+leakage를 다시 검사한다. 두 입력 중 하나라도 미검수면
+`--require-human-labels`에서 실패하므로, synthetic seed와 human golden이
+실수로 production training set에 섞이지 않는다.
+
+v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
+only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적
+`obstacle is directly ahead`/즉시 충돌 문구를 model보다 먼저 STOP으로 처리하는
+보수적 rule을 추가한 뒤 safety는 `4/4 (100%)`, STOP recall `2/2 (100%)`로
+회복됐다. 이는 안전 계약의 방어층 증거이며, rule이 일반 scene 의미를 이해한다는
+정확도 증거가 아니다.
 
 v1.46.0부터 production-style evaluator는 다음 조건을 모두 요구한다.
 

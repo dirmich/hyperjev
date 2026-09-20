@@ -24,6 +24,16 @@
   `target_source=human_review`를 확인했다. 이는 데이터 경계 검증이지 실제
   일반화 정확도 결과가 아니다.
 
+## 2026-09-21 — combined control queue and explicit STOP safety rule (v1.52.0)
+
+- seed 800개와 hard-negative 1,000개를 `control merge`로 결합하는 재검증
+  경로를 추가했다. 결합 dataset은 1,800개, split `1440/180/180`이다.
+- combined synthetic checkpoint는 split 정확도 100%였지만 model-only safety
+  action accuracy가 75%로 실패했다. 이 실패를 그대로 gate에 남겼다.
+- `obstacle is directly ahead`와 즉시 충돌 문구를 model보다 먼저 처리하는
+  explicit STOP safety rule 후 safety action accuracy `4/4`, STOP recall
+  `2/2`가 됐다. human label은 0이라 production-ready는 아니다.
+
 ## 2026-09-21 — control counterfactual hard-negative queue (v1.49.0)
 
 - `hyperjev control hard-negative`가 STOP↔RETREAT, MOVE↔APPROACH,

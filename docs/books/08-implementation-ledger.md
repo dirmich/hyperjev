@@ -85,6 +85,7 @@
 | 1.49.0 | 진행 중 | control counterfactual hard-negative queue와 same-split pair gate |
 | 1.50.0 | 진행 중 | hard-negative token training의 100% synthetic 결과와 human gate 기록 |
 | 1.51.0 | 진행 중 | human typed label을 학습 target으로 materialize하는 control CLI |
+| 1.52.0 | 진행 중 | seed+hard-negative merge와 explicit STOP safety rule 검증 |
 
 ## 다음 기록 규칙
 

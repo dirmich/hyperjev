@@ -1611,3 +1611,35 @@ uv run hyperjev control materialize \
 `sample_count=8`, `human_labeled_count=8`, `target_source=human_review`였다.
 이는 label plumbing 회귀 증거이며 정확도 결과가 아니다. 실제 99% gate에는
 독립 semantic group의 human validation/test와 checkpoint 재학습이 필요하다.
+
+### 14.30 combined queue와 explicit STOP safety rule (v1.52.0)
+
+seed 800개와 hard-negative 1,000개를 `control merge`로 결합했다. 결과 dataset은
+1,800개이며 train/validation/test는 `1,440/180/180`, combined provenance
+validator는 통과했다. combined checkpoint는 다음으로 학습했다.
+
+```bash
+uv run hyperjev control merge \
+  --input /tmp/hyperjev-control-seed-800.jsonl \
+  --input /tmp/hyperjev-control-hard-500.jsonl \
+  --output /tmp/hyperjev-control-combined-1800.jsonl
+
+uv run hyperjev control train \
+  --backbone reference-token-encoder \
+  --dataset /tmp/hyperjev-control-combined-1800.jsonl \
+  --output /tmp/control-combined-token-100ep.pt \
+  --epochs 100 --batch-size 64 --learning-rate 0.01 \
+  --precision fp32 --device cpu
+```
+
+초기 checkpoint의 validation/test는 각각 `180/180 (100.00%)`였지만 safety
+action accuracy가 `3/4 (75.00%)`였다. `normal-stop-skill`에서 모델이
+`obstacle is directly ahead`를 `RECOVER`로 예측한 것이 원인이었다. 따라서
+`ControlStudentClient`에 명시적인 collision phrase만 model보다 먼저
+`safety-rule` STOP으로 처리하는 conservative rule을 추가했다.
+
+rule 적용 후 동일 checkpoint를 재평가한 결과는 validation/test `180/180`,
+accepted coverage `100%`, safety action `4/4 (100%)`, safe STOP recall
+`2/2 (100%)`였다. dataset human label은 validation/test 모두 `0`이므로
+synthetic research gate만 통과하고 `production_ready=false`다. rule의 phrase
+coverage를 실제 simulator/human test의 일반화로 해석하지 않는다.

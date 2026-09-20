@@ -27,6 +27,15 @@ CONTROL_SKILLS = frozenset(
 CONTROL_QUESTION = "Select the next safe high-level control skill."
 MAX_MEMORY_CONTEXT_ITEMS = 8
 MAX_MEMORY_CONTEXT_CHARS = 2048
+_EXPLICIT_STOP_SIGNALS = (
+    "obstacle is directly ahead",
+    "immediate collision risk",
+    "collision risk is immediate",
+    "emergency collision risk",
+    "장애물이 바로 앞",
+    "즉시 충돌 위험",
+    "비상 충돌 위험",
+)
 
 
 @dataclass(frozen=True)
@@ -203,6 +212,26 @@ def safe_stop(*, reason: str, ttl_ms: int = 50) -> ControlAction:
     )
 
 
+def explicit_stop_signal(state: str) -> bool:
+    """Recognize only unambiguous collision phrases before model inference."""
+
+    normalized = " ".join(state.casefold().split())
+    return any(signal in normalized for signal in _EXPLICIT_STOP_SIGNALS)
+
+
+def explicit_stop_action() -> ControlAction:
+    """Return a planned STOP skill for an explicit collision signal."""
+
+    return ControlAction(
+        skill="STOP",
+        ttl_ms=50,
+        confidence=1.0,
+        source="safety-rule",
+        abstained=False,
+        reason="explicit_collision_signal",
+    )
+
+
 def apply_safety_policy(
     observation: ControlObservation,
     action: ControlAction,
@@ -259,6 +288,8 @@ class ControlStudentClient:
             return safe_stop(reason="invalid_clock")
         if now_ms - observation.timestamp_ms > self.policy.max_observation_age_ms:
             return safe_stop(reason="stale_observation")
+        if explicit_stop_signal(observation.state):
+            return explicit_stop_action()
         try:
             completion = self._client.complete_decision(
                 self._task,

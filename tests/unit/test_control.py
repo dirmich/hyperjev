@@ -16,6 +16,7 @@ from hyperjev.control import (
     ControlSafetyPolicy,
     ControlStudentClient,
     apply_safety_policy,
+    explicit_stop_signal,
     safe_stop,
 )
 from hyperjev.registry import TaskRegistry
@@ -60,6 +61,10 @@ class ControlContractTests(unittest.TestCase):
         result = apply_safety_policy(observation, self.action, now_ms=1001.0)
         self.assertEqual(result.reason, "emergency_stop")
         self.assertEqual(result.skill, "STOP")
+
+    def test_explicit_collision_signal_is_a_planned_stop(self) -> None:
+        self.assertTrue(explicit_stop_signal("Obstacle is directly ahead"))
+        self.assertFalse(explicit_stop_signal("obstacle is far behind"))
 
     def test_low_confidence_and_long_ttl_are_rejected(self) -> None:
         policy = ControlSafetyPolicy(minimum_confidence=0.95, max_action_ttl_ms=100)
@@ -217,6 +222,32 @@ class ControlContractTests(unittest.TestCase):
             action = client.decide(self.observation, now_ms=1001.0)
         self.assertIn(action.skill, CONTROL_SKILLS)
         self.assertEqual(action.source, "hyperjev-control")
+
+    def test_control_student_short_circuits_explicit_collision_signal(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        config = StudentConfig(model_id="control-stop-test", backbone="reference-ngram-encoder", precision="fp32")
+        model = build_torch_model(registry, config)
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "control.pt"
+            torch.save(
+                {"student": student_manifest(registry, config), "model_state_dict": model.state_dict()},
+                checkpoint,
+            )
+            client = ControlStudentClient(checkpoint, registry)
+            observation = ControlObservation(
+                observation_id="stop-frame",
+                state="obstacle is directly ahead",
+                domain="simulation",
+                timestamp_ms=1000.0,
+            )
+            action = client.decide(observation, now_ms=1001.0)
+        self.assertEqual(action.skill, "STOP")
+        self.assertEqual(action.source, "safety-rule")
+        self.assertFalse(action.abstained)
 
 
 if __name__ == "__main__":

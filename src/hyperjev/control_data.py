@@ -417,6 +417,63 @@ def materialize_control_human_dataset(
     }
 
 
+def merge_control_datasets(
+    input_paths: list[str | Path],
+    output_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    require_human_labels: bool = False,
+) -> dict[str, Any]:
+    """Merge control queues and re-run the combined leakage gate."""
+
+    if len(input_paths) < 2:
+        raise ValueError("at least two control datasets are required")
+    output = Path(output_path)
+    sources = [Path(path) for path in input_paths]
+    if any(source.resolve() == output.resolve() for source in sources):
+        raise ValueError("merged output must differ from every source dataset")
+    merged_records: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    source_reports: list[dict[str, Any]] = []
+    for source in sources:
+        report = validate_control_dataset(source, registry, require_human_labels=require_human_labels)
+        if not report["passed"]:
+            raise ValueError(f"control dataset is not ready for merge: {report['errors'][:3]}")
+        source_reports.append(report)
+        for line in source.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            sample_id = str(record.get("sample_id", ""))
+            if sample_id in seen_ids:
+                raise ValueError(f"duplicate sample_id across control datasets: {sample_id}")
+            seen_ids.add(sample_id)
+            merged_records.append(record)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", encoding="utf-8") as handle:
+        for record in merged_records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    combined = validate_control_dataset(output, registry, require_human_labels=require_human_labels)
+    if not combined["passed"]:
+        raise ValueError(f"merged control dataset failed validation: {combined['errors'][:3]}")
+    return {
+        "record_type": "control_merged_dataset",
+        "output_path": str(output.resolve()),
+        "input_paths": [str(source.resolve()) for source in sources],
+        "input_count": len(sources),
+        "sample_count": len(merged_records),
+        "split_counts": combined["split_counts"],
+        "human_labeled_count": combined["human_labeled_count"],
+        "require_human_labels": require_human_labels,
+        "input_sha256": {
+            str(source.resolve()): hashlib.sha256(source.read_bytes()).hexdigest()
+            for source in sources
+        },
+        "output_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+        "source_reports": source_reports,
+    }
+
+
 def validate_control_dataset(
     path: str | Path,
     registry: TaskRegistry,

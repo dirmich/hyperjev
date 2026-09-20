@@ -23,6 +23,7 @@ from .control_data import (
     generate_control_hard_negative_queue,
     generate_control_review_queue,
     materialize_control_human_dataset,
+    merge_control_datasets,
 )
 from .dataset_factory import build_dataset, validate_dataset
 from .doctor import system_checks
@@ -402,6 +403,18 @@ def _control_hard_negative(args: argparse.Namespace) -> int:
 def _control_materialize(args: argparse.Namespace) -> int:
     registry = TaskRegistry.load(args.registry)
     report = materialize_control_human_dataset(args.input, args.output, registry)
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _control_merge(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = merge_control_datasets(
+        args.input,
+        args.output,
+        registry,
+        require_human_labels=args.require_human_labels,
+    )
     print(json.dumps(report, ensure_ascii=False))
     return 0
 
@@ -839,6 +852,14 @@ def build_parser() -> argparse.ArgumentParser:
     control_materialize.add_argument("--input", required=True, help="human-reviewed control JSONL")
     control_materialize.add_argument("--output", required=True, help="human-target training JSONL")
     control_materialize.set_defaults(handler=_control_materialize)
+    control_merge = control_subparsers.add_parser("merge")
+    control_merge.add_argument("--registry", default="registry/control_tasks")
+    control_merge.add_argument(
+        "--input", action="append", required=True, help="control JSONL; repeat at least twice"
+    )
+    control_merge.add_argument("--output", required=True)
+    control_merge.add_argument("--require-human-labels", action="store_true")
+    control_merge.set_defaults(handler=_control_merge)
     control_train = control_subparsers.add_parser("train")
     control_train.add_argument("--registry", default="registry/control_tasks")
     control_train.add_argument("--dataset", required=True)

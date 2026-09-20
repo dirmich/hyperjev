@@ -7,6 +7,7 @@ from hyperjev.control_data import (
     generate_control_hard_negative_queue,
     generate_control_review_queue,
     materialize_control_human_dataset,
+    merge_control_datasets,
     validate_control_dataset,
 )
 from hyperjev.registry import TaskRegistry
@@ -206,6 +207,63 @@ class ControlDatasetQualityTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             materialize_control_human_dataset(source, source.with_name("materialized.jsonl"), self.registry)
+
+    def test_merge_revalidates_combined_splits_and_ids(self) -> None:
+        first = self._write(
+            [
+                self._record(
+                    "first-1",
+                    "train",
+                    state="clear path",
+                    episode_id="ep-1",
+                    semantic_group_id="sg-1",
+                )
+            ]
+        )
+        second = self._write(
+            [
+                self._record(
+                    "second-1",
+                    "validation",
+                    state="blocked path",
+                    episode_id="ep-2",
+                    semantic_group_id="sg-2",
+                )
+            ]
+        )
+        output = first.with_name("merged.jsonl")
+        report = merge_control_datasets([first, second], output, self.registry)
+        self.assertEqual(report["sample_count"], 2)
+        self.assertEqual(report["split_counts"], {"train": 1, "validation": 1})
+        self.assertEqual(len(output.read_text(encoding="utf-8").splitlines()), 2)
+
+    def test_merge_requires_human_labels_when_requested(self) -> None:
+        first = self._write(
+            [
+                self._record(
+                    "first-1",
+                    "train",
+                    state="clear path",
+                    episode_id="ep-1",
+                    semantic_group_id="sg-1",
+                )
+            ]
+        )
+        second = self._write(
+            [
+                self._record(
+                    "second-1",
+                    "validation",
+                    state="blocked path",
+                    episode_id="ep-2",
+                    semantic_group_id="sg-2",
+                )
+            ]
+        )
+        with self.assertRaises(ValueError):
+            merge_control_datasets(
+                [first, second], first.with_name("merged.jsonl"), self.registry, require_human_labels=True
+            )
 
 
 if __name__ == "__main__":
