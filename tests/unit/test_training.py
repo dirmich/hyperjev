@@ -172,6 +172,36 @@ class TrainingTests(unittest.TestCase):
         )
         self.assertNotEqual(question_aware_first, question_aware_second)
 
+    def test_segmented_bow_reference_encoder_separates_state_and_question_buckets(self) -> None:
+        sample = CanonicalSample(
+            sample_id="segmented-bow",
+            task_id="memory.remember_worthy",
+            task_version=1,
+            state="stable deployment decision",
+            question="stable deployment decision",
+            target=True,
+            language="en",
+            domain="test",
+            source={},
+            labels={},
+            provenance={"prompt_version": 2, "split": "train"},
+        )
+        token_ids, attention = _encode_reference_sample(
+            sample,
+            vocab_size=32768,
+            max_length=64,
+            backbone="reference-segmented-bow-encoder",
+        )
+        self.assertEqual(len(token_ids), 64)
+        self.assertEqual(len(attention), 64)
+        self.assertTrue(any(2 <= token_id < 16384 for token_id in token_ids))
+        self.assertTrue(any(16384 <= token_id < 32768 for token_id in token_ids))
+        self.assertEqual(
+            len({token_id for token_id in token_ids if token_id >= 2}),
+            len({token_id for token_id in token_ids if token_id >= 2 and token_id < 16384})
+            + len({token_id for token_id in token_ids if token_id >= 16384}),
+        )
+
     def test_sample_loss_weight_only_targets_counterfactual_provenance(self) -> None:
         training = TrainingConfig(hard_negative_weight=3.0)
         hard = CanonicalSample(

@@ -117,6 +117,7 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
                 "reference-char-bow-encoder",
                 "reference-hybrid-bow-encoder",
                 "reference-control-bow-encoder",
+                "reference-segmented-bow-encoder",
             }
             self.use_ngram_encoder = selected.backbone in {
                 "reference-ngram-encoder",

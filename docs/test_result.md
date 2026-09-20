@@ -3287,6 +3287,28 @@ latency_gate=true
 promotion하지 않는다. synthetic label은 human label이 아니며, 이 실험만으로
 실시간 게임/로봇 actuator 연결을 승인하지 않는다.
 
+### 14.93 segmented state/question BOW candidate rejection (v1.116.0)
+
+state와 question의 hash collision을 줄이기 위해 vocabulary를 절반씩 나눈
+`reference-segmented-bow-encoder`를 학습했다. 같은 단어가 두 segment에 있어도
+id가 분리되는 contract test를 통과했다.
+
+| 항목 | 결과 |
+| --- | --- |
+| dataset SHA-256 | `59a41083b3550ef340a9288f75ea6c1d3daf561fde424af80717632e55c1bc2d` |
+| checkpoint SHA-256 | `5295c70a28ea06f9fb639c7fd40f69f692c61f49e66542ae941fea3369eeafc7` |
+| train/validation/test | `1440/180/180` |
+| English raw runtime | `34/40 (85.0%)`, STOP `5/5` |
+| Korean raw runtime | `28/40 (70.0%)`, STOP `5/5` |
+| safety replay | `500/500`, safe STOP `500/500` |
+| safety p95/p99/max | `0.000944/0.001440/0.009040ms` |
+
+v1.105 baseline보다 English 5건, Korean 8건 낮고 v1.114 state-only보다도 낮아
+폐기했다. raw runtime latency는 English p50/p95/p99/max
+`4544.205/35092.075/139369.256/139369.256us`, Korean
+`3657.003/5894.440/66204.821/66204.821us`로 변동성도 관찰됐다. 전부 synthetic
+target이며 human label `0/1800`이므로 production 승격 대상이 아니다.
+
 ### 14.92 malformed quality-gate rejection hardening (v1.115.0)
 
 `_quality_gate_failures`가 malformed safety report를 예외로 중단시키지 않고

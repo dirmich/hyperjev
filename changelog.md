@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — reject segmented state/question BOW candidate (v1.116.0)
+
+- state와 question의 hash collision을 줄이기 위해 vocabulary를 두 구간으로
+  분리한 `reference-segmented-bow-encoder`를 추가했다. 동일한 단어가 state와
+  question에 있어도 서로 다른 bucket을 사용한다는 단위 테스트를 추가했다.
+- 동일 1,800-row synthetic dataset, 100 epoch 조건에서 raw runtime 결과는
+  English `34/40 (85.0%)`, Korean `28/40 (70.0%)`, STOP recall `5/5`였다.
+  v1.105 BOW 기준선 `39/40`, `36/40`보다 낮고 v1.114 state-only보다도 낮아
+  후보를 폐기했다.
+- safety 500-case는 `500/500`, safe STOP recall `500/500`, p95/p99는
+  `0.000944/0.001440ms`로 통과했다. semantic gate 실패 때문에 promotion하지
+  않으며, human label은 여전히 `0/1800`이다.
+
 ## 2026-09-21 — harden malformed quality-gate rejection (v1.115.0)
 
 - quality evaluator가 malformed safety report의 `safe_stop_recall_ci95` 타입이나

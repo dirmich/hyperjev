@@ -1418,6 +1418,26 @@ label은 `0/1800`이므로 이 결과는 synthetic ablation이며 production pro
 question encoder를 별도 projection으로 학습하고, 혼동쌍별 calibration/abstain을
 검증하는 것이다.
 
+### v1.116.0 segmented state/question BOW ablation rejection
+
+v1.114.0 state-only가 질문 신호를 버린 것이 원인인지 확인하기 위해 state와
+question을 vocabulary의 별도 bucket으로 해시하는
+`reference-segmented-bow-encoder`를 추가했다. 구현 계약은 동일 단어라도 state
+bucket과 question bucket의 id가 겹치지 않는 것이며, 이에 대한 unit test를
+추가했다.
+
+동일 dataset/seed/100 epoch 조건의 raw model-only-with-safety 결과는 English
+`34/40 (85.0%)`, Korean `28/40 (70.0%)`, STOP recall `5/5`였다. v1.114
+state-only의 `35/40`, `29/40`보다도 낮고 v1.105 기준선 `39/40`, `36/40`보다
+낮아 폐기한다. vocabulary collision만 줄이는 것으로는 현재 synthetic control
+OOD의 혼동쌍을 해결하지 못한다.
+
+safety 500은 `500/500`, p95/p99 `0.000944/0.001440ms`로 통과했다. 이 결과는
+semantic 정확도와 safety interlock을 분리해서 gate해야 한다는 추가 증거이며,
+human label `0/1800` 상태에서 production accuracy를 의미하지 않는다. 다음
+실험은 더 많은 synthetic ablation보다 blind human label과 혼동쌍 adjudication을
+먼저 확보하는 방향으로 우선순위를 낮춘다.
+
 ### v1.115.0 malformed quality report rejection hardening
 
 정확도 gate는 모델 후보를 자동 승인하는 장치가 아니라, 기준 미달 후보를 안전하게

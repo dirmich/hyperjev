@@ -318,6 +318,27 @@ def _encode_reference_sample(
             )
             for word in words
         ]
+    elif backbone == "reference-segmented-bow-encoder":
+        segment_boundary = max(3, vocab_size // 2)
+        state_words = re.findall(r"\w+", sample.state.casefold(), flags=re.UNICODE)
+        question_words = re.findall(r"\w+", sample.question.casefold(), flags=re.UNICODE)
+        state_ids = [
+            2
+            + (
+                int.from_bytes(hashlib.sha256(f"s:{word}".encode()).digest()[:4], "big")
+                % (segment_boundary - 2)
+            )
+            for word in state_words
+        ]
+        question_ids = [
+            segment_boundary
+            + (
+                int.from_bytes(hashlib.sha256(f"q:{word}".encode()).digest()[:4], "big")
+                % (vocab_size - segment_boundary)
+            )
+            for word in question_words
+        ]
+        token_ids = (state_ids + question_ids)[:max_length]
     else:
         raw = text.encode()[:max_length]
         token_ids = [2 + (byte % (vocab_size - 2)) for byte in raw]
