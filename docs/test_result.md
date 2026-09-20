@@ -1035,3 +1035,64 @@ grouping은 전체 queue를 무조건 1000개의 독립 human 판단으로 세�
 보고서에는 `unique_review_group_count`와 원본 데이터 다양성을 함께 기록해야
 한다. 실제 상용 golden은 반복 synthetic fixture가 아니라 다양한 원문에서
 구성해야 한다.
+
+### 14.9 최종 feedback 적용과 1,000건 human-source 평가
+
+사용자 검수 세션 완료 후 append-only feedback을 reviewed queue에 적용했다.
+
+```bash
+uv run hyperjev golden apply-feedback \
+  --queue runs/phase0/phase0-review-queue.jsonl \
+  --feedback runs/phase0/golden-feedback.jsonl \
+  --output runs/phase0/phase0-review-queue-reviewed.jsonl
+
+uv run hyperjev golden validate \
+  --samples runs/phase0/phase0-review-queue-reviewed.jsonl \
+  --minimum-count 1000
+```
+
+| 항목 | 결과 |
+| --- | --- |
+| feedback records | 1,000 |
+| unique feedback sample IDs | 1,000 |
+| reviewed queue | 1,000/1,000 |
+| pending | 0 |
+| exact review groups | 36 |
+| exact group label consistency | 36/36 |
+| `golden validate` | `ready=true`, exit 0 |
+| reviewed queue SHA-256 | `bfed74da255c4f9765deb653638943eb3e869d461f7430fd5ea58766f42d1c04` |
+
+다만 1,000 labels 모두가 독립적인 1,000개 원문 판단은 아니다. 612건은
+exact duplicate propagation이며, 이 결과의 effective human diversity는
+36개 group이다. production 품질 판단에서는 이 사실을 반드시 함께 표시한다.
+
+같은 human label을 target source로 사용해 reference n-gram Student를 다시
+평가했다.
+
+```bash
+uv run hyperjev student evaluate \
+  --checkpoint runs/phase3/reference-ngram-student.pt \
+  --dataset runs/phase3/human-reviewed-1000-dataset.jsonl \
+  --minimum-confidence 0.95 --with-rules \
+  --output runs/phase3/human-reviewed-1000-ngram-evaluation.json \
+  --production-gate
+```
+
+| 경로 | correct | total | accuracy | accepted | accepted accuracy | coverage |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| rule + Student | 826 | 1,000 | 82.60% | 787 | 93.52% | 78.70% |
+
+task별 human-source accuracy는 `memory.remember_worthy` 100%,
+`query.route` 100%, `wiki.semantic_change` 100%, `memory.relation` 93.98%,
+`memory.type` 75.45%, `memory.importance` 26.35%였다. rule은 197/197
+정확했지만, 전체 Student quality gate는 overall, accepted, task threshold를
+모두 충족하지 못해 exit 1이다. 따라서 golden label 준비는 완료됐지만
+HyperJev Student를 99% production 모델로 승격할 수는 없다.
+
+artifact SHA-256:
+
+| artifact | SHA-256 |
+| --- | --- |
+| `runs/phase0/golden-feedback.jsonl` | `a48a04b627c1d5fb5d3ffbe997802c72accb284eae8f036469716e89245d9ce5` |
+| `runs/phase3/human-reviewed-1000-dataset.jsonl` | `cdeaacfa70e2ce3be506cd3d7bbdc51b914b16cb7bbc947f031685d0f59f4e0f` |
+| `runs/phase3/human-reviewed-1000-ngram-evaluation.json` | `9d7292f6a9af6c72208c1a2652eb9a7be2f6b304fed63b54eb84a9492106e882` |

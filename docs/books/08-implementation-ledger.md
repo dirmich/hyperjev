@@ -65,6 +65,7 @@
 | 1.29.1 | 진행 중 | review-session EOF/pipe safe quit |
 | 1.30.0 | 진행 중 | 실제 human feedback 31건 적용, partial Student 평가, 969건 pending gate 기록 |
 | 1.31.0 | 진행 중 | exact duplicate review group과 label propagation |
+| 1.32.0 | 진행 중 | 1,000건 feedback 적용과 human-source Student 전체 평가 |
 
 ## 다음 기록 규칙
 

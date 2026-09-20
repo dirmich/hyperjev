@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-20 — full reviewed queue and human-source Student evaluation (v1.32.0)
+
+- exact-duplicate grouping을 사용해 1,000개 queue record에 feedback을 모두
+  적용했다. pending `0`, human label `1000/1000`, queue golden gate
+  `ready=true`다.
+- feedback 1,000건은 36개 exact group으로 구성되고, 612건은 기존 human
+  label의 exact duplicate propagation이다. 36개 group의 최종 label은
+  서로 일관됐다.
+- human-source reference n-gram Student는 전체 `826/1000 (82.60%)`,
+  accepted `736/787 (93.52%)`, coverage `787/1000 (78.70%)`였다.
+- `memory.remember_worthy`, `query.route`, `wiki.semantic_change`는 전체
+  정확했지만 `memory.importance` `26.35%`, `memory.relation` `93.98%`,
+  `memory.type` `75.45%`로 Student quality gate는 실패했다.
+- human-label completeness와 model quality gate는 분리된다. 이번 결과는
+  99% production 정확도 달성이 아니다.
+
 ## 2026-09-20 — exact-duplicate review grouping (v1.31.0)
 
 - `golden review-session --deduplicate-exact`를 추가했다.
