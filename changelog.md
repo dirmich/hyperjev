@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — Gemma hard-negative judge timeout gate (v1.71.0)
+
+- 현재 hard-negative queue의 첫 샘플을 `google/gemma-4-12b`로 30초 probe했다.
+- 결과는 `completed=0`, `schema_valid=0`, `error_count=1`,
+  `TimeoutError: timed out`이었다.
+- Gemma는 control tick이나 1,000건 synchronous labeler로 사용하지 않고, 별도
+  async judge/retry worker로 제한한다. 현재 정확도 gate의 human label은 Qwen draft를
+  참고한 독립 human review로 생성한다.
+- 검증: Gemma probe manifest와 기존 전체 suite `128 passed, 1 skipped` 확인.
+
 ## 2026-09-21 — hard-negative weighted-loss ablation (v1.70.0)
 
 - `TrainingConfig.hard_negative_weight`와 `control train --hard-negative-weight`를

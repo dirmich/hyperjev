@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.70.0까지 진행되어 있다. Python 테스트 128개와
+현재 `main`은 origin에 push될 1.71.0까지 진행되어 있다. Python 테스트 128개와
 1개 skip, Ruff 검사가 통과한 상태이며, dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
 guarded 99% 평가, optional Student router 연결, parent LLM 대 HyperJev
@@ -124,6 +124,10 @@ v1.70.0에서는 hard-negative provenance를 loss 가중치로 반영하는 연�
 action accuracy를 75%로 떨어뜨려 탈락했다. 이 실패를 기록한 이유는 human
 hard-negative가 들어온 뒤 같은 실험을 재현하되, STOP 안전 gate를 절대 양보하지
 않기 위해서다.
+
+v1.71.0에서는 Gemma4 hard-negative 1건 probe가 30초 timeout으로 실패한 결과를
+기록했다. Gemma는 control tick의 parent가 아니라 async judge로 격리하고, 실제
+golden target은 human reviewer가 확정해야 한다는 운영 경계를 재검증했다.
 
 v1.40.0에서는 실시간 적용을 위한 `control.skill@1` typed head와 safety-bounded
 `control decide` 경로를 추가했다. 48개 synthetic smoke checkpoint의 train은

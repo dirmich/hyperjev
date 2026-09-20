@@ -2031,6 +2031,37 @@ weight 4 checkpoint SHA는 `159801b7c9503ad628c73c184b4702edcb1cfc91bd5210b3a93e
 두 후보 모두 human label `0/360`인 synthetic 평가이므로 production 정확도 증거가
 아니며, safety action `75%` 때문에 baseline보다 개선된 것으로 취급하지 않는다.
 
+### 14.49 Gemma hard-negative judge timeout (v1.71.0)
+
+Qwen hard-negative queue의 첫 sample 하나를 Gemma judge에 연결해 현재 endpoint와
+응답 deadline을 확인했다.
+
+```bash
+timeout 45s uv run hyperjev control draft \
+  --config configs/phase0.toml \
+  --registry registry/control_tasks \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --provider gemma \
+  --output /tmp/gemma-control-probe.jsonl \
+  --limit 1 --timeout 30 --max-tokens 128
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| model | `google/gemma-4-12b` |
+| sample count | 1 |
+| completed | 0 |
+| schema-valid | 0 |
+| error count | 1 |
+| error | `TimeoutError: timed out` |
+| human label gate | unchanged, 0/1000 |
+
+Gemma는 현재 Qwen과 병렬로 1,000건을 동기 처리할 수 없다. 따라서 Gemma는
+별도 async judge/retry worker와 disagreement queue에 두고, 사람이 확인하는
+Qwen review pack과 control motor loop에서는 기다리지 않는다. 이 timeout 결과는
+Gemma 정확도가 0%라는 뜻이 아니라, 이번 deadline 안에 판단을 반환하지 않았다는
+operability 결과다.
+
 ### 14.46 pair-collision active review priority (v1.68.0)
 
 hard-negative Qwen 결과의 confidence 분포를 오류 여부와 분리해 분석했다.

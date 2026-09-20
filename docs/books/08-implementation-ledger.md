@@ -104,6 +104,7 @@
 | 1.68.0 | 진행 중 | overconfident teacher 오류를 잡는 counterfactual pair-collision priority |
 | 1.69.0 | 진행 중 | review manifest에 counterfactual/collision priority 통계 기록 |
 | 1.70.0 | 진행 중 | hard-negative weighted loss ablation과 safety gate 탈락 기록 |
+| 1.71.0 | 진행 중 | Gemma hard-negative timeout probe와 async judge 격리 gate |
 
 ## 다음 기록 규칙
 

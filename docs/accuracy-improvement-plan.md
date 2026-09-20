@@ -1,7 +1,7 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.70.0
+현재 버전: 1.71.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
 ## 1. 목표와 원칙
@@ -221,6 +221,12 @@ human hard-negative가 materialize된 뒤에만 재시도할 연구 후보로 �
 combined 1,800건에서 두 weight 모두 validation/test `100%`, STOP recall `100%`였지만
 safety action accuracy가 `75%`로 baseline `100%`보다 낮아 현재 production 후보에서
 탈락했다. safety를 희생해 aggregate accuracy를 만드는 weight는 사용하지 않는다.
+
+v1.71.0의 Gemma hard-negative probe는 30초 timeout에서 `completed=0`,
+`schema_valid=0`, `error_count=1`이었다. 따라서 Gemma는 독립 judge라는 역할은
+유지하지만, 현재 label throughput이나 control latency의 동기 경로에 넣지 않는다.
+Gemma가 실제 결과를 내는 경우에도 Qwen/Gemma 합의는 silver 후보일 뿐이며,
+human label gate를 대체하지 않는다.
 
 v1.52.0의 synthetic combined 연구 실험은 split `180/180 (100%)`였지만, model
 only safety action accuracy가 `3/4 (75%)`로 실패했다. 명시적
