@@ -39,6 +39,7 @@
 | 1.15.0 | `0d32acd` | training/calibration/checkpoint 기반 model manifest |
 | 1.15.1 | `72d6a77` | model manifest milestone 원고 기록 |
 | 1.16.0 | `a975d77` | 30-sample confidence/coverage와 성능 차이 분석 |
+| 1.17.0 | `b5073d8` | reference Student checkpoint path, dotted task head, rule accuracy fix |
 
 ## 다음 기록 규칙
 
@@ -47,7 +48,7 @@
 
 1. training plan의 실제 DGX 실행
 2. 사람 golden 1,000개와 manifest hash
-3. Student checkpoint/calibration/promotion
+3. Student checkpoint/calibration/promotion (reference checkpoint는 생성됐지만 production 승격 전)
 4. Rust/API production compile과 load test
 
 ## 재현 명령

@@ -93,9 +93,22 @@ uv run hyperjev calibrate \
 
 ## 6.4 실제 학습과 이 책의 정직한 경계
 
-현재 구현은 dataset validator와 training plan까지다. 실제 학습은 DGX image에
-PyTorch, tokenizer/backbone, optimizer loop, checkpoint storage가 준비된 뒤
-다음 단계로 연결한다.
+reference trainer를 실제로 실행해 checkpoint를 만들 수는 있지만, 이것은
+production multilingual encoder가 아닌 deterministic byte-hash encoder를
+사용하는 contract smoke path다. synthetic queue에서 중복을 제거한 36개
+샘플로 생성한 reference 결과는 다음과 같다.
+
+| 항목 | 결과 |
+| --- | --- |
+| checkpoint | `runs/phase3/reference-student.pt` |
+| split | train 31, validation 2, test 3 |
+| 전체 exact/threshold accuracy | 28/36 = 77.78% |
+| held-out test accuracy | 1/3 = 33.33% |
+| checkpoint SHA-256 | `7a4bb4d47a58295db479cb56ee675335e45706d80d54a87359b87a30f678e19a` |
+
+따라서 artifact 생성 gate는 통과했지만 quality gate는 통과하지 못했다. 실제
+학습은 사람 검수 golden과 production multilingual tokenizer/backbone, optimizer
+loop, checkpoint storage가 준비된 뒤 다시 실행해야 한다.
 
 ```text
 training plan
@@ -128,6 +141,7 @@ typed head/task version, calibration version, precision을 manifest에 고정한
 따라서 파일 이름이나 최신 파일 선택만으로 모델을 식별하지 않는다. 생성된
 manifest를 registry에 등록한 뒤에도 lifecycle은 `trained → evaluated →
 calibrated → candidate → canary → active` 순서의 명시적 전이를 따른다.
-현재 host에는 production checkpoint를 만들 PyTorch가 없으므로 이 경로의
-contract와 dependency gate만 검증되어 있으며, 실제 DGX checkpoint 등록은
-아직 외부 실행 gate다.
+reference checkpoint는 `trained` 상태로 registry manifest에 등록했지만,
+test 3개 중 1개만 맞았으므로 `evaluated`, `candidate`, `canary`, `active`로
+승격하지 않았다. calibration도 held-out 3개에 한정되어 production gate가
+아니다. production checkpoint 등록과 promotion은 여전히 별도 품질 gate다.

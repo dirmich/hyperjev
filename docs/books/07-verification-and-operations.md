@@ -19,9 +19,9 @@ uv run hyperjev benchmark --dry-run --limit 1
 uv run hyperjev golden --help
 ```
 
-현재 마지막 확정 증거는 1.11.0 기준 Ruff 통과와 Python 테스트 59개 통과다.
-Golden review, metric, training validator, torch dependency gate가 포함되어
-있다.
+현재 마지막 확정 증거는 1.17.1 기준 Ruff 통과와 Python 테스트 64개 통과,
+1개 skip이다. Golden review, metric, training validator, reference torch
+checkpoint, calibration manifest gate가 포함되어 있다.
 
 Parent LLM과 HyperJev 경계의 실제 성능 측정은 [`docs/test_result.md`](../test_result.md)에
 기록했다. Qwen endpoint는 6개 smoke에서 HTTP 6/6, typed schema 5/6,
@@ -65,7 +65,7 @@ docker compose --profile phase0 run --rm phase0-check
 | synthetic queue | deterministic 1,000 queue | human golden 아님 |
 | human golden | review/apply workflow | 1,000개 검수 필요 |
 | dataset factory | unit tests와 privacy/agreement code | 실데이터 run 필요 |
-| Student model | manifest/optional torch builder | checkpoint 필요 |
+| Student model | reference checkpoint/manifest | synthetic quality gate 미통과, production checkpoint 필요 |
 | calibration/metrics | deterministic code/tests | held-out model data 필요 |
 | Rust crates | workspace skeleton | host cargo 부재, DGX/toolchain compile 필요 |
 | cache/registry/drift | local tests/metrics | production load gate 필요 |

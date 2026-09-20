@@ -86,9 +86,11 @@ uv run hyperjev train run \
   --device auto
 ```
 
-`train run`은 PyTorch가 있는 DGX에서만 실행되며 reference byte encoder를
-사용한다. production multilingual tokenizer/backbone을 선택하고 실제
-checkpoint를 검증한 뒤에만 model registry manifest를 `trained`로 등록한다.
+`train run`은 PyTorch가 있는 DGX에서 실행되며 reference byte encoder를
+사용한다. 현재 synthetic reference checkpoint와 manifest는 `trained`로
+등록됐지만 test 정확도가 33.33%라 production 승격하지 않았다. production
+multilingual tokenizer/backbone을 선택하고 사람 golden으로 checkpoint를
+검증한 뒤에만 `evaluated` 이후 상태로 이동한다.
 
 ## 9.5 Serving과 promotion
 

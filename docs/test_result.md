@@ -431,3 +431,122 @@ validation set에서 확정해야 하며, 현재 30개 결과가 통과했다는
 boolean/choice는 task별 threshold 적용, schema-invalid는 즉시 fallback이다.
 이 선택은 답변 coverage를 낮추지만, 잘못된 기억을 자동 저장하는 위험을
 줄이는 방향이다.
+
+## 10. Reference Student checkpoint 생성 및 정확도
+
+사용자가 요구한 실제 checkpoint를 빠르게 생성하기 위해 synthetic queue의
+중복을 제거한 36개 typed dataset으로 reference Student를 학습했다. 이 경로는
+PRD의 production multilingual encoder가 아니라 `reference-byte-encoder`와
+registry-derived typed heads를 검증하는 최소 실행 경로다.
+
+### 10.1 생성 명령과 artifact
+
+```bash
+uv run hyperjev train plan \
+  --dataset runs/phase2/reference-dataset.jsonl \
+  --output runs/phase3/reference-training-plan.json \
+  --model-id hyperjev-reference-synthetic \
+  --backbone reference-byte-encoder \
+  --epochs 3 --batch-size 1 --precision fp32
+
+uv run hyperjev train run \
+  --dataset runs/phase2/reference-dataset.jsonl \
+  --output runs/phase3/reference-student.pt \
+  --model-id hyperjev-reference-synthetic \
+  --backbone reference-byte-encoder \
+  --epochs 3 --batch-size 1 --precision fp32 --device cpu
+```
+
+| artifact | 값 |
+| --- | --- |
+| model id | `hyperjev-reference-synthetic` |
+| backbone | `reference-byte-encoder` |
+| dataset samples | 36 (train 31, validation 2, test 3) |
+| dataset SHA-256 | `c207d558e8381c29bb9a881d0d8c2bc42ba2a97c36adce59d671ed0b26ed3c9f` |
+| checkpoint | `runs/phase3/reference-student.pt` |
+| checkpoint SHA-256 | `7a4bb4d47a58295db479cb56ee675335e45706d80d54a87359b87a30f678e19a` |
+| PyTorch | `2.14.0+cu130` |
+| training device | CPU |
+| train loss | 1.431961 → 1.023529 → 0.821674 |
+
+GB10 CUDA는 정상 인식됐지만 이미 실행 중인 Qwen llama-server가 GPU/통합
+메모리를 점유해 Student를 CUDA로 올릴 때 `CUDA error: out of memory`가
+발생했다. Qwen을 중단하지 않고 CPU에서 checkpoint를 완성했다. 이 때문에
+이 수치는 GPU inference latency 결과가 아니다.
+
+### 10.2 Reference Student 정확도
+
+Boolean/choice는 exact match, score는 target과 ±0.10 이내를 correct로
+계산했다.
+
+| split | correct | total | accuracy |
+| --- | ---: | ---: | ---: |
+| train | 26 | 31 | 83.87% |
+| validation | 1 | 2 | 50.00% |
+| test | 1 | 3 | 33.33% |
+| 전체 | 28 | 36 | 77.78% |
+
+task별 전체 결과는 다음과 같다.
+
+| task | correct/total | accuracy 또는 score 지표 |
+| --- | ---: | --- |
+| `memory.remember_worthy` | 5/6 | 83.33% |
+| `memory.type` | 5/6 | 83.33% |
+| `memory.importance` | 4/6 | ±0.10 기준 66.67% |
+| `query.route` | 4/6 | 66.67% |
+| `memory.relation` | 5/6 | 83.33% |
+| `wiki.semantic_change` | 5/6 | 83.33% |
+
+이 결과는 checkpoint가 실제로 load되고 모든 dotted registry task head가
+forward되는 것을 증명하지만, test 3개 중 1개만 맞았으므로 상용 정확도로
+사용할 수 없다. 특히 validation/test가 너무 작고 synthetic pattern을
+기반으로 하므로 generalization을 판단하기 어렵다.
+
+### 10.3 Calibration과 registry 상태
+
+checkpoint에서 분리한 3개 held-out boolean logits로 calibration manifest를
+생성했다.
+
+| 항목 | 값 |
+| --- | --- |
+| calibration version | `cal-824aeb36ba59` |
+| temperature | 4.0 (검색 상한) |
+| NLL before → after | 0.880682 → 0.701236 |
+| held-out count | 3 |
+| registry status | `trained` |
+
+NLL은 개선됐지만 held-out가 3개뿐이고 temperature가 상한에 도달했으므로
+production calibration으로 승인하지 않는다. model manifest는 생성·등록만
+했고 `evaluated → calibrated → candidate → canary → active`로 승격하지
+않았다.
+
+### 10.4 현재 HyperJev rule 경로 정확도
+
+Student와 별도로 실제 제품 router의 deterministic rule fast-path를 전체
+synthetic queue 1,000개에서 재측정했다. style-only 우선순위 bug를 수정한 뒤:
+
+| 지표 | 결과 |
+| --- | ---: |
+| rule coverage | 197/1,000 = 19.70% |
+| covered rule accuracy | 197/197 = 100% |
+| abstain/fallback 대상 | 803/1,000 = 80.30% |
+| 전체를 abstain failure로 계산한 accuracy | 19.70% |
+
+이 100%는 rule이 판단한 입력에만 해당한다. 나머지 80.3%를 Student나
+teacher가 처리하지 않으면 제품 전체 정확도가 아니다. 현재 가장 정확한
+상용 형태는 rule의 100% covered path를 유지하고, 나머지는 낮은 confidence로
+자동 수락하지 않는 것이다.
+
+### 10.5 판단
+
+현재 즉시 사용할 수 있는 숫자는 다음과 같다.
+
+- **Reference Student:** 전체 77.78%, test 33.33% — production 사용 불가
+- **Rule fast-path:** covered 100%, 전체 coverage 19.70% — 제한된 입력에만 사용
+- **Qwen parent:** 30-sample valid classification 22/22, 전체 schema/score 포함
+  보수적 22/30 = 73.33% — teacher baseline이지 Student가 아님
+
+따라서 checkpoint는 생성됐지만 아직 상용 모델로 승격하지 않았다. 다음 개선은
+synthetic 중복 데이터가 아니라 사람이 검수한 task별 train/validation/test를
+확대하고, production multilingual backbone·GPU inference·calibration·risk
+coverage를 다시 측정하는 것이다.
