@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — flat control review shell (v1.139.0)
+
+- `hyperjev control review-shell`을 추가했다. review pack의 nested Qwen/Gemma
+  JSON을 화면에 출력하지 않고 `state`, `question`, 허용 action 목록만 표시한
+  뒤 `STOP`, `MOVE` 같은 flat value 하나를 입력받는다.
+- exact duplicate는 항상 하나의 review group으로 접어 한 번만 판단한다. 저장할
+  때는 queue sample ID마다 typed `golden_feedback`을 append하므로, 사람이 보는
+  항목 수와 audit trail의 label 수를 구분한다. `n/p/s/q`로 다음/이전/보류/종료할
+  수 있고 `--offset/--limit`으로 batch를 나눌 수 있다.
+- 신규 review shell unit test와 기존 review pack suite를 통과했다. 이 기능은
+  human label을 자동 생성하지 않으며, 입력된 값만 control human gate에 반영한다.
+
 ## 2026-09-21 — teacher-assisted human review prioritization (v1.138.0)
 
 - `http://localhost:8081/v1`의 `qwen38fn` endpoint를 300초 timeout으로 20개

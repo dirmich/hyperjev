@@ -87,3 +87,8 @@ review pack에 묶었다. teacher disagreement `1/384`와 Student uncertainty
 `0/384`는 검수 순서를 정하는 신호다. teacher가 synthetic target과 일치해도
 `labels.human`을 자동으로 만들지 않으며, 실제 사람이 state/question을 보고
 typed value를 입력해야만 golden gate가 열린다.
+
+control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
+보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
+검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은
+각 sample ID에 남기므로 review group 수와 label 수를 분리해 보고한다.

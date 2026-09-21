@@ -168,3 +168,9 @@ prefetch하는 경계를 제공한다. context는 최대 8개 summary/2,048자�
 제어기를 멈추게 하지 않도록 bounded timeout 뒤에는 이전 context의 유효기간을
 검사하고, 유효하지 않으면 Student confidence gate와 safety shield를 거쳐
 STOP 또는 deterministic HOLD로 내려보낸다.
+
+v1.139.0의 `control review-shell`은 human review를 batch 단위로 나누고 exact
+duplicate를 접어 입력량을 줄인다. `state/question`과 flat candidate만 보여주며
+teacher JSON은 숨긴다. 입력된 값은 registry validation을 통과한 뒤 append-only
+feedback으로 저장되므로, 사람이 실제로 입력한 label만 다음 materialize gate에
+사용된다.

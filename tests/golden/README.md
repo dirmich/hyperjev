@@ -91,3 +91,19 @@ uv run hyperjev golden review-session \
 반복되는 synthetic sample을 다시 판단하지 않아도 된다. 이 전파 label은
 동일 원문에 대한 파생 label이지 독립 human sample이 아니므로, production
 golden 정확도 보고서에서는 unique group 수를 함께 표시해야 한다.
+
+control task만 검수할 때는 nested teacher 결과를 숨기는 flat-value 쉘을 사용할 수
+있다. exact duplicate는 기본으로 하나의 그룹으로 접힌다.
+
+```bash
+uv run hyperjev control review-shell \
+  --review-pack /tmp/control-review-v3-test-pack-v137-student.jsonl \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --feedback-output runs/control/control-human-feedback.jsonl \
+  --reviewer dirmich --offset 0 --limit 50
+```
+
+각 화면에서 `state`, `question`, `allowed values`만 보고 `value>`에
+`STOP`/`MOVE` 등의 값을 직접 입력한다. `n`/`p`/`s`/`q`는 다음/이전/보류/종료다.
+쉘은 teacher draft를 승인하지 않으며, 입력값을 registry 기준으로 검증한 뒤
+sample별 append-only feedback으로 저장한다.

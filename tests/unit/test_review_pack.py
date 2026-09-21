@@ -24,6 +24,7 @@ from hyperjev.review_pack import (
     format_control_review_action_summary,
     load_control_review_focus_actions,
     run_adjudication_session,
+    run_control_review_shell,
     run_review_session,
 )
 
@@ -71,6 +72,28 @@ class ReviewPackTests(unittest.TestCase):
         self.assertTrue(args.blind)
         self.assertEqual(args.offset, 50)
         self.assertEqual(args.limit, 25)
+
+    def test_control_review_shell_exposes_flat_batch_flags(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "control",
+                "review-shell",
+                "--review-pack",
+                "pack.jsonl",
+                "--queue",
+                "queue.jsonl",
+                "--feedback-output",
+                "feedback.jsonl",
+                "--reviewer",
+                "human-a",
+                "--offset",
+                "10",
+                "--limit",
+                "5",
+            ]
+        )
+        self.assertEqual(args.offset, 10)
+        self.assertEqual(args.limit, 5)
 
     def test_control_review_session_forwards_batch_flags_to_handler(self) -> None:
         args = build_parser().parse_args(
@@ -1121,6 +1144,75 @@ class ReviewPackTests(unittest.TestCase):
         self.assertEqual(report["saved_in_session"], 1)
         self.assertFalse(any("Qwen draft" in line for line in output))
         self.assertTrue(any("Commands: [e]nter label" in line for line in output))
+
+    def test_control_review_shell_accepts_flat_value_and_collapses_exact_duplicates(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            pack = root / "review-pack.jsonl"
+            feedback = root / "feedback.jsonl"
+            generate_control_review_queue(queue, registry, count_per_skill=1, seed=7)
+            queue_records = [json.loads(line) for line in queue.read_text(encoding="utf-8").splitlines()]
+            duplicate = dict(queue_records[0])
+            duplicate["sample_id"] = "control-review-exact-duplicate"
+            duplicate["source"] = dict(duplicate["source"])
+            duplicate["source"]["scenario_id"] = "control-scenario-exact-duplicate"
+            queue_records.append(duplicate)
+            queue.write_text(
+                "\n".join(json.dumps(record, ensure_ascii=False) for record in queue_records) + "\n",
+                encoding="utf-8",
+            )
+            queue_sha256 = __import__("hashlib").sha256(queue.read_bytes()).hexdigest()
+            pack_records = [
+                {
+                    "record_type": "golden_review_pack_manifest",
+                    "queue_sha256": queue_sha256,
+                    "sample_count": 2,
+                }
+            ]
+            for record in (queue_records[0], duplicate):
+                pack_records.append(
+                    {
+                        "record_type": "golden_review_item",
+                        "sample_id": record["sample_id"],
+                        "task": "control.skill@1",
+                        "state": record["state"],
+                        "question": record["question"],
+                        "language": record["language"],
+                        "domain": record["domain"],
+                        "teacher": {"normalized_result": {"selected": "STOP"}},
+                    }
+                )
+            pack.write_text(
+                "\n".join(json.dumps(record, ensure_ascii=False) for record in pack_records) + "\n",
+                encoding="utf-8",
+            )
+            output: list[str] = []
+            report = run_control_review_shell(
+                pack,
+                queue,
+                feedback,
+                registry,
+                reviewer="human-a",
+                input_fn=lambda _prompt: queue_records[0]["target"],
+                output_fn=output.append,
+            )
+
+            feedback_records = feedback.read_text(encoding="utf-8").splitlines()
+
+        self.assertEqual(report["reviewed_count"], 2)
+        self.assertEqual(report["pending_count"], 0)
+        self.assertEqual(report["saved_in_session"], 2)
+        self.assertEqual(report["decisions_in_session"], 1)
+        self.assertEqual(report["review_group_count"], 1)
+        self.assertTrue(report["deduplicated_exact"])
+        self.assertTrue(report["flat_value_input"])
+        self.assertEqual(len(feedback_records), 2)
+        self.assertTrue(any("allowed values:" in line for line in output))
+        self.assertTrue(any("state:" in line for line in output))
+        self.assertTrue(any("question:" in line for line in output))
+        self.assertFalse(any("normalized_result" in line or "Qwen" in line for line in output))
 
     def test_control_dual_review_requires_adjudication_before_finalization(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")

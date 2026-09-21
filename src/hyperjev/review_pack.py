@@ -910,6 +910,33 @@ def _correction_from_value(item: dict[str, Any], raw_value: str, registry: TaskR
     raise ValueError(f"unsupported task output type: {task.output_type}")
 
 
+def _review_value_options(item: dict[str, Any], registry: TaskRegistry) -> str:
+    """Return the flat values shown by the control value-review shell."""
+
+    task_id, task_version = parse_task_reference(str(item.get("task", "")))
+    task = registry.get(task_id, task_version)
+    if task.output_type == "boolean":
+        return "true / false"
+    if task.output_type == "choice":
+        return " / ".join(str(candidate) for candidate in task.output.get("candidates", []))
+    if task.output_type == "score":
+        return "number between 0 and 1"
+    return str(task.output_type)
+
+
+def _review_value_label(correction: dict[str, Any]) -> str:
+    """Render a stored typed correction as one scalar value for local review."""
+
+    result_type = correction.get("type")
+    if result_type == "choice":
+        return str(correction.get("selected", ""))
+    if result_type == "boolean":
+        return str(bool(correction.get("value"))).lower()
+    if result_type == "score":
+        return str(correction.get("value", ""))
+    return str(result_type or "")
+
+
 def _exact_review_group_key(item: dict[str, Any]) -> tuple[str, ...]:
     """Return the immutable content key used for exact-duplicate review groups."""
 
@@ -917,6 +944,191 @@ def _exact_review_group_key(item: dict[str, Any]) -> tuple[str, ...]:
         str(item.get(field, ""))
         for field in ("task", "language", "domain", "state", "question")
     )
+
+
+def run_control_review_shell(
+    review_pack_path: str | Path,
+    queue_path: str | Path,
+    feedback_path: str | Path,
+    registry: TaskRegistry,
+    *,
+    reviewer: str,
+    input_fn: Any = input,
+    output_fn: Any = print,
+    batch_offset: int = 0,
+    batch_limit: int | None = None,
+) -> dict[str, Any]:
+    """Review control samples with one flat value per prompt.
+
+    Exact duplicates are always collapsed into one group, teacher/nested JSON is
+    never displayed, and the reviewer enters only the typed scalar action. The
+    append-only feedback stream still records one validated label per sample in
+    the collapsed group.
+    """
+
+    if batch_offset < 0:
+        raise ValueError("batch_offset must be non-negative")
+    if batch_limit is not None and batch_limit < 1:
+        raise ValueError("batch_limit must be positive")
+    pack_records = _read_records(Path(review_pack_path))
+    manifest = pack_records[0]
+    if manifest.get("record_type") != "golden_review_pack_manifest":
+        raise ValueError("review pack must start with a golden review pack manifest")
+    queue = Path(queue_path)
+    queue_sha256 = hashlib.sha256(queue.read_bytes()).hexdigest()
+    if manifest.get("queue_sha256") != queue_sha256:
+        raise ValueError("queue SHA-256 does not match the review pack manifest")
+    items = pack_records[1:]
+    if not items:
+        raise ValueError("review pack has no review items")
+
+    feedback = Path(feedback_path)
+    latest = _validated_feedback_by_sample(feedback, queue, registry)
+    grouped: dict[tuple[str, ...], list[dict[str, Any]]] = {}
+    for item in items:
+        grouped.setdefault(_exact_review_group_key(item), []).append(item)
+    groups = list(grouped.values())
+    selected_groups = groups[batch_offset:]
+    if batch_limit is not None:
+        selected_groups = selected_groups[:batch_limit]
+    if not selected_groups:
+        raise ValueError("review batch is empty")
+
+    propagated = 0
+    for group in selected_groups:
+        reviewed = [
+            str(item.get("sample_id"))
+            for item in group
+            if str(item.get("sample_id")) in latest
+        ]
+        if not reviewed or len(reviewed) == len(group):
+            continue
+        source_id = reviewed[-1]
+        correction = latest[source_id].get("correction")
+        if not isinstance(correction, dict):
+            raise TypeError(f"feedback correction is invalid for exact duplicate {source_id}")
+        for item in group:
+            sample_id = str(item.get("sample_id", ""))
+            if sample_id in latest:
+                continue
+            record = append_golden_feedback(
+                queue,
+                feedback,
+                registry,
+                sample_id=sample_id,
+                correction=correction,
+                reviewer=reviewer,
+                reason=f"control review shell: propagated exact duplicate of {source_id}",
+            )
+            latest[sample_id] = {
+                "sample_id": sample_id,
+                "correction": correction,
+                "created_at": record.get("created_at"),
+            }
+            propagated += 1
+
+    index = next(
+        (
+            position
+            for position, group in enumerate(selected_groups)
+            if not all(str(item.get("sample_id")) in latest for item in group)
+        ),
+        len(selected_groups),
+    )
+    saved = 0
+    decisions = 0
+    stopped = False
+    while 0 <= index < len(selected_groups):
+        group = selected_groups[index]
+        item = group[0]
+        sample_id = str(item.get("sample_id", ""))
+        output_fn("")
+        output_fn(
+            f"[{batch_offset + index + 1}/{len(groups)}] {item.get('task')} "
+            f"exact_duplicates={len(group)}"
+        )
+        output_fn(f"state: {item.get('state')}")
+        output_fn(f"question: {item.get('question')}")
+        output_fn(f"allowed values: {_review_value_options(item, registry)}")
+        if sample_id in latest:
+            output_fn(f"current value: {_review_value_label(latest[sample_id]['correction'])}")
+        output_fn("Enter a value directly, or use [n]ext [p]revious [s]kip [q]uit")
+        try:
+            raw_value = input_fn("value> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            stopped = True
+            break
+        command = raw_value.lower()
+        if command in {"q", "quit"}:
+            stopped = True
+            break
+        if command in {"n", "next", "s", "skip"}:
+            if index < len(selected_groups) - 1:
+                index += 1
+            continue
+        if command in {"p", "previous", "prev"}:
+            if index > 0:
+                index -= 1
+            continue
+        try:
+            correction = _correction_from_value(item, raw_value, registry)
+        except (TypeError, ValueError) as exc:
+            output_fn(f"Invalid value: {exc}")
+            continue
+        affected = group
+        reason = "control review shell: reviewer entered value"
+        if len(affected) > 1:
+            reason += f"; applied to {len(affected)} exact duplicate samples"
+        try:
+            for affected_item in affected:
+                affected_id = str(affected_item.get("sample_id", ""))
+                record = append_golden_feedback(
+                    queue,
+                    feedback,
+                    registry,
+                    sample_id=affected_id,
+                    correction=correction,
+                    reviewer=reviewer,
+                    reason=reason,
+                )
+                latest[affected_id] = {
+                    "sample_id": affected_id,
+                    "correction": correction,
+                    "created_at": record.get("created_at"),
+                }
+                saved += 1
+        except (TypeError, ValueError) as exc:
+            output_fn(f"Correction rejected: {exc}")
+            continue
+        decisions += 1
+        output_fn(f"Saved {len(affected)} label(s).")
+        if index < len(selected_groups) - 1:
+            index += 1
+        else:
+            break
+
+    reviewed_count = sum(str(item.get("sample_id")) in latest for item in items)
+    return {
+        "reviewed_count": reviewed_count,
+        "pending_count": len(items) - reviewed_count,
+        "saved_in_session": saved,
+        "decisions_in_session": decisions,
+        "review_group_count": len(groups),
+        "batch_offset": batch_offset,
+        "batch_limit": batch_limit,
+        "batch_count": len(selected_groups),
+        "batch_pending_count": sum(
+            1
+            for group in selected_groups
+            for item in group
+            if str(item.get("sample_id")) not in latest
+        ),
+        "deduplicated_exact": True,
+        "propagated_count": propagated,
+        "stopped": stopped,
+        "flat_value_input": True,
+        "teacher_hidden": True,
+    }
 
 
 def run_review_session(

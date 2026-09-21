@@ -44,6 +44,7 @@ from .review_pack import (
     format_control_review_action_summary,
     load_control_review_focus_actions,
     run_adjudication_session,
+    run_control_review_shell,
     run_review_session,
 )
 from .routing import DecisionRouter
@@ -519,6 +520,21 @@ def _control_review_session(args: argparse.Namespace) -> int:
         reviewer=args.reviewer,
         deduplicate_exact=args.deduplicate_exact,
         blind_teacher=args.blind,
+        batch_offset=args.offset,
+        batch_limit=args.limit,
+    )
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
+
+
+def _control_review_shell(args: argparse.Namespace) -> int:
+    registry = TaskRegistry.load(args.registry)
+    report = run_control_review_shell(
+        args.review_pack,
+        args.queue,
+        args.feedback_output,
+        registry,
+        reviewer=args.reviewer,
         batch_offset=args.offset,
         batch_limit=args.limit,
     )
@@ -1195,6 +1211,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="hide teacher output and require an independently entered value",
     )
     control_review_session.set_defaults(handler=_control_review_session)
+    control_review_shell = control_subparsers.add_parser(
+        "review-shell",
+        help="flat one-value-at-a-time control review; exact duplicates are collapsed",
+    )
+    control_review_shell.add_argument("--registry", default="registry/control_tasks")
+    control_review_shell.add_argument("--review-pack", required=True)
+    control_review_shell.add_argument("--queue", required=True)
+    control_review_shell.add_argument("--feedback-output", required=True)
+    control_review_shell.add_argument("--reviewer", required=True)
+    control_review_shell.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="zero-based review-group offset for a deterministic batch",
+    )
+    control_review_shell.add_argument(
+        "--limit",
+        type=int,
+        help="maximum number of exact-deduplicated groups in this batch",
+    )
+    control_review_shell.set_defaults(handler=_control_review_shell)
     control_review_agreement = control_subparsers.add_parser("review-agreement")
     control_review_agreement.add_argument("--registry", default="registry/control_tasks")
     control_review_agreement.add_argument("--queue", required=True)

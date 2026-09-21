@@ -1,8 +1,32 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.138.0
+현재 버전: 1.139.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.139.0 — control flat-value review shell
+
+기존 `review-session`은 blind/deduplicate 옵션을 조합해야 하고 teacher 결과가
+nested JSON 형태로 보일 수 있었다. control reviewer가 한 건씩 판단하기 쉽게
+전용 명령을 추가했다.
+
+```bash
+uv run hyperjev control review-shell \
+  --review-pack /tmp/control-review-v3-test-pack-v137-student.jsonl \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --feedback-output runs/control/control-human-feedback.jsonl \
+  --reviewer dirmich \
+  --offset 0 --limit 50
+```
+
+화면에는 `state`, `question`, 허용 action 목록만 표시된다. `value>`에
+`STOP`, `MOVE` 같은 값을 직접 입력하면 registry candidate 검증 후 typed
+feedback을 append한다. `n`, `p`, `s`, `q`는 각각 다음/이전/보류/종료다.
+task, language, domain, state, question이 모두 같은 exact duplicate는 하나의
+group으로 접고 한 번 입력한 correction을 각 sample ID에 기록한다. 따라서
+review 화면의 판단 수와 human label 수는 다를 수 있으며 unique group 수를 함께
+기록한다. teacher target을 `labels.human`으로 자동 복사하지 않으므로, 이 명령은
+검수 throughput 개선이지 자동 정답 생성이 아니다.
 
 ## v1.138.0 — teacher-assisted review 우선순위 고정
 

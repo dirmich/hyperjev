@@ -3948,6 +3948,28 @@ Student confidence는 사람 검수 순서를 정할 뿐 정답을 생성하지 
 이 단계의 `384/384`는 synthetic/teacher evidence이고, human label gate와
 production-ready는 계속 닫혀 있다.
 
+### 15.16 control flat-value review shell (v1.139.0)
+
+control용 interactive review 명령을 추가했다.
+
+```bash
+uv run hyperjev control review-shell \
+  --review-pack /tmp/control-review-v3-test-pack-v137-student.jsonl \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --feedback-output runs/control/control-human-feedback.jsonl \
+  --reviewer dirmich --offset 0 --limit 50
+```
+
+이 쉘은 nested teacher JSON을 표시하지 않고 raw `state`, `question`, registry의
+flat allowed values만 표시한다. `value>` prompt에 `STOP` 또는 `MOVE`를 직접
+입력하면 typed feedback을 append한다. `n/p/s/q`는 next/previous/skip/quit이다.
+exact duplicate는 한 그룹으로 묶지만 feedback은 각 sample ID에 기록한다.
+
+검증된 동작은 exact duplicate 2개를 한 번 입력해 feedback 2건을 저장하는 것,
+허용 action 목록과 state/question을 출력하는 것, teacher `normalized_result`와
+Qwen nested JSON을 출력하지 않는 것이다. 기존 review pack suite는 `32 passed`다.
+이 쉘은 human value를 요구하므로 자동으로 production gate를 통과시키지 않는다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행
