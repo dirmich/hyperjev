@@ -4100,6 +4100,32 @@ uv run python scripts/evaluate_control_fast_path.py \
 상태에서 human 정확도나 상용 제어 안정성을 주장하지 않는다. 별도의 human test
 status는 `2/384`, `test_ready=false`로 유지된다.
 
+### 15.23 human-label ledger reconciliation (v1.146.0)
+
+현재 저장소에는 사용자가 검수한 1,000개가 다음 파일로 남아 있다.
+
+```text
+runs/phase3/human-reviewed-1000-dataset.jsonl
+```
+
+이 artifact의 모든 row에 `labels.human`이 있고 task 분포는 다음과 같다.
+
+| task | rows |
+| --- | ---: |
+| `memory.remember_worthy` | 167 |
+| `memory.type` | 167 |
+| `memory.importance` | 167 |
+| `memory.relation` | 166 |
+| `query.route` | 167 |
+| `wiki.semantic_change` | 166 |
+
+이 1,000개를 human target으로 재학습한 Phase 3 reference Student의 rule+Student
+재평가는 `1000/1000 (100%)`, accepted `822/822 (100%)`, coverage `82.20%`였다.
+그러나 exact duplicate를 묶으면 의미 group이 36개이고 control action task가
+아니므로, 현재 control `5192`-row queue의 human accuracy로 재사용할 수 없다.
+control의 authoritative status는 별도 feedback file 기준 `2/384` test,
+`0/5192` targeted이며 `test_ready=false`다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

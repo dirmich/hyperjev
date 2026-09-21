@@ -119,6 +119,12 @@ synchronized p95는 `163.376µs`였다. 그러나 이 queue의 human label은 `0
 별도 test review도 `2/384`뿐이다. teacher가 보여준 configured value나 synthetic
 target과 사람이 입력한 correction은 서로 다른 provenance로 끝까지 분리한다.
 
+v1.146.0에서 확인한 기존 1,000개 human review는 `memory.*`, `query.route`,
+`wiki.semantic_change`용 Phase 3 label이다. 그것은 유효한 human data지만
+`control.skill@1`의 action correction이 아니므로 control golden으로 이동시키지
+않는다. 이 분리가 있어야 teacher configured value, Phase 3 human target, control
+human correction을 서로 섞지 않고 정확도를 계산할 수 있다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

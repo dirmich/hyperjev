@@ -3,6 +3,21 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — reconcile human-label ledgers (v1.146.0)
+
+- 사용자가 완료한 1,000개 human label은 실제로
+  `runs/phase3/human-reviewed-1000-dataset.jsonl`에 존재한다. 이 파일은
+  `memory.remember_worthy`, `memory.type`, `memory.importance`,
+  `memory.relation`, `query.route`, `wiki.semantic_change`의 6개 Phase 3 task로
+  구성되며, control action registry의 label은 아니다.
+- Phase 3 human-target retrained n-gram Student의 rule+Student 결과는
+  `1000/1000 (100%)`, accepted `822/822 (100%)`, coverage `82.20%`였다. 다만
+  exact duplicate를 묶으면 의미 group은 `36`개이므로 이 결과를 control의
+  5,192개 독립 판단이나 production 전반 정확도로 재사용하지 않는다.
+- 현재 control ledger는 별도로 `test 2/384`, targeted `0/5192`이다. 서로 다른
+  task와 candidate를 가진 label을 합산하지 않고, control review shell에서
+  `state/question → control action`을 새로 검수해야 control 99% gate가 열린다.
+
 ## 2026-09-21 — full augmented targeted replay (v1.145.0)
 
 - 현재 선택된 v1.137 sparse BOW weight2 checkpoint를 실제 `5192`-row augmented

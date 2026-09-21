@@ -1,8 +1,28 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.144.0
+현재 버전: 1.146.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.146.0 — human-label ledger reconciliation
+
+사용자가 검수한 1,000개는 누락된 것이 아니다. 다음 artifact에 실제 1,000개
+`labels.human`이 있고, 6개 Phase 3 task로 구성된다.
+
+```text
+runs/phase3/human-reviewed-1000-dataset.jsonl
+```
+
+| 구분 | human rows | task registry | 현재 결과 |
+| --- | ---: | --- | ---: |
+| Phase 3 memory/query | `1000` | `memory.*`, `query.route`, `wiki.*` | rule+Student `1000/1000`, accepted `822/822`, coverage `82.20%` |
+| Control review | `2/384` test, `0/5192` targeted | `control.skill@1` | `test_ready=false` |
+
+Phase 3의 1,000개는 `APPROACH`, `STOP`, `RECOVER` 같은 control action을
+검수한 label이 아니므로 control checkpoint 평가에 합산하지 않는다. 또한 Phase 3
+1,000 rows는 exact duplicate를 묶으면 의미 group이 36개다. 따라서 control의
+99% gate는 control review shell에서 state/question을 확인해 입력한 별도 human
+label로만 계산한다.
 
 ## v1.145.0 — full augmented targeted replay
 

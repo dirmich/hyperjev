@@ -182,6 +182,13 @@ synchronized model-only p95 `163.376µs`를 기록했다. 이 결과는 전체 s
 replay와 latency 증거이지 human accuracy가 아니다. targeted human label은
 `0/5192`, 별도 test queue는 `2/384`이므로 production-ready는 계속 false다.
 
+v1.146.0에서 이전에 완료된 1,000개 human review artifact도 다시 대조했다.
+그 1,000개는 Phase 3의 memory/query/wiki task이고, rule+Student 결과는 전체
+`1000/1000`, accepted `822/822`, coverage `82.20%`였다. 하지만 control action
+registry와 다른 label이므로 control `0/5192`에 합산하지 않는다. 같은 단어
+`human label`이라도 task registry와 의미 group이 다르면 별도 ledger로 유지해야
+한다.
+
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
 정확도·STOP recall을 부풀리는 실수를 회귀 테스트로 막는다. 500-case 재생은

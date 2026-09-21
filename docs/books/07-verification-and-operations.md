@@ -204,3 +204,9 @@ v1.145.0에서는 partial test와 구분해 `5192`-row augmented targeted queue 
 `hyperjev-control 4810`과 `safety-rule 382`였고, synthetic `5192/5192`, STOP
 recall `1.0`, CUDA p95 `163.376µs`였다. 다만 human label `0/5192`와 test
 coverage `2/384`는 그대로이므로 latency와 synthetic gate만 통과한 상태다.
+
+v1.146.0에서 `runs/phase3/human-reviewed-1000-dataset.jsonl`을 대조해 보니,
+사용자의 1,000개 human label은 존재하며 Phase 3 rule+Student는 `1000/1000`,
+accepted `822/822`, coverage `82.20%`였다. 그러나 이는 control action과 다른
+task registry이므로 control review status에는 포함하지 않는다. 평가 보고서는
+row 수뿐 아니라 task registry, unique group, split까지 확인해야 한다.
