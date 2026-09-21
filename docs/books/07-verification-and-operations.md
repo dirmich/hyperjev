@@ -179,3 +179,8 @@ v1.140.0의 review shell은 action을 `a`, `h`, `i`, `m`, `s`, `ro`, `rt`, `rc`�
 입력할 수 있고 대소문자를 무시한다. `s`는 안전 동작인 `STOP`이므로 보류는
 `sk`/`skip`으로 분리했다. alias는 표시 편의와 입력 속도만 바꾸며, typed registry
 검증과 human-label gate는 그대로 유지한다.
+
+v1.141.0의 review shell은 teacher draft에서 configured scalar도 표시한다.
+`configured value`는 reviewer에게 현재 설정된 선택을 알려주지만 nested
+probability와 synthetic target은 노출하지 않는다. 이 값은 참고용이며 human
+correction을 대신하지 않는다.

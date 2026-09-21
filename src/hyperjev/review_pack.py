@@ -977,6 +977,23 @@ def _review_value_label(correction: dict[str, Any]) -> str:
     return str(result_type or "")
 
 
+def _review_configured_value(item: dict[str, Any]) -> str:
+    """Render the configured scalar without exposing nested teacher payloads."""
+
+    configured = item.get("configured_value")
+    if isinstance(configured, dict):
+        return f"{_review_value_label(configured)} (configured)"
+    if configured is not None and str(configured).strip():
+        return f"{configured} (configured)"
+
+    teacher = item.get("teacher")
+    if isinstance(teacher, dict):
+        result = teacher.get("normalized_result")
+        if isinstance(result, dict) and result.get("type") in {"choice", "boolean", "score"}:
+            return f"{_review_value_label(result)} (teacher draft)"
+    return "not provided"
+
+
 def _exact_review_group_key(item: dict[str, Any]) -> tuple[str, ...]:
     """Return the immutable content key used for exact-duplicate review groups."""
 
@@ -1089,6 +1106,7 @@ def run_control_review_shell(
         )
         output_fn(f"state: {item.get('state')}")
         output_fn(f"question: {item.get('question')}")
+        output_fn(f"configured value: {_review_configured_value(item)}")
         output_fn(f"allowed values: {_review_value_options(item, registry)}")
         if sample_id in latest:
             output_fn(f"current value: {_review_value_label(latest[sample_id]['correction'])}")

@@ -94,6 +94,12 @@ v1.140.0에서는 control review 입력을 한두 글자 alias로 단축했다. 
 마찬가지로 registry validation을 거치며, reviewer가 실제 입력한 값만 golden
 feedback으로 남는다.
 
+v1.141.0에서는 review pack의 teacher normalized result에서 scalar만 추려
+`configured value`로 표시한다. reviewer는 설정된 `APPROACH`나 `STOP`을 확인할
+수 있지만 nested 확률, provider metadata, synthetic target은 보지 않는다.
+설정값이 없는 item은 `not provided`로 표시되며, 사람의 correction만 feedback에
+기록된다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

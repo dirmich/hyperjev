@@ -103,7 +103,7 @@ uv run hyperjev control review-shell \
   --reviewer dirmich --offset 0 --limit 50
 ```
 
-각 화면에서 `state`, `question`, `allowed values`만 보고 `value>`에
+각 화면에서 `state`, `question`, `configured value`, `allowed values`를 보고 `value>`에
 `a/h/i/m/s` 또는 `ro/rt/rc`를 입력한다. 이는 각각
 `APPROACH/HOLD/INTERACT/MOVE/STOP`과 `ROTATE/RETREAT/RECOVER`를 뜻하며,
 full action 이름도 가능하고 대소문자를 구분하지 않는다. `n`/`p`/`sk`/`q`는

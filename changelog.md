@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — show configured scalar in control review shell (v1.141.0)
+
+- control review 화면에 `configured value`를 추가했다. review pack의 teacher
+  normalized result에서 choice selected, boolean value, score value만 scalar로
+  표시해 reviewer가 현재 설정된 답을 확인할 수 있다.
+- nested probability와 Qwen/Gemma metadata는 계속 표시하지 않는다. 설정값이
+  없는 item은 `configured value: not provided`로 명시한다.
+- synthetic target을 새로 노출하지 않으므로 target-excluded human review와
+  append-only feedback 경계는 유지된다.
+
 ## 2026-09-21 — one/two-letter control review aliases (v1.140.0)
 
 - `control review-shell`의 control action 입력을 한두 글자 alias로 줄였다.

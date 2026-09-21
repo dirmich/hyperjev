@@ -3971,6 +3971,28 @@ exact duplicate는 한 그룹으로 묶지만 feedback은 각 sample ID에 기�
 Qwen nested JSON을 출력하지 않는 것이다. 기존 review pack suite는 `32 passed`다.
 이 쉘은 human value를 요구하므로 자동으로 production gate를 통과시키지 않는다.
 
+### 15.18 configured scalar in control review shell (v1.141.0)
+
+control review 화면에 teacher draft의 configured scalar를 추가했다. choice는
+`selected`, boolean은 `true/false`, score는 `value`만 표시하고 nested
+probabilities, provider metadata, raw teacher JSON은 표시하지 않는다.
+
+예시 출력은 다음과 같다.
+
+```text
+state: move nearer to the selected object; scenario variant 0039
+question: decide the next controller action from this state
+configured value: APPROACH (teacher draft)
+allowed values: a=APPROACH / h=HOLD / i=INTERACT / m=MOVE / s=STOP / ro=ROTATE / rt=RETREAT / rc=RECOVER
+```
+
+설정값이 없는 item은 `configured value: not provided`로 표시한다. synthetic
+target은 계속 pack에서 제외하므로 configured value는 참고용 teacher draft이며,
+human correction을 대신하지 않는다.
+
+검증은 기존 control review shell test에 configured value 출력 assertion을
+추가해 완료했다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

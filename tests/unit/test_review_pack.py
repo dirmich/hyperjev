@@ -1181,7 +1181,9 @@ class ReviewPackTests(unittest.TestCase):
                         "question": record["question"],
                         "language": record["language"],
                         "domain": record["domain"],
-                        "teacher": {"normalized_result": {"selected": "STOP"}},
+                        "teacher": {
+                            "normalized_result": {"type": "choice", "selected": "STOP"}
+                        },
                     }
                 )
             pack.write_text(
@@ -1210,6 +1212,7 @@ class ReviewPackTests(unittest.TestCase):
         self.assertTrue(report["flat_value_input"])
         self.assertEqual(len(feedback_records), 2)
         self.assertTrue(any("rc=RECOVER" in line for line in output))
+        self.assertTrue(any("configured value: STOP (teacher draft)" in line for line in output))
         self.assertTrue(any("state:" in line for line in output))
         self.assertTrue(any("question:" in line for line in output))
         self.assertFalse(any("normalized_result" in line or "Qwen" in line for line in output))

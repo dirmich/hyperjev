@@ -1,8 +1,17 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.140.0
+현재 버전: 1.141.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.141.0 — show configured scalar in control review shell
+
+control review 화면에 reviewer가 확인해야 하는 현재 설정값도 표시한다.
+review pack의 teacher normalized result에서 `selected`, `value` 같은 scalar만
+추려 `configured value: APPROACH (teacher draft)` 형식으로 보여주며, nested
+확률·provider JSON은 계속 숨긴다. review pack에 설정값이 없으면
+`configured value: not provided`를 표시한다. synthetic target은 계속 노출하지
+않으므로 human review의 target-excluded 계약은 유지된다.
 
 ## v1.140.0 — one/two-letter control review aliases
 
