@@ -3,6 +3,14 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-22 — control teacher confirmation shortcut (v1.153.0)
+
+- `control review-shell`에서 `c` 또는 `confirm`을 입력하면 화면에 숨겨진 teacher
+  draft를 그대로 human feedback으로 승인하고 검수 완료 처리한다.
+- teacher draft가 없거나 schema-invalid이면 자동 승인하지 않고 기존처럼 직접 값을
+  입력하도록 안내한다. `sk`는 계속 보류(pending)이며 teacher 동의로 간주하지 않는다.
+- 전용 review-shell 테스트 3개와 전체 테스트 `200 passed, 1 skipped`를 확인했다.
+
 ## 2026-09-21 — review-shell progress visibility (v1.152.0)
 
 - `control review-shell` 시작 시 `review progress: reviewed/total; pending;
