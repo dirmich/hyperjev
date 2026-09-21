@@ -125,6 +125,11 @@ v1.146.0에서 확인한 기존 1,000개 human review는 `memory.*`, `query.rout
 않는다. 이 분리가 있어야 teacher configured value, Phase 3 human target, control
 human correction을 서로 섞지 않고 정확도를 계산할 수 있다.
 
+v1.147.0의 4,000-row seed와 1,800-row hard-combined replay는 teacher draft가
+아닌 Student 독립 synthetic 검증이다. 두 queue 모두 100%였지만, reviewer가
+state/question을 보고 입력한 correction이 아니므로 human golden ledger에는
+추가하지 않는다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

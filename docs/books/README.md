@@ -189,6 +189,12 @@ registry와 다른 label이므로 control `0/5192`에 합산하지 않는다. �
 `human label`이라도 task registry와 의미 group이 다르면 별도 ledger로 유지해야
 한다.
 
+v1.147.0에서는 학습에 사용한 augmented queue와 분리된 4,000-row seed 및
+1,800-row hard-combined queue를 재생했다. 각각 synthetic `4000/4000`,
+`1800/1800`, STOP recall `1.0`, CUDA p95 `158.369µs`, `162.017µs`였다.
+독립 synthetic replay의 회귀는 없었지만, human label이 아니므로 상용 정확도
+증거로 승격하지 않는다.
+
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
 정확도·STOP recall을 부풀리는 실수를 회귀 테스트로 막는다. 500-case 재생은

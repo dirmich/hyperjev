@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — independent control queue replay (v1.147.0)
+
+- 선택 checkpoint를 기존 augmented queue와 분리된 `4,000`-row seed queue에
+  재생해 `4000/4000 (100%)`, STOP recall `1.0`을 확인했다. CUDA synchronized
+  p50/p95/p99/max는 `150.912/158.369/163.921/235.793µs`였다.
+- 별도 `1,800`-row hard-combined queue도 `1800/1800 (100%)`, STOP recall `1.0`,
+  CUDA p50/p95/p99/max `152.720/162.017/178.560/299.793µs`였다.
+- 두 queue 모두 synthetic target이고 human label은 없으므로 control human
+  accuracy나 production-ready 판정으로 합산하지 않는다. 독립 queue에서 발견된
+  synthetic/OOD 회귀는 없으며, 다음 정확도 gate는 여전히 control human review다.
+
 ## 2026-09-21 — reconcile human-label ledgers (v1.146.0)
 
 - 사용자가 완료한 1,000개 human label은 실제로

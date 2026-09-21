@@ -4126,6 +4126,37 @@ runs/phase3/human-reviewed-1000-dataset.jsonl
 control의 authoritative status는 별도 feedback file 기준 `2/384` test,
 `0/5192` targeted이며 `test_ready=false`다.
 
+### 15.24 independent control queue replay (v1.147.0)
+
+현재 선택 checkpoint가 augmented training queue에만 맞춘 것인지 확인하기 위해
+별도 seed와 hard-combined queue를 같은 CUDA synchronized model-only 경로로
+재생했다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue /tmp/control-review-v3-4000.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --registry registry/control_tasks --device cuda --model-only \
+  --warmup 10 --cuda-sync \
+  --output /tmp/current-control-4000-v147.json
+
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue /tmp/control-combined-review-v2-hard.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --registry registry/control_tasks --device cuda --model-only \
+  --warmup 10 --cuda-sync \
+  --output /tmp/current-control-combined-hard-v147.json
+```
+
+| queue | rows | source | synthetic | STOP recall | CUDA p50/p95/p99/max |
+| --- | ---: | --- | ---: | ---: | ---: |
+| v3 seed | `4000` | model `3872` / safety `128` | `4000/4000` | `1.0` | `150.912/158.369/163.921/235.793µs` |
+| hard-combined v2 | `1800` | model `1524` / safety `276` | `1800/1800` | `1.0` | `152.720/162.017/178.560/299.793µs` |
+
+두 결과는 독립 synthetic replay의 회귀 부재를 보여주지만 human label이 없는
+검증이다. 기존 control human status `2/384` test, `0/5192` targeted와
+`test_ready=false`는 변하지 않는다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

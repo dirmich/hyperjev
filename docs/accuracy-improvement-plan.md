@@ -4,6 +4,21 @@
 현재 버전: 1.146.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
+## v1.147.0 — independent control queue replay
+
+선택된 v1.137 sparse BOW weight2 checkpoint를 학습에 사용한 augmented queue와
+분리된 두 queue에 재생했다.
+
+| queue | rows | synthetic | STOP recall | CUDA p95 |
+| --- | ---: | ---: | ---: | ---: |
+| v3 seed | `4000` | `4000/4000` | `1.0` | `158.369µs` |
+| hard-combined v2 | `1800` | `1800/1800` | `1.0` | `162.017µs` |
+
+측정은 `--model-only --device cuda --warmup 10 --cuda-sync`로 고정했다. 이는
+학습 queue에만 맞춘 결과가 아닌지 확인하는 독립 synthetic 회귀 검증이지만,
+두 queue 모두 `labels.human`이 없으므로 human 99% gate를 대체하지 않는다.
+현재 control human status는 test `2/384`, targeted `0/5192`이다.
+
 ## v1.146.0 — human-label ledger reconciliation
 
 사용자가 검수한 1,000개는 누락된 것이 아니다. 다음 artifact에 실제 1,000개

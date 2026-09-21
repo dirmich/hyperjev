@@ -210,3 +210,8 @@ v1.146.0에서 `runs/phase3/human-reviewed-1000-dataset.jsonl`을 대조해 보�
 accepted `822/822`, coverage `82.20%`였다. 그러나 이는 control action과 다른
 task registry이므로 control review status에는 포함하지 않는다. 평가 보고서는
 row 수뿐 아니라 task registry, unique group, split까지 확인해야 한다.
+
+v1.147.0의 독립 control replay는 v3 seed `4000/4000`, hard-combined `1800/1800`
+및 STOP recall `1.0`을 확인했다. CUDA p95는 각각 `158.369µs`와 `162.017µs`다.
+이 결과는 bounded latency와 synthetic 회귀를 보강하지만, human gate가 닫힌
+상태에서 actuator production을 허용하는 근거는 아니다.
