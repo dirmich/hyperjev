@@ -3867,6 +3867,62 @@ p95의 낮은 값은 40-row 표본과 source 구성에 민감하므로, accuracy
 동일 32k/256 checkpoint의 tokenization/model allocation 경로를 최적화하고,
 동시에 human-labeled novel state에서 실제 fallback coverage를 측정한다.
 
+### 15.14 sparse BOW projection과 model-only latency 재검증 (v1.137.0)
+
+#### 변경 범위
+
+v1.136.0에서 선택한 `vocab_size=32768, hidden_size=256` checkpoint를 재학습하지
+않고 `src/hyperjev/student.py`의 BOW encode 경로만 바꿨다. 기존 경로는 입력마다
+vocab 크기의 dense count tensor를 만들었다. 새 경로는 token id로 projection
+row를 직접 lookup한 뒤 padding mask를 적용해 합산한다. 따라서
+
+```text
+counts @ W + b == mean(W[input_ids]) + b
+```
+
+이며, `tests/unit/test_student.py`의 dense reference regression test가 repeated
+token, padding, bias를 포함해 `1e-6` tolerance로 이를 검증한다.
+
+#### 재현 명령과 결과
+
+모든 model-only 측정은 동일 checkpoint와 동일 queue에 대해 warmup 10회 후
+`torch.cuda.synchronize()` 전후를 측정했다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue tests/golden/control_ood_synthetic.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --model-only --device cuda --warmup 10 --cuda-sync
+```
+
+| queue | accuracy | p50 | p95 | p99 | max |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| hard 1,000 | `1000/1000` | `0.151ms` | `0.159ms` | `0.166ms` | `0.197ms` |
+| English OOD 40 | `40/40` | `0.156ms` | `0.182ms` | `0.200ms` | `0.200ms` |
+| Korean OOD 40 | `40/40` | `0.157ms` | `0.183ms` | `0.197ms` | `0.197ms` |
+
+hard의 p50은 별도 `/tmp/sparse-bow-hard-v137.json` 실행에서 `0.151ms`로
+기록됐다. English/Korean p50은 각각 `0.156/0.157ms`다. 표본이 작은 OOD의 max는
+p99와 동일할 수 있다. v1.135 synchronized baseline p95는
+`1.328/10.444/10.472ms`였으므로 새 경로는 표현·정확도 회귀 없이 5ms model
+latency gate를 통과한다.
+
+#### 품질과 안전 판정
+
+- targeted validation/test: `484/484`, `484/484`, Wilson 95% lower `0.992126`
+- hard/English/Korean Student-only: `1000/1000`, `40/40`, `40/40`
+- combined safety: `1000/1000`, expected safe STOP `500/500`, false-safe STOP
+  `0/500`, safety p95/p99 `0.030912/0.032352ms`
+- checkpoint SHA-256: `87898c7b0b0241415fa1ec7a56c43ebe852ff3fae09fb4f989320ff4354b2380`
+- dataset SHA-256: `85bf54addc558484114558bbcda8a9acfcfe8bd5ac2262a147144ed1f6de95f9`
+- human label: `0/5192`; quality report의 human gate와 production-ready는 계속
+  실패/`false`다.
+
+결과적으로 v1.137.0은 runtime allocation 최적화와 synthetic safety/latency
+검증을 완료했지만, 사람 정답이 없는 상태에서 상용 정확도나 99% 보증으로
+해석할 수 없다. 다음 필수 단계는 target-excluded human review와 실제 novel
+state simulator episode 평가다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행

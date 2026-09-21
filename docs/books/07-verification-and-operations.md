@@ -70,6 +70,13 @@ Student-only control tick은 아직 5ms actuator gate를 통과하지 못했다.
 rule latency와 encoder latency를 같은 숫자로 합치지 않고, 각각의 source와
 warmup/sync 조건을 report에 남긴다.
 
+v1.137.0에서는 동일한 32k/256 checkpoint를 유지하면서 dense BOW count tensor를
+만들지 않는 sparse projection을 검증했다. dense reference와의 수치 동치 test,
+hard/English/Korean `100%` OOD, safety `1000/1000`과 STOP recall `500/500`을
+확인했고 synchronized Student-only p95는 `0.159/0.182/0.183ms`였다. 이 결과는
+5ms model latency gate는 통과하지만 human label `0/5192` 상태이므로 실기기
+제어 또는 production promotion을 허용하지 않는다.
+
 ## 7.2 DGX Spark runbook
 
 ```bash

@@ -131,6 +131,28 @@ class StudentContractTests(unittest.TestCase):
         self.assertTrue(model.use_bow_encoder)
         self.assertEqual(output["type"], "choice")
 
+    def test_bow_sparse_projection_matches_dense_count_projection(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is optional")
+        model = build_torch_model(
+            self.registry,
+            StudentConfig(backbone="reference-control-bow-encoder", precision="fp32"),
+        )
+        input_ids = torch.tensor([[2, 17, 17, 0], [31, 9, 0, 0]], dtype=torch.long)
+        attention = torch.tensor([[1, 1, 1, 0], [1, 1, 0, 0]], dtype=torch.long)
+        actual = model.encode(input_ids, attention)
+        counts = torch.zeros(
+            input_ids.shape[0],
+            model.bow_projection.in_features,
+            dtype=model.bow_projection.weight.dtype,
+        )
+        counts.scatter_add_(1, input_ids, attention.to(dtype=counts.dtype))
+        pooled = counts / attention.sum(dim=1, keepdim=True).clamp_min(1).to(counts.dtype)
+        expected = model.encoder(model.bow_projection(pooled))
+        self.assertTrue(torch.allclose(actual, expected, atol=1e-6, rtol=1e-6))
+
     def test_reference_char_bow_encoder_is_a_compatible_backbone(self) -> None:
         try:
             import torch

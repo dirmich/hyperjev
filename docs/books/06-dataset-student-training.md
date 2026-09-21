@@ -198,6 +198,28 @@ inference timing이 bounded하지 않으면 로봇/게임 actuator에 연결할 
 따라서 다음 장에서는 accuracy 후보와 latency 후보를 같은 checkpoint에 대해
 분리 측정하고, warmup/batch/CUDA event 기준을 고정한다.
 
+## 6.9 표현을 줄이지 않고 BOW 추론을 줄이는 방법
+
+v1.136.0의 vocab/hidden 축소 ablation은 일부 latency만 개선하고 Korean OOD를
+회귀시켰다. 그래서 v1.137.0에서는 checkpoint의 `vocab_size=32768`과
+`hidden_size=256`을 유지하고 `HyperJevTypedHeads.encode()`의 allocation만
+바꿨다. 이전 경로는 batch-1 입력에서도 32k 크기의 dense count vector를 만든
+뒤 projection했다. 새 경로는 token id마다 `W[token_id]`를 lookup해 mask된
+row를 합산하고 token 수로 나눈다.
+
+이 최적화는 다음 두 조건을 지켜야 한다.
+
+1. padding은 projection 전에 mask하고, 빈 입력에 대한 분모 하한을 동일하게
+   유지한다.
+2. 기존 dense 구현을 reference로 둔 regression test를 남겨서 repeated token,
+   padding, bias와 dtype 변환의 의미가 바뀌지 않았음을 확인한다.
+
+동치 test와 전체 suite를 통과한 뒤 같은 checkpoint로 hard/English/Korean
+Student-only p95는 `0.159/0.182/0.183ms`가 됐다. 이 숫자는 model-only CUDA
+측정이며 deterministic safety rule의 microsecond 결과와 합치지 않는다. 또한
+동일 데이터의 synthetic 100%는 사람 정답이 아니므로, sparse path는 latency
+개선이지 production accuracy 승인이 아니다.
+
 ```bash
 uv run hyperjev model manifest \
   --training-plan runs/phase3/training-plan.json \

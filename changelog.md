@@ -3,6 +3,26 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — sparse BOW projection optimization (v1.137.0)
+
+- 32k/256 targeted BOW checkpoint의 표현과 가중치는 그대로 두고, batch-1
+  `vocab_size` dense count tensor와 dense projection을 token-row embedding
+  합산으로 바꿨다. 기존 dense count 수식과 새 경로는 unit test에서 `1e-6`
+  tolerance 내 동일함을 확인했다. 재학습 없이 checkpoint SHA-256은
+  `87898c7b0b0241415fa1ec7a56c43ebe852ff3fae09fb4f989320ff4354b2380`으로
+  유지된다.
+- accuracy/safety는 변경 전과 동일하다. targeted validation/test는 각각
+  `484/484`, 통합 safety는 `1000/1000`, expected safe STOP은 `500/500`,
+  false-safe STOP은 `0/500`이다. human label은 여전히 `0/5192`이므로
+  production-ready가 아니다.
+- warmup 10회와 CUDA synchronize를 포함한 Student-only model latency는
+  hard/English/Korean queue에서 p95 `0.159/0.182/0.183ms`, p99
+  `0.166/0.200/0.197ms`였다. v1.135의 hard `1.328ms`, English
+  `10.444ms`, Korean `10.472ms`보다 낮고 5ms model gate를 통과한다.
+- 이는 synthetic/OOD와 latency gate의 통과이지 human accuracy 99%의 증명이
+  아니다. 다음 필수 gate는 target-excluded human review와 novel-state
+  simulator episode 검증이다.
+
 ## 2026-09-21 — vocab/hidden latency ablation rejected (v1.136.0)
 
 - v1.134 targeted dataset에서 `vocab=16384, hidden=128`, `vocab=32768,

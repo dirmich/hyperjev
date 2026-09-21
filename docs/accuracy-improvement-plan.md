@@ -1,8 +1,40 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.136.0
+현재 버전: 1.137.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.137.0 — 표현을 보존한 sparse BOW projection 최적화
+
+v1.136.0의 축소 모델은 Korean OOD 또는 latency gate를 잃었으므로 32k/256
+targeted BOW checkpoint를 유지했다. 대신 `encode()`에서 각 row의 dense
+`vocab_size` count vector를 만들지 않고, 입력 token id로 projection row를
+직접 lookup해 합산하는 경로로 바꿨다.
+
+수식은 기존과 같다.
+
+```text
+dense:  bow = counts(input_ids) @ W + b
+sparse: bow = mean(W[input_ids]) + b
+```
+
+padding mask와 token count를 동일하게 적용하므로 repeated token과 padding을
+포함한 unit test에서도 `atol=rtol=1e-6`로 결과가 일치한다. checkpoint를
+재학습하지 않고 runtime allocation만 줄인 것이 핵심이다.
+
+| 평가 | 정확도 | p95 | p99 | max |
+| --- | ---: | ---: | ---: | ---: |
+| hard 1,000 | `1000/1000` | `0.159ms` | `0.166ms` | `0.197ms` |
+| English OOD 40 | `40/40` | `0.182ms` | `0.200ms` | `0.200ms` |
+| Korean OOD 40 | `40/40` | `0.183ms` | `0.197ms` | `0.197ms` |
+
+측정은 `--model-only --device cuda --warmup 10 --cuda-sync`로 고정했다. 같은
+checkpoint의 v1.135 synchronized baseline은 hard/English/Korean p95가
+`1.328/10.444/10.472ms`였으므로 세 queue 모두 5ms model gate를 통과한다.
+merged validation/test는 `484/484`, safety는 `1000/1000`, STOP recall은
+`500/500`으로 유지됐다. 그러나 human label은 `0/5192`이므로 이 결과는
+synthetic generalization과 bounded latency의 증거일 뿐 production accuracy
+증거가 아니다.
 
 ## v1.136.0 — vocab/hidden 축소 ablation 폐기
 

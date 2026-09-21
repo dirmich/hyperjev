@@ -170,6 +170,7 @@
 | 1.134.0 | 진행 중 | Korean INTERACT train-only 보강, Student OOD 100%, CUDA latency gate 실패 기록 |
 | 1.135.0 | 진행 중 | warmup/CUDA synchronize latency benchmark와 p95 gate 재측정 |
 | 1.136.0 | 진행 중 | vocab/hidden 축소 ablation, multilingual OOD·latency 기준 후보 폐기 |
+| 1.137.0 | 진행 중 | 표현 동치를 유지한 sparse BOW projection, OOD·safety·CUDA latency 재검증 |
 
 ## 다음 기록 규칙
 

@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.136.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.137.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -130,6 +130,12 @@ v1.136.0에서는 16k/128, 32k/128, 16k/256 축소 모델을 모두 폐기했다
 English p95는 좋아졌지만 Korean OOD가 95~97.5%로 내려가거나 hard latency가
 약 9.4~9.7ms였다. 정확도 기준선은 32k/256 targeted BOW로 유지하고, 다음은
 runtime allocation 최적화다.
+
+v1.137.0에서는 32k/256 표현을 유지한 채 dense vocab count tensor를 만들지 않는
+sparse BOW projection을 적용했다. dense 수식과의 동치 unit test를 통과했고,
+같은 checkpoint로 hard/English/Korean Student-only OOD는 모두 100%, CUDA
+synchronized p95는 `0.159/0.182/0.183ms`가 됐다. human label `0/5192`는 그대로라
+production accuracy로 승격하지 않았으며, 다음 gate는 human novel-state review다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

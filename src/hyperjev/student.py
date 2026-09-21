@@ -169,19 +169,28 @@ def build_torch_model(registry: TaskRegistry, config: StudentConfig | None = Non
         def encode(self, input_ids: Any, attention_mask: Any | None = None) -> Any:
             if input_ids.ndim != 2:
                 raise ValueError("input_ids must have shape [batch, sequence]")
-            embedded = self.embedding(input_ids)
             if self.use_bow_encoder:
-                mask = attention_mask.to(dtype=embedded.dtype) if attention_mask is not None else None
-                counts = torch.zeros(
-                    input_ids.shape[0],
-                    selected.vocab_size,
-                    dtype=embedded.dtype,
-                    device=input_ids.device,
+                mask = (
+                    attention_mask.to(dtype=self.bow_projection.weight.dtype)
+                    if attention_mask is not None
+                    else torch.ones_like(input_ids, dtype=self.bow_projection.weight.dtype)
                 )
-                weights = mask if mask is not None else torch.ones_like(input_ids, dtype=embedded.dtype)
-                counts.scatter_add_(1, input_ids, weights)
-                pooled = counts / weights.sum(dim=1, keepdim=True).clamp_min(1.0)
-                return self.encoder(self.bow_projection(pooled))
+                # Dense BOW counts followed by [vocab, hidden] projection is
+                # mathematically equivalent to averaging only the projection
+                # rows referenced by the input. The sparse form avoids a
+                # 32k-wide allocation and is materially cheaper for batch-1
+                # real-time control inference.
+                token_features = torch.nn.functional.embedding(
+                    input_ids,
+                    self.bow_projection.weight.transpose(0, 1),
+                )
+                pooled = (token_features * mask.unsqueeze(-1)).sum(dim=1)
+                pooled = pooled / mask.sum(dim=1, keepdim=True).clamp_min(1.0)
+                bias = self.bow_projection.bias
+                if bias is not None:
+                    pooled = pooled + bias
+                return self.encoder(pooled)
+            embedded = self.embedding(input_ids)
             if self.use_ngram_encoder:
                 mask = attention_mask.to(dtype=embedded.dtype) if attention_mask is not None else None
                 features = self.ngram_encoder(embedded.transpose(1, 2)).transpose(1, 2)
