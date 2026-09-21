@@ -105,6 +105,10 @@ Student prediction과 일치했지만 test queue는 `2/384`만 검수되어 아�
 99% gate를 계산할 수 없다. synthetic target과 human target을 분리해 보고하는
 원칙을 유지한다.
 
+v1.143.0에서는 NVIDIA GB10에서 CUDA synchronize를 포함한 partial replay를
+실행했다. p95 `162.480µs`, STOP recall `1.0`, human `2/2`는 각각 runtime,
+safety, human-label 신호이며 서로 합쳐서 99% accuracy로 계산하지 않는다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

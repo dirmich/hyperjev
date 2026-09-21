@@ -4025,6 +4025,32 @@ uv run python scripts/evaluate_control_fast_path.py \
 99% accuracy 또는 production-ready 판정이 아니다. `test_ready=false`인 동안에는
 materialize, human-only retraining, checkpoint promotion을 진행하지 않는다.
 
+### 15.20 CUDA synchronized partial human replay (v1.143.0)
+
+같은 partial human-reviewed test를 NVIDIA GB10에서 다음 조건으로 재생했다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue runs/control/control-review-v3-test-384-human-reviewed.partial.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --registry registry/control_tasks --device cuda --model-only \
+  --warmup 10 --cuda-sync
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| device | `NVIDIA GB10` |
+| mixed target replay | `384/384 (100%)` |
+| actual human-labeled replay | `2/2 (100%)` |
+| STOP recall | `1.0` |
+| CUDA latency p50/p95/p99/max | `152.815/162.480/182.256/221.263µs` |
+| hyperjev-control source p95 | `162.607µs` |
+| human test coverage | `2/384`, `test_ready=false` |
+
+CUDA synchronize를 사용해 비동기 kernel 비용을 포함했으며, latency와 safety는
+통과했다. 그러나 human sample이 2개뿐이므로 이 결과를 99% human accuracy나
+production-ready 판정으로 해석하지 않는다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — CUDA synchronized human replay benchmark (v1.143.0)
+
+- NVIDIA GB10에서 같은 `2/384` human-reviewed partial test를 `--device cuda
+  --warmup 10 --cuda-sync --model-only`로 재생했다. mixed target은 `384/384`,
+  실제 human label은 `2/2`, STOP recall은 `1.0`이었다.
+- CUDA latency p50/p95/p99/max는 `152.815/162.480/182.256/221.263µs`였고,
+  hyperjev-control source p95는 `162.607µs`였다. 이는 현재 checkpoint의
+  bounded inference evidence이며 human 99% gate를 대체하지 않는다.
+
 ## 2026-09-21 — first control human-label replay (v1.142.0)
 
 - 사용자가 `control review-shell`에서 test queue의 2개 sample을 실제 검수했다.

@@ -1,8 +1,24 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.142.0
+현재 버전: 1.143.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.143.0 — CUDA synchronized partial human replay
+
+NVIDIA GB10에서 같은 partial test를 warmup 10회와 매 decision 전후 CUDA
+synchronize 조건으로 재생했다.
+
+| gate | 결과 |
+| --- | ---: |
+| mixed target replay | `384/384` |
+| actual human labels | `2/2` |
+| STOP recall | `1.0` |
+| CUDA p50/p95/p99/max | `152.815/162.480/182.256/221.263µs` |
+| human test coverage | `2/384`, `test_ready=false` |
+
+CUDA latency는 현재 checkpoint의 inference bound를 확인하지만, human label
+coverage가 384개에 도달하기 전에는 99% production accuracy를 주장하지 않는다.
 
 ## v1.142.0 — first control human-label replay
 

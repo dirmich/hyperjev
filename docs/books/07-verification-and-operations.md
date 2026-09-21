@@ -189,3 +189,8 @@ v1.142.0의 partial human replay는 2개 human label 중 `2/2` correct였고, �
 test coverage는 `2/384`였다. CPU model-only-with-safety-policy replay latency는
 p95 `2.339ms`, p99 `2.839ms`, STOP recall `1.0`이었다. 이 latency와 safety
 결과는 bounded-runtime 회귀 방지용이며 human test completeness와 별도 gate다.
+
+v1.143.0의 NVIDIA GB10 CUDA synchronized replay는 p95 `162.480µs`, p99
+`182.256µs`, max `221.263µs`였다. 같은 실행에서 STOP recall `1.0`과 human
+label `2/2`를 확인했지만, test review status는 `2/384`이므로 promotion gate는
+계속 닫혀 있다.

@@ -176,6 +176,7 @@
 | 1.140.0 | 진행 중 | control review-shell one/two-letter lower-case aliases와 STOP/skip 명령 충돌 해소 |
 | 1.141.0 | 진행 중 | control review-shell에 teacher configured scalar 표시, nested metadata·synthetic target 비노출 유지 |
 | 1.142.0 | 진행 중 | control test human label 2건 partial replay, 2/2 human match와 latency/safety 재검증 |
+| 1.143.0 | 진행 중 | NVIDIA GB10 CUDA synchronized partial replay, p95 162.480µs·STOP recall 1.0 재검증 |
 
 ## 다음 기록 규칙
 
