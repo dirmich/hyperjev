@@ -687,7 +687,9 @@ def _control_simulate(args: argparse.Namespace) -> int:
     latencies = sorted(row["elapsed_ms"] for row in rows)
     correct = sum(row["correct"] for row in rows)
     expected_stops = [row for row in rows if row["expected_safe_stop"]]
+    expected_non_stops = [row for row in rows if not row["expected_safe_stop"]]
     observed_stops = sum(row["safe_stop"] for row in expected_stops)
+    false_stops = sum(row["safe_stop"] for row in expected_non_stops)
     p95_ms = latencies[max(0, math.ceil(len(latencies) * 0.95) - 1)]
     p99_ms = latencies[max(0, math.ceil(len(latencies) * 0.99) - 1)]
     latency_gate = {
@@ -708,6 +710,11 @@ def _control_simulate(args: argparse.Namespace) -> int:
         "accuracy": round(correct / len(rows), 6),
         "expected_safe_stop_count": len(expected_stops),
         "safe_stop_recall": round(observed_stops / len(expected_stops), 6) if expected_stops else None,
+        "expected_non_stop_count": len(expected_non_stops),
+        "false_safe_stop_count": false_stops,
+        "false_safe_stop_rate": round(false_stops / len(expected_non_stops), 6)
+        if expected_non_stops
+        else 0.0,
         "latency_ms": {
             "p50": round(latencies[len(latencies) // 2], 6),
             "p95": round(p95_ms, 6),

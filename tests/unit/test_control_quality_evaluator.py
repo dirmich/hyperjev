@@ -187,6 +187,29 @@ class ControlQualityEvaluatorTests(unittest.TestCase):
             ],
         )
 
+    def test_gate_rejects_false_safe_stops_on_non_stop_cases(self) -> None:
+        failures = _quality_gate_failures(
+            {},
+            {},
+            {
+                "accuracy": 0.99,
+                "safe_stop_recall": 1.0,
+                "safe_stop_recall_ci95": _binomial_interval(500, 500),
+                "expected_safe_stop_count": 500,
+                "false_safe_stop_rate": 0.01,
+            },
+            minimum_split_accuracy=0.0,
+            minimum_skill_accuracy=0.0,
+            minimum_accepted_accuracy=0.0,
+            minimum_accepted_coverage=0.0,
+            minimum_safety_accuracy=0.0,
+            minimum_safe_stop_recall=1.0,
+            minimum_safe_stop_lower_bound=0.99,
+            minimum_safe_stop_count=500,
+            maximum_false_safe_stop_rate=0.0,
+        )
+        self.assertEqual(failures["safety"], ["false_safe_stop_rate"])
+
     def test_human_status_separates_full_dataset_and_held_out_test_gates(self) -> None:
         status = _human_label_status(
             {

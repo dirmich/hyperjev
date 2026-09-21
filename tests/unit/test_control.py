@@ -372,6 +372,7 @@ class ControlContractTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(report["accuracy"], 1.0)
         self.assertEqual(report["safe_stop_recall"], 1.0)
+        self.assertEqual(report["false_safe_stop_rate"], 0.0)
         self.assertIn("p99", report["latency_ms"])
         self.assertIn("max", report["latency_ms"])
         self.assertTrue(report["latency_gate"]["passed"])

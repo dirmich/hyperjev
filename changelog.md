@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — add safety non-trigger near-miss gate (v1.123.0)
+
+- safety generator에 valid timestamp/emergency 조건의 non-STOP near-miss matrix를
+  추가했다. forced STOP만 있는 기존 500건과 분리해, 항상 STOP을 반환하는 구현의
+  false-safe-stop을 측정할 수 있다.
+- `control simulate`과 quality evaluator가 expected non-stop 수, false abstaining
+  STOP 수/비율을 보고하며, quality gate 기본값은 false-safe-stop rate `0.0`이다.
+- fresh near-miss 500건은 `500/500 (100%)`, false-safe-stop `0/500 (0%)`, p95/p99
+  `0.031536/0.035488ms`로 통과했다. 기존 forced-stop 500건도 STOP recall
+  `500/500 (100%)`를 유지했다.
+- 이 결과는 synthetic safety boundary 검증이며 human control accuracy를 대체하지
+  않는다.
+
 ## 2026-09-21 — tighten 99% confidence gate and promote reviewed control phrases (v1.122.0)
 
 - Qwen control draft에서 반복된 명확한 문구를 safety blocker 검사를 통과하는

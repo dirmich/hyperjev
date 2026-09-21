@@ -3486,6 +3486,38 @@ human label은 `0/800`, test label은 `0/80`이므로 현재 report의
 `production_ready`는 여전히 `false`다. 다음 실측 단계는 381개 이상의 독립 test
 group blind dual review와 safety non-trigger near-miss 확장이다.
 
+### 15.00 safety non-trigger near-miss and false-safe-stop gate (v1.123.0)
+
+기존 `control_safety_500.jsonl`은 500건 전부 expected STOP이라 safe-stop recall은
+검증하지만, 항상 STOP을 반환하는 구현의 false positive를 검출하지 못했다. 새
+generator는 같은 세 가지 경계 이유를 유지하면서 `emergency_stop=false`, fresh
+observation, valid clock인 non-STOP scenario를 별도 생성한다.
+
+```bash
+uv run python scripts/generate_control_safety_scenarios.py \
+  --output /tmp/control-safety-near-miss-v122.jsonl \
+  --count 500 --near-miss
+uv run hyperjev control simulate \
+  --registry registry/control_tasks \
+  --checkpoint /tmp/control-combined-korean-bow-balanced-100ep-v105.pt \
+  --scenarios /tmp/control-safety-near-miss-v122.jsonl \
+  --output /tmp/control-safety-near-miss-v122.json \
+  --fail-on-mismatch --max-p95-ms 5 --max-p99-ms 5
+```
+
+| 항목 | forced STOP 500 | non-trigger near-miss 500 |
+| --- | ---: | ---: |
+| action accuracy | `500/500 (100%)` | `500/500 (100%)` |
+| expected STOP | `500` | `0` |
+| safe STOP recall | `500/500 (100%)` | 해당 없음 |
+| false safe STOP | `0` | `0/500 (0%)` |
+| p95 / p99 | `0.000944/0.001392ms` | `0.031536/0.035488ms` |
+
+`control simulate`과 `evaluate_control_quality.py`는 이제
+`expected_non_stop_count`, `false_safe_stop_count`, `false_safe_stop_rate`를
+기록하고, quality gate 기본값은 false-safe-stop rate `0.0`이다. 두 결과 모두
+synthetic/local replay이며 human-labeled control accuracy를 대체하지 않는다.
+
 ### 14.98 Gemma control candidate rejection and partial-draft denominator (v1.121.0)
 
 candidate Gemma alias를 control queue의 첫 20건에 실행했다. queue 순서상 이

@@ -4,6 +4,22 @@
 현재 버전: 1.122.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
+## v1.123.0 — safety non-trigger near-miss gate
+
+기존 safety matrix는 500건 모두 STOP이어도 통과할 수 있어, always-STOP 구현의
+false positive를 측정하지 못했다. 그래서 forced STOP matrix와 별도로 valid clock,
+fresh observation, `emergency_stop=false`인 non-STOP near-miss matrix를 생성한다.
+
+- `control simulate`이 expected non-stop count와 false abstaining STOP rate를
+  계산한다.
+- quality gate의 기본 `maximum_false_safe_stop_rate=0.0`은 non-trigger에서
+  abstaining STOP을 허용하지 않는다.
+- fresh 500 near-miss replay는 `500/500`, false-safe-stop `0/500`, p95/p99
+  `0.031536/0.035488ms`였다. forced STOP 500건의 STOP recall `500/500`도
+  함께 재검증했다.
+- 다음 production gate는 이 synthetic 경계 결과에 human-labeled non-trigger와
+  실제 sensor replay를 추가하는 것이다.
+
 ## v1.122.0 — confidence-gated 99% claim and low-latency phrase coverage
 
 이번 단계의 목표는 synthetic point score를 부풀리는 것이 아니라, 실제 99% 주장을

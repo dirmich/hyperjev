@@ -156,6 +156,7 @@
 | 1.120.0 | 진행 중 | Gemma reasoning option·candidate probe 및 partial-run evaluator denominator 교정 |
 | 1.121.0 | 진행 중 | Gemma control candidate 13/20 rejection 및 partial draft accuracy gate 교정 |
 | 1.122.0 | 진행 중 | Qwen 반복 control phrase fast path 추가, blocker 회귀 확장, Wilson 하한·381 group 99% gate |
+| 1.123.0 | 진행 중 | safety forced-STOP 편향을 보완하는 non-trigger near-miss matrix와 false-safe-stop gate |
 
 ## 다음 기록 규칙
 
