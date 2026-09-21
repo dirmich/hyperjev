@@ -48,6 +48,7 @@ class EvaluationTests(unittest.TestCase):
                 encoding="utf-8",
             )
             report = evaluate_run(run_path, ROOT / "tests/golden/phase0_smoke.jsonl", registry)
+        self.assertEqual(report["sample_count"], 1)
         self.assertEqual(report["providers"]["qwen"]["schema_valid_rate"], 1.0)
         self.assertEqual(report["providers"]["qwen"]["latency_ms"]["p95"], 10.0)
         self.assertEqual(report["providers"]["qwen"]["quality"]["memory.remember_worthy"]["accuracy"], 1.0)

@@ -129,6 +129,8 @@ class TeacherClient:
         }
         if self.settings.disable_thinking:
             payload["chat_template_kwargs"] = {"enable_thinking": False}
+        if self.settings.reasoning_effort is not None:
+            payload["reasoning_effort"] = self.settings.reasoning_effort
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         request = Request(
             f"{self.settings.base_url}/chat/completions",

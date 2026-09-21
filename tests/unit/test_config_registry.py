@@ -21,6 +21,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.teachers["gemma"].request_timeout_s, 900.0)
         self.assertTrue(config.teachers["qwen"].disable_thinking)
         self.assertFalse(config.teachers["gemma"].disable_thinking)
+        self.assertIsNone(config.teachers["gemma"].reasoning_effort)
         self.assertEqual(config.teachers["qwen"].response_format, "json_object")
         self.assertEqual(config.teachers["gemma"].response_format, "text")
         self.assertEqual(config.teachers["qwen"].roles, ("data_generator", "labeler", "fallback"))
@@ -39,6 +40,7 @@ class ConfigTests(unittest.TestCase):
             {
                 "HYPERJEV_QWEN_MODEL": "test-qwen",
                 "HYPERJEV_GEMMA_BASE_URL": "http://example.test/v1",
+                "HYPERJEV_GEMMA_REASONING_EFFORT": "none",
                 "HYPERJEV_HYPERMEMORY_BASE_URL": "http://memory.test:6767",
             },
             clear=False,
@@ -46,6 +48,7 @@ class ConfigTests(unittest.TestCase):
             config = load_config(ROOT / "configs" / "phase0.toml")
         self.assertEqual(config.teachers["qwen"].model, "test-qwen")
         self.assertEqual(config.teachers["gemma"].base_url, "http://example.test/v1")
+        self.assertEqual(config.teachers["gemma"].reasoning_effort, "none")
         self.assertEqual(config.hypermemory_base_url, "http://memory.test:6767")
 
     def test_student_checkpoint_is_optional_and_environment_configurable(self) -> None:

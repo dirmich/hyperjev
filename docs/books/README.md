@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.119.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.120.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -145,6 +145,11 @@ v1.119.0에서는 새 Korean phrase fast path에 blocker regression을 추가했
 차단된 회전·접근·후퇴·상호작용·복구 문장은 deterministic rule에서 defer되어
 false-positive를 줄인다. 이는 human label 없는 synthetic/integrated 결과를
 상용 정확도로 승격시키지 않는 기존 gate와 함께 동작한다.
+
+v1.120.0에서는 Gemma의 reasoning control을 환경변수로 주입할 수 있게 하고,
+부분 benchmark의 sample denominator를 실제 run 범위로 고쳤다. candidate Gemma
+alias는 reasoning을 끄면 6/6 typed draft를 반환했지만 human label이나 production
+judge 승격 근거는 아니다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

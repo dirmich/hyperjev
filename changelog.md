@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — make Gemma reasoning effort configurable and fix limited-run metrics (v1.120.0)
+
+- OpenAI-compatible teacher payload에 optional `reasoning_effort`를 추가하고,
+  `HYPERJEV_GEMMA_REASONING_EFFORT=none` 환경변수로 설정할 수 있게 했다. 기본값은
+  기존 동작을 보존하도록 `None`이며, benchmark manifest에도 실제 teacher option을
+  기록한다.
+- 현재 Gemma endpoint의 `google/gemma-4-12b`는 60초 probe에서 timeout했지만,
+  노출된 `gemma4-26b-a4b-uncensored-hauhaucs-balanced` alias에
+  `reasoning_effort=none`을 주면 6/6 completion·schema-valid를 확인했다. 이
+  후보는 latency/모델 정책 검토 전까지 production judge로 승격하지 않는다.
+- evaluator가 `--limit` run을 원본 dataset 전체로 보고하던 문제를 고쳐 실제 run에
+  포함된 sample ID만 분모로 사용한다. 1건 run의 report sample_count가 이제 1이다.
+
 ## 2026-09-21 — guard Korean fast paths with blocker regressions (v1.119.0)
 
 - v1.118.0에서 추가한 한국어 ROTATE, APPROACH, RETREAT, INTERACT, RECOVER

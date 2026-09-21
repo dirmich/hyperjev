@@ -53,14 +53,16 @@ def evaluate_run(
     """Summarize latency, schema validity, quality, and teacher agreement."""
 
     manifest, records = _load_run(run_path)
-    samples = {sample.sample_id: sample for sample in load_jsonl(samples_path, registry)}
-    task_versions = {sample.task_id: sample.task_version for sample in samples.values()}
+    all_samples = {sample.sample_id: sample for sample in load_jsonl(samples_path, registry)}
     by_provider: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for record in records:
         sample_id = record.get("sample_id")
-        if sample_id not in samples:
+        if sample_id not in all_samples:
             raise EvaluationError(f"run references unknown sample: {sample_id}")
         by_provider[str(record.get("provider", "unknown"))].append(record)
+    run_sample_ids = {str(record.get("sample_id")) for record in records}
+    samples = {sample_id: all_samples[sample_id] for sample_id in run_sample_ids}
+    task_versions = {sample.task_id: sample.task_version for sample in samples.values()}
 
     provider_reports: dict[str, Any] = {}
     for provider, provider_records in sorted(by_provider.items()):

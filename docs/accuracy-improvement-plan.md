@@ -1504,6 +1504,20 @@ v1.118.0에서 추가한 phrase rule이 부정 조건을 무시하고 정상 act
 넘긴다. 이 단계는 synthetic accuracy를 높이는 변경이 아니며, 명확하지 않은
 입력의 false-positive를 줄이는 control safety precision 보강이다.
 
+### v1.120.0 Gemma reasoning control and evaluation denominator fix
+
+현재 `google/gemma-4-12b` alias는 60초 completion probe에서 timeout했지만,
+같은 endpoint의 `gemma4-26b-a4b-uncensored-hauhaucs-balanced` alias는
+`reasoning_effort=none`으로 6/6 schema-valid typed draft를 반환했다. 이 기능을
+teacher 설정과 `HYPERJEV_GEMMA_REASONING_EFFORT` 환경 override로 일반화했다.
+기본 config는 바꾸지 않았고, candidate alias는 모델 안전성·품질·latency 검토가
+끝날 때까지 production judge가 아니다.
+
+또한 benchmark evaluator가 `--limit` 실행에서도 원본 전체 dataset을
+`sample_count`로 표시하던 검증 결함을 수정했다. report 분모는 이제 실제 run
+record의 unique sample ID이며, 이로써 부분 probe의 accuracy/coverage 숫자를
+과대 또는 과소 해석할 위험을 줄였다.
+
 ### v1.115.0 malformed quality report rejection hardening
 
 정확도 gate는 모델 후보를 자동 승인하는 장치가 아니라, 기준 미달 후보를 안전하게

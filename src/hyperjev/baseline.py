@@ -87,6 +87,14 @@ def run_benchmark(
             "max_tokens": 256,
             "response_format": "per_teacher_config",
         },
+        "teacher_options": {
+            provider: {
+                "model": config.teachers[provider].model,
+                "disable_thinking": config.teachers[provider].disable_thinking,
+                "reasoning_effort": config.teachers[provider].reasoning_effort,
+            }
+            for provider in providers
+        },
         "environment": _environment_manifest(config),
     }
     records: list[dict[str, Any]] = []

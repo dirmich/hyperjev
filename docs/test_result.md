@@ -3391,6 +3391,51 @@ control rule로 조기 결정해 fallback latency를 제거한 것이다. 따라
 synthetic target과 integrated rule coverage에 대한 결과이며, human golden이 없는
 상태에서 상용 정확도나 99% human accuracy로 주장할 수 없다.
 
+### 14.97 Gemma reasoning control and limited-run evaluator fix (v1.120.0)
+
+#### Gemma endpoint probe
+
+기본 alias `google/gemma-4-12b`는 reasoning option을 포함한 60초 completion
+probe에서도 timeout했다. `/v1/models` discovery는 성공했지만 typed judge
+generation은 완료되지 않았다.
+
+반면 같은 endpoint에 노출된 candidate alias를 다음처럼 실행하면 reasoning을
+끄고 typed output을 얻을 수 있었다.
+
+```bash
+HYPERJEV_GEMMA_MODEL=gemma4-26b-a4b-uncensored-hauhaucs-balanced \
+HYPERJEV_GEMMA_REASONING_EFFORT=none \
+uv run hyperjev benchmark --provider gemma --limit 6 --timeout 30 \
+  --output /tmp/hyperjev-gemma-candidate-v120b.jsonl
+uv run hyperjev evaluate \
+  --run /tmp/hyperjev-gemma-candidate-v120b.jsonl \
+  --samples tests/golden/phase0_smoke.jsonl
+```
+
+| 항목 | Qwen `qwen38fn` | Gemma candidate |
+| --- | ---: | ---: |
+| completed | `6/6` | `6/6` |
+| schema-valid | `5/6` | `6/6` |
+| p50 latency | `1226.622ms` | `2230.953ms` |
+| p95/p99 latency | `2312.892/2312.892ms` | `2450.183/2450.183ms` |
+| score task MAE | `0.20` | `0.35` |
+
+6개 smoke는 품질·정확도 결론을 내릴 수 있는 표본이 아니다. 다만 Gemma
+candidate가 typed schema를 완주한 것은 이전 timeout 경로보다 operationally
+개선된 증거이며, Qwen과 exact normalized result agreement는 `1/6`이었다.
+확률·interval 표현 차이가 있어 teacher 합의만으로 human truth를 만들지 않는다.
+
+#### Evaluator denominator regression
+
+`--limit 1`로 생성한 run을 전체 6-row smoke dataset으로 평가해도 예전에는
+`sample_count=6`으로 표시되었다. v1.120.0부터는 run record의 실제 unique sample
+ID를 분모로 사용해 `sample_count=1`로 보고한다. 이 수정은 latency·quality 값을
+보정하지 않고, 부분 실행 report의 범위만 정확히 한다.
+
+candidate teacher 결과와 이 evaluator 수정은 모두 human label을 생성하지 않는다.
+현재 control human queue는 여전히 `0/800`, held-out test `0/80`이며, production
+99% gate는 blind dual human review와 adjudication 이후에만 판정한다.
+
 ### 14.96 Korean fast-path blocker regression (v1.119.0)
 
 새로 추가한 한국어 phrase rule이 차단 조건이 있는 문장을 직접 실행하지 않는지

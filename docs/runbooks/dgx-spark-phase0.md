@@ -49,6 +49,21 @@ Qwen and 900 seconds for Gemma. Use `--timeout` only when deliberately overridin
 the 3-second timeout used by `doctor` is only for the lightweight `/models`
 probe.
 
+Some OpenAI-compatible Gemma servers spend the whole completion budget in
+reasoning unless the server supports an explicit reasoning control. For a
+controlled probe, pass the option through the environment and record the model
+alias separately; this does not change the repository default:
+
+```bash
+HYPERJEV_GEMMA_MODEL=gemma4-26b-a4b-uncensored-hauhaucs-balanced \
+HYPERJEV_GEMMA_REASONING_EFFORT=none \
+uv run hyperjev benchmark --provider gemma --limit 6 --timeout 30
+```
+
+The resulting manifest records `model`, `reasoning_effort`, and completion
+metrics. A working response is still only a teacher draft, not a human golden
+label or a production promotion decision.
+
 For a real Phase 0 baseline, replace the smoke fixture with the reviewed
 dataset through a config override and preserve the printed dataset hash.
 

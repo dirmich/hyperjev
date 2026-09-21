@@ -153,6 +153,7 @@
 | 1.117.0 | 진행 중 | v2 source queue human-label gate 상태와 다음 검수 stop condition 기록 |
 | 1.118.0 | 진행 중 | Korean integrated control fast path 40/40·1800/1800 및 latency 재검증 |
 | 1.119.0 | 진행 중 | Korean fast path blocker 5종 defer regression 고정 |
+| 1.120.0 | 진행 중 | Gemma reasoning option·candidate probe 및 partial-run evaluator denominator 교정 |
 
 ## 다음 기록 규칙
 

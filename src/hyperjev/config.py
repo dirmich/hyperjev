@@ -28,6 +28,7 @@ class TeacherSettings:
     roles: tuple[str, ...]
     request_timeout_s: float = 300.0
     disable_thinking: bool = False
+    reasoning_effort: str | None = None
     response_format: str = "json_object"
 
     @classmethod
@@ -38,6 +39,12 @@ class TeacherSettings:
         roles = tuple(str(role) for role in raw_roles)
         request_timeout_s = float(values.get("request_timeout_s", 300.0))
         disable_thinking = bool(values.get("disable_thinking", False))
+        raw_reasoning_effort = values.get("reasoning_effort")
+        reasoning_effort = (
+            None
+            if raw_reasoning_effort is None or not str(raw_reasoning_effort).strip()
+            else str(raw_reasoning_effort).strip()
+        )
         response_format = str(values.get("response_format", "json_object"))
         if not base_url.startswith(("http://", "https://")):
             raise ConfigError(f"teachers.{name}.base_url must be an http(s) URL")
@@ -47,6 +54,8 @@ class TeacherSettings:
             raise ConfigError(f"teachers.{name}.roles must not be empty")
         if request_timeout_s <= 0:
             raise ConfigError(f"teachers.{name}.request_timeout_s must be positive")
+        if reasoning_effort not in {None, "none", "low", "medium", "high"}:
+            raise ConfigError(f"teachers.{name}.reasoning_effort is unsupported")
         if response_format not in {"json_object", "json_schema", "text"}:
             raise ConfigError(f"teachers.{name}.response_format is unsupported: {response_format}")
         return cls(
@@ -56,6 +65,7 @@ class TeacherSettings:
             roles=roles,
             request_timeout_s=request_timeout_s,
             disable_thinking=disable_thinking,
+            reasoning_effort=reasoning_effort,
             response_format=response_format,
         )
 
@@ -129,6 +139,10 @@ class Phase0Config:
                 "roles": current.roles,
                 "request_timeout_s": current.request_timeout_s,
                 "disable_thinking": current.disable_thinking,
+                "reasoning_effort": os.getenv(
+                    f"HYPERJEV_{name.upper()}_REASONING_EFFORT",
+                    current.reasoning_effort or "",
+                ),
                 "response_format": current.response_format,
             }
             teachers[name] = TeacherSettings.from_mapping(name, values)
