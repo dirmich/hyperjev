@@ -467,11 +467,22 @@ def generate_control_review_queue(
     *,
     count_per_skill: int = 100,
     seed: int = 7,
+    test_count_per_skill: int | None = None,
+    validation_count_per_skill: int | None = None,
 ) -> dict[str, Any]:
     """Create a balanced, provenance-rich control queue awaiting human review."""
 
     if count_per_skill < 1:
         raise ValueError("count_per_skill must be positive")
+    for name, value in (
+        ("test_count_per_skill", test_count_per_skill),
+        ("validation_count_per_skill", validation_count_per_skill),
+    ):
+        if value is not None and (value < 0 or value > count_per_skill):
+            raise ValueError(f"{name} must be between zero and count_per_skill")
+    reserved_per_skill = (test_count_per_skill or 0) + (validation_count_per_skill or 0)
+    if reserved_per_skill > count_per_skill:
+        raise ValueError("test and validation counts cannot exceed count_per_skill together")
     registry.get("control.skill", 1)
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -504,8 +515,21 @@ def generate_control_review_queue(
                 question = _CONTROL_REVIEW_QUESTION_TEMPLATES[language][variant % 4]
                 unique_prompts.add((language, _normalise_text(state), _normalise_text(question)))
                 unique_questions.add(_normalise_text(question))
-                split_bucket = (variant + skill_index * 3 + seed) % 10
-                split = "train" if split_bucket < 8 else "validation" if split_bucket == 8 else "test"
+                if test_count_per_skill is not None or validation_count_per_skill is not None:
+                    test_quota = test_count_per_skill or 0
+                    validation_quota = validation_count_per_skill or 0
+                    if test_quota and variant < test_quota:
+                        split = "test"
+                    elif (
+                        validation_quota
+                        and variant < test_quota + validation_quota
+                    ):
+                        split = "validation"
+                    else:
+                        split = "train"
+                else:
+                    split_bucket = (variant + skill_index * 3 + seed) % 10
+                    split = "train" if split_bucket < 8 else "validation" if split_bucket == 8 else "test"
                 sample = {
                     "sample_id": f"control-review-{index:05d}",
                     "task_id": "control.skill",
@@ -544,6 +568,8 @@ def generate_control_review_queue(
         "prompt_version": 2,
         "unique_prompt_count": len(unique_prompts),
         "unique_question_count": len(unique_questions),
+        "requested_test_count_per_skill": test_count_per_skill,
+        "requested_validation_count_per_skill": validation_count_per_skill,
     }
 
 

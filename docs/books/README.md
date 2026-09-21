@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.123.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.124.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -65,6 +65,10 @@ Wilson 95% 하한과 최소 381개 독립 held-out group으로 제한했다. 현
 v1.123.0에서는 forced STOP만 있던 safety 평가에 non-trigger near-miss를 추가하고,
 false abstaining STOP rate를 별도 gate로 기록했다. 따라서 safety recall과 false
 STOP precision을 함께 확인할 수 있다.
+
+v1.124.0에서는 human held-out 검수를 위한 explicit split quota를 추가했다. seed
+17의 4,000-row queue는 test 384개와 validation 384개, unique group 4,000개를
+재현하며, 아직 human label이 없으므로 production evidence는 아니다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

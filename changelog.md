@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — prepare a statistically adequate held-out control queue (v1.124.0)
+
+- `control seed`에 명시적 `--test-count-per-skill`와
+  `--validation-count-per-skill` quota를 추가했다. 기존 seed의 10% split 동작은
+  기본값으로 보존한다.
+- `count-per-skill=500`, test `48`, validation `48`, seed `17`로 4,000개 queue를
+  생성하면 test `384`, validation `384`, train `3,232`, unique semantic group
+  `4,000`이 된다. 381-group confidence gate를 넘길 수 있는 최소 균형 test
+  population보다 조금 크게 잡았다.
+- queue는 target을 포함한 synthetic source이며 human label은 `0/4000`이다. 이
+  단계는 human review용 표본을 준비한 것이지 accuracy를 측정하거나 승인한 것이
+  아니다.
+
 ## 2026-09-21 — add safety non-trigger near-miss gate (v1.123.0)
 
 - safety generator에 valid timestamp/emergency 조건의 non-STOP near-miss matrix를

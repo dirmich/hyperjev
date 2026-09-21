@@ -3518,6 +3518,36 @@ uv run hyperjev control simulate \
 기록하고, quality gate 기본값은 false-safe-stop rate `0.0`이다. 두 결과 모두
 synthetic/local replay이며 human-labeled control accuracy를 대체하지 않는다.
 
+### 15.01 held-out population preparation for the 99% confidence gate (v1.124.0)
+
+80개 test 표본으로는 100% point accuracy를 얻어도 Wilson 하한이 99%에 도달하지
+않는다. 그래서 `control seed`에 명시적 split quota를 추가하고, skill별 독립
+test group을 충분히 생성할 수 있게 했다.
+
+```bash
+uv run hyperjev control seed \
+  --registry registry/control_tasks \
+  --output /tmp/control-review-v3-4000.jsonl \
+  --count-per-skill 500 \
+  --test-count-per-skill 48 \
+  --validation-count-per-skill 48 \
+  --seed 17
+uv run python scripts/validate_control_dataset.py /tmp/control-review-v3-4000.jsonl
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| total rows | `4000` |
+| train / validation / test | `3232 / 384 / 384` |
+| unique semantic groups | `4000` |
+| unique exact groups | `4000` |
+| validator | `passed` |
+| human labels | `0/4000` |
+
+이 queue는 target을 가진 synthetic review source일 뿐이다. Qwen/Gemma draft를
+human label로 간주하지 않으며, 실제 99% 판정은 test 384개에 대한 blind dual human
+review와 adjudication 이후에만 가능하다.
+
 ### 14.98 Gemma control candidate rejection and partial-draft denominator (v1.121.0)
 
 candidate Gemma alias를 control queue의 첫 20건에 실행했다. queue 순서상 이

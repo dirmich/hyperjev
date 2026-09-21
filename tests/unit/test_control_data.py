@@ -166,6 +166,24 @@ class ControlDatasetQualityTests(unittest.TestCase):
         self.assertEqual(report["unique_semantic_group_count"], 12)
         self.assertEqual(report["leaks"]["semantic_group"], [])
 
+    def test_control_review_seed_supports_independent_test_quota(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "control-review-heldout.jsonl"
+        generation = generate_control_review_queue(
+            path,
+            self.registry,
+            count_per_skill=50,
+            test_count_per_skill=48,
+            validation_count_per_skill=1,
+            seed=3,
+        )
+        self.assertEqual(generation["sample_count"], 400)
+        report = validate_control_dataset(path, self.registry)
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["split_counts"], {"test": 384, "train": 8, "validation": 8})
+        self.assertEqual(report["unique_semantic_group_count"], 400)
+
     def test_compositional_training_queue_is_train_only_and_balanced(self) -> None:
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)

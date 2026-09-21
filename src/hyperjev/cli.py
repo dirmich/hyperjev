@@ -380,6 +380,8 @@ def _control_seed(args: argparse.Namespace) -> int:
         registry,
         count_per_skill=args.count_per_skill,
         seed=args.seed,
+        test_count_per_skill=args.test_count_per_skill,
+        validation_count_per_skill=args.validation_count_per_skill,
     )
     print(json.dumps(report, ensure_ascii=False))
     return 0
@@ -1045,6 +1047,16 @@ def build_parser() -> argparse.ArgumentParser:
     control_seed.add_argument("--registry", default="registry/control_tasks")
     control_seed.add_argument("--output")
     control_seed.add_argument("--count-per-skill", type=int, default=100)
+    control_seed.add_argument(
+        "--test-count-per-skill",
+        type=int,
+        help="explicit held-out test rows per skill; enables deterministic split quotas",
+    )
+    control_seed.add_argument(
+        "--validation-count-per-skill",
+        type=int,
+        help="explicit validation rows per skill; enables deterministic split quotas",
+    )
     control_seed.add_argument("--seed", type=int, default=7)
     control_seed.set_defaults(handler=_control_seed)
     control_draft = control_subparsers.add_parser("draft")

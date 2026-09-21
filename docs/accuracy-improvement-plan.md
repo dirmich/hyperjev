@@ -1,8 +1,29 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.122.0
+현재 버전: 1.124.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.124.0 — held-out population preparation
+
+99% Wilson 하한 gate를 실제로 적용하려면 80개 test보다 큰 독립 표본이 필요하다.
+기본 split 비율을 변경하지 않고 명시적 quota를 지원해, skill별 48개씩 총 384개의
+held-out test group을 만들 수 있게 했다.
+
+```bash
+uv run hyperjev control seed \
+  --registry registry/control_tasks \
+  --output /tmp/control-review-v3-4000.jsonl \
+  --count-per-skill 500 \
+  --test-count-per-skill 48 \
+  --validation-count-per-skill 48 \
+  --seed 17
+uv run python scripts/validate_control_dataset.py /tmp/control-review-v3-4000.jsonl
+```
+
+검증 결과는 test `384`, validation `384`, train `3232`, unique semantic group
+`4000`, validation passed다. 아직 human label `0/4000`이므로 이 queue는 정확도
+결과가 아니며, 다음 단계는 이 test split의 blind dual review와 adjudication이다.
 
 ## v1.123.0 — safety non-trigger near-miss gate
 
