@@ -178,6 +178,7 @@
 | 1.142.0 | 진행 중 | control test human label 2건 partial replay, 2/2 human match와 latency/safety 재검증 |
 | 1.143.0 | 진행 중 | NVIDIA GB10 CUDA synchronized partial replay, p95 162.480µs·STOP recall 1.0 재검증 |
 | 1.144.0 | 진행 중 | BOW/hybrid checkpoint 후보 비교, hybrid 343/384 회귀 폐기와 v1.137 선택 |
+| 1.145.0 | 진행 중 | 5,192-row augmented targeted 전체 replay, synthetic 100%·CUDA p95 163.376µs 재검증 |
 
 ## 다음 기록 규칙
 

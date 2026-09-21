@@ -198,3 +198,9 @@ label `2/2`를 확인했지만, test review status는 `2/384`이므로 promotion
 v1.144.0 candidate comparison에서 선택된 v1.137 weight2는 p95 `162.480µs`와
 mixed test `384/384`를 유지했다. hybrid 후보의 `343/384` 회귀를 감지해 폐기한
 것은 accuracy와 bounded latency를 함께 검증하는 모델 선택 gate다.
+
+v1.145.0에서는 partial test와 구분해 `5192`-row augmented targeted queue 전체를
+같은 checkpoint로 재생했다. model-only-with-safety-policy runtime source는
+`hyperjev-control 4810`과 `safety-rule 382`였고, synthetic `5192/5192`, STOP
+recall `1.0`, CUDA p95 `163.376µs`였다. 다만 human label `0/5192`와 test
+coverage `2/384`는 그대로이므로 latency와 synthetic gate만 통과한 상태다.

@@ -4,6 +4,32 @@
 현재 버전: 1.144.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
+## v1.145.0 — full augmented targeted replay
+
+현재 선택된 v1.137 sparse BOW weight2 checkpoint를 실제 `5192`-row augmented
+targeted queue 전체에 재생했다. partial test가 아니라 train/validation/test
+생성물을 합친 전체 queue를 사용해 checkpoint의 현재 synthetic 경계를 다시
+확인했다.
+
+| gate | 결과 |
+| --- | ---: |
+| queue / split | `5192 / 4224-484-484` |
+| runtime source | `hyperjev-control 4810`, `safety-rule 382` |
+| synthetic target replay | `5192/5192 (100%)` |
+| STOP recall | `1.0` |
+| CUDA p50/p95/p99/max | `156.001/163.376/170.400/296.640µs` |
+| human labels | `0/5192` targeted, `2/384` test |
+| production-ready | `false` |
+
+실행 조건은 `--model-only --device cuda --warmup 10 --cuda-sync`이고, queue와
+checkpoint SHA는 각각
+`85bf54addc558484114558bbcda8a9acfcfe8bd5ac2262a147144ed1f6de95f9`와
+`87898c7b0b0241415fa1ec7a56c43ebe852ff3fae09fb4f989320ff4354b2380`이다.
+전체 synthetic replay와 latency는 통과했지만, target-excluded human review가
+완료되지 않았으므로 이 결과를 human accuracy로 해석하지 않는다. 다음 gate는
+review shell에서 실제 state/question을 보고 남은 test unique group을 검수하는
+것이다.
+
 ## v1.144.0 — checkpoint candidate selection
 
 동일한 partial human test, registry, CUDA synchronized replay 조건으로 세

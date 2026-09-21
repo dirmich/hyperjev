@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.144.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.145.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -50,8 +50,9 @@ registry manifest로 묶는 contract와 30-sample confidence/coverage 분석도
 추가됐다. memory/query checkpoint는 synthetic 36개 group의
 reference-ngram-encoder이고 control checkpoint는 별도 48개 smoke fixture다.
 둘 다 human golden이 없거나 일반화 gate를 통과하지 않았으므로 production
-모델로 승격하지 않았다. hard-negative synthetic checkpoint는 validation/test
-100%였지만 human label 0건이라 production-ready가 아니다. 실제
+모델로 승격하지 않았다. hard-negative synthetic checkpoint는 validation/test와
+전체 augmented targeted replay가 100%였지만 targeted human label `0/5192`라
+production-ready가 아니다. 실제
 사람 검수 golden set, Gemma live baseline 전수 실행, production multilingual
 PyTorch checkpoint 학습, Student GPU inference benchmark, Rust toolchain compile은
 이 책에서 성공했다고 가장하지 않고 외부 의존성 gate로 표시한다. 상세 결과는
@@ -174,6 +175,12 @@ v1.144.0에서는 세 checkpoint 후보를 재생해 v1.137 sparse BOW weight2�
 선택했다. hybrid 후보는 `343/384`와 p95 `325.152µs`로 폐기했고, weight4는
 정확도는 같지만 p95 `165.024µs`로 보류했다. safety replay는 후보 모두
 `500/500` STOP recall이었다.
+
+v1.145.0에서는 선택된 checkpoint를 실제 `5192`-row augmented targeted queue
+전체에 재생했다. synthetic target `5192/5192`, STOP recall `1.0`, CUDA
+synchronized model-only p95 `163.376µs`를 기록했다. 이 결과는 전체 synthetic
+replay와 latency 증거이지 human accuracy가 아니다. targeted human label은
+`0/5192`, 별도 test queue는 `2/384`이므로 production-ready는 계속 false다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

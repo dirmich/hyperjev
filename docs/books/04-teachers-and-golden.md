@@ -113,6 +113,12 @@ v1.144.0에서는 BOW weight2, BOW weight4, hybrid weight2 후보를 같은 입�
 비교했다. hybrid는 human 2건은 맞췄지만 mixed test `343/384`로 탈락했고,
 최종 선택은 v1.137 sparse BOW weight2로 고정했다.
 
+v1.145.0에서는 선택된 checkpoint를 `5192`-row augmented targeted queue 전체에
+재생했다. synthetic target은 `5192/5192`, STOP recall은 `1.0`이었고 CUDA
+synchronized p95는 `163.376µs`였다. 그러나 이 queue의 human label은 `0/5192`이며
+별도 test review도 `2/384`뿐이다. teacher가 보여준 configured value나 synthetic
+target과 사람이 입력한 correction은 서로 다른 provenance로 끝까지 분리한다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

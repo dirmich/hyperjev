@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — full augmented targeted replay (v1.145.0)
+
+- 현재 선택된 v1.137 sparse BOW weight2 checkpoint를 실제 `5192`-row augmented
+  targeted queue 전체에 `--model-only --device cuda --warmup 10 --cuda-sync`로
+  재생했다. queue SHA-256은
+  `85bf54addc558484114558bbcda8a9acfcfe8bd5ac2262a147144ed1f6de95f9`이고,
+  checkpoint SHA-256은
+  `87898c7b0b0241415fa1ec7a56c43ebe852ff3fae09fb4f989320ff4354b2380`이다.
+- runtime source는 `hyperjev-control 4810`, `safety-rule 382`였고 synthetic
+  target은 `5192/5192 (100%)`, STOP recall은 `1.0`이었다. CUDA latency
+  p50/p95/p99/max는 `156.001/163.376/170.400/296.640µs`였다.
+- 이 수치는 5,192개 전체에 대한 synthetic/model replay와 bounded latency의
+  증거다. 실제 human label은 targeted queue에서 `0/5192`이고 test queue도
+  `2/384`만 검수됐으므로 human 99% accuracy 또는 production-ready로
+  승격하지 않는다.
+
 ## 2026-09-21 — control checkpoint candidate selection (v1.144.0)
 
 - 같은 partial human test와 CUDA synchronized 조건에서 세 후보를 비교했다.

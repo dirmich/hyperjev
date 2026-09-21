@@ -4067,6 +4067,39 @@ production-ready 판정으로 해석하지 않는다.
 정확도와 latency가 회귀해 폐기했다. v1.137 weight2를 현재 후보로 유지하되,
 human test coverage `2/384` 때문에 production-ready는 false다.
 
+### 15.22 full augmented targeted replay (v1.145.0)
+
+partial test 결과와 실제 전체 targeted queue 결과를 혼동하지 않기 위해, 현재
+선택된 v1.137 sparse BOW weight2 checkpoint를 `5192`-row augmented targeted
+queue 전체에 다시 실행했다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue /tmp/control-review-v3-plus-hard-augmented-targeted-v134.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --registry registry/control_tasks --device cuda --model-only \
+  --warmup 10 --cuda-sync \
+  --output /tmp/current-hard-augmented-5192-model-only-v145.json
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| queue rows / split | `5192 / 4224-484-484` |
+| queue SHA-256 | `85bf54addc558484114558bbcda8a9acfcfe8bd5ac2262a147144ed1f6de95f9` |
+| checkpoint SHA-256 | `87898c7b0b0241415fa1ec7a56c43ebe852ff3fae09fb4f989320ff4354b2380` |
+| runtime source | `hyperjev-control 4810`, `safety-rule 382` |
+| synthetic target | `5192/5192 (100%)` |
+| STOP recall | `1.0` |
+| CUDA p50/p95/p99/max | `156.001/163.376/170.400/296.640µs` |
+| human target | `0/5192` |
+| production-ready | `false` |
+
+이 실행은 deterministic rule을 포함한 integrated fast path가 아니라
+`model_only_with_safety_policy` runtime을 강제한 결과다. 따라서 전체 queue에
+대한 synthetic/model replay와 latency bound는 확인했지만, human label이 없는
+상태에서 human 정확도나 상용 제어 안정성을 주장하지 않는다. 별도의 human test
+status는 `2/384`, `test_ready=false`로 유지된다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에
