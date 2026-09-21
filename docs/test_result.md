@@ -3923,6 +3923,31 @@ latency gate를 통과한다.
 해석할 수 없다. 다음 필수 단계는 target-excluded human review와 실제 novel
 state simulator episode 평가다.
 
+### 15.15 teacher-assisted human review prioritization (v1.138.0)
+
+Qwen `qwen38fn`을 `HYPERJEV_QWEN_BASE_URL=http://localhost:8081/v1`로 연결하고
+300초 request timeout을 사용했다. 20개 probe는 `20/20` completed,
+`20/20` schema-valid, error `0`이었다. 기존 prompt-v3 384개 held-out draft를
+다시 평가한 결과도 `384/384` completed/schema-valid, synthetic target match
+`384/384`였으며 Qwen latency는 p50/p95/p99 `1.988/2.234/2.431s`였다.
+
+이후 Qwen+Gemma adjudication draft를 target-excluded review pack으로 만들고,
+v1.137 Student checkpoint를 provenance에 추가했다. 결과는 다음과 같다.
+
+| 우선순위 신호 | count |
+| --- | ---: |
+| test review items | `384` |
+| Qwen/Gemma disagreement | `1` |
+| Student uncertainty | `0` |
+| Student-teacher disagreement | `0` |
+| current human labels | `0/384` test, `0/5192` targeted |
+
+review pack은 `/tmp/control-review-v3-test-pack-v137-student.jsonl`이며 raw
+`state/question`을 포함하고 synthetic target은 숨긴다. teacher agreement와
+Student confidence는 사람 검수 순서를 정할 뿐 정답을 생성하지 않는다. 따라서
+이 단계의 `384/384`는 synthetic/teacher evidence이고, human label gate와
+production-ready는 계속 닫혀 있다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행

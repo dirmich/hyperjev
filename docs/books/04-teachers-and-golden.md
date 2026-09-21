@@ -81,3 +81,9 @@ uv run hyperjev golden validate \
 feedback은 queue SHA-256과 함께 저장되고, queue가 바뀌면 apply가 실패한다.
 따라서 mutable JSONL을 사람 검수의 유일한 audit trail로 사용하지 않는다.
 
+v1.138.0에서는 DGX Spark의 Qwen endpoint를 300초 timeout으로 probe하고,
+Qwen+Gemma adjudication과 Student checkpoint provenance를 target-excluded
+review pack에 묶었다. teacher disagreement `1/384`와 Student uncertainty
+`0/384`는 검수 순서를 정하는 신호다. teacher가 synthetic target과 일치해도
+`labels.human`을 자동으로 만들지 않으며, 실제 사람이 state/question을 보고
+typed value를 입력해야만 golden gate가 열린다.

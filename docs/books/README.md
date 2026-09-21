@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.137.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.138.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -136,6 +136,13 @@ sparse BOW projection을 적용했다. dense 수식과의 동치 unit test를 �
 같은 checkpoint로 hard/English/Korean Student-only OOD는 모두 100%, CUDA
 synchronized p95는 `0.159/0.182/0.183ms`가 됐다. human label `0/5192`는 그대로라
 production accuracy로 승격하지 않았으며, 다음 gate는 human novel-state review다.
+
+v1.138.0에서는 `qwen38fn`의 20개 endpoint probe와 기존 384개 Qwen draft를
+재검증하고, Qwen+Gemma disagreement 및 Student checkpoint를 target-excluded
+human review pack에 함께 바인딩했다. disagreement는 `1/384`였지만 human
+label은 test `0/384`, 전체 `0/5192`다. 이 장에서는 teacher 일치와 Student
+confidence를 사람 검수 우선순위로만 사용하고, production 정답으로 승격하지
+않는 경계를 유지한다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

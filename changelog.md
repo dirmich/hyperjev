@@ -3,6 +3,26 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — teacher-assisted human review prioritization (v1.138.0)
+
+- `http://localhost:8081/v1`의 `qwen38fn` endpoint를 300초 timeout으로 20개
+  probe했다. `20/20` completed, `20/20` schema-valid, error `0`이었고,
+  processed sample의 synthetic target match도 `20/20`이었다. Qwen은 여전히
+  human label이 아닌 review assistant다.
+- 기존 prompt-v3 held-out test draft를 동일 queue hash로 재평가한 결과는
+  `384/384` completed, `384/384` schema-valid, synthetic match `384/384`,
+  p50/p95/p99 latency `1.988/2.234/2.431s`였다. 이 수치는 teacher baseline이지
+  production accuracy가 아니다.
+- Qwen+Gemma adjudication draft와 v1.137 Student checkpoint를 묶은 target-excluded
+  test review pack을 생성했다. teacher disagreement는 `1/384`, Student
+  uncertainty는 `0/384`, Student-teacher disagreement는 `0/384`였다. pack은
+  `/tmp/control-review-v3-test-pack-v137-student.jsonl`에 생성되며 raw
+  `state/question`을 포함하고 원래 target은 숨긴다.
+- 현재 human review status는 test `0/384`, 전체 targeted queue `0/5192`다.
+  따라서 teacher agreement와 Student confidence가 높아도 사람이 직접 확인할
+  때까지 `production_ready=false`이며, 다음 정확도 증거는 이 pack의 human
+  correction과 disagreement adjudication이다.
+
 ## 2026-09-21 — sparse BOW projection optimization (v1.137.0)
 
 - 32k/256 targeted BOW checkpoint의 표현과 가중치는 그대로 두고, batch-1

@@ -1,8 +1,37 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.137.0
+현재 버전: 1.138.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.138.0 — teacher-assisted review 우선순위 고정
+
+사람 정답을 만들기 전에 Qwen/Gemma를 검수 보조와 위험 사례 정렬에만 사용했다.
+Qwen `qwen38fn`은 `http://localhost:8081/v1`에서 300초 timeout으로 probe했고,
+20개 중 `20/20` schema-valid였다. 기존 target-excluded test 384개 draft도
+`384/384` synthetic match였지만, 이는 template target과 teacher의 일치일 뿐
+human accuracy가 아니다.
+
+현재 Student checkpoint와 Qwen+Gemma adjudication provenance를 review pack에
+함께 바인딩했다.
+
+```bash
+uv run hyperjev control review-pack \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --draft /tmp/control-review-v3-test-adjudicated-prompt-v3.jsonl \
+  --output /tmp/control-review-v3-test-pack-v137-student.jsonl \
+  --allow-raw --prioritize \
+  --student-checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --student-device cuda --split test
+```
+
+결과는 teacher disagreement `1/384`, Student uncertainty `0/384`,
+Student-teacher disagreement `0/384`다. 우선순위 정보는 사람이 볼 순서를
+줄이는 데만 쓰고, teacher target을 `labels.human`으로 복사하지 않는다. 현재
+test human review는 `0/384`, 전체 targeted queue는 `0/5192`이므로 production
+99% gate는 아직 미충족이다. 사람이 pack의 `state/question`을 보고 value를
+입력한 뒤에만 materialize, human-only retraining, held-out accuracy 계산으로
+진행한다.
 
 ## v1.137.0 — 표현을 보존한 sparse BOW projection 최적화
 
