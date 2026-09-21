@@ -109,6 +109,10 @@ v1.143.0에서는 NVIDIA GB10에서 CUDA synchronize를 포함한 partial replay
 실행했다. p95 `162.480µs`, STOP recall `1.0`, human `2/2`는 각각 runtime,
 safety, human-label 신호이며 서로 합쳐서 99% accuracy로 계산하지 않는다.
 
+v1.144.0에서는 BOW weight2, BOW weight4, hybrid weight2 후보를 같은 입력으로
+비교했다. hybrid는 human 2건은 맞췄지만 mixed test `343/384`로 탈락했고,
+최종 선택은 v1.137 sparse BOW weight2로 고정했다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

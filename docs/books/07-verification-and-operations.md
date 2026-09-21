@@ -194,3 +194,7 @@ v1.143.0의 NVIDIA GB10 CUDA synchronized replay는 p95 `162.480µs`, p99
 `182.256µs`, max `221.263µs`였다. 같은 실행에서 STOP recall `1.0`과 human
 label `2/2`를 확인했지만, test review status는 `2/384`이므로 promotion gate는
 계속 닫혀 있다.
+
+v1.144.0 candidate comparison에서 선택된 v1.137 weight2는 p95 `162.480µs`와
+mixed test `384/384`를 유지했다. hybrid 후보의 `343/384` 회귀를 감지해 폐기한
+것은 accuracy와 bounded latency를 함께 검증하는 모델 선택 gate다.

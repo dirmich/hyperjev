@@ -4051,6 +4051,22 @@ CUDA synchronize를 사용해 비동기 kernel 비용을 포함했으며, latenc
 통과했다. 그러나 human sample이 2개뿐이므로 이 결과를 99% human accuracy나
 production-ready 판정으로 해석하지 않는다.
 
+### 15.21 control checkpoint candidate selection (v1.144.0)
+
+동일한 partial human-reviewed test와 `--device cuda --warmup 10 --cuda-sync
+--model-only` 조건으로 세 checkpoint를 비교했다.
+
+| checkpoint | mixed test | human labels | STOP recall | CUDA p95 |
+| --- | ---: | ---: | ---: | ---: |
+| v1.137 sparse BOW weight2 | `384/384` | `2/2` | `500/500` full safety | `162.480µs` |
+| v1.130 BOW weight4 | `384/384` | `2/2` | `500/500` full safety | `165.024µs` |
+| v1.132 hybrid weight2 | `343/384 (89.3229%)` | `2/2` | `500/500` full safety | `325.152µs` |
+
+세 후보의 full safety replay는 모두 `1000/1000` correct, expected STOP
+`500/500`, false STOP `0`이었다. hybrid는 safety는 유지했지만 일반 control
+정확도와 latency가 회귀해 폐기했다. v1.137 weight2를 현재 후보로 유지하되,
+human test coverage `2/384` 때문에 production-ready는 false다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

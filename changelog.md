@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — control checkpoint candidate selection (v1.144.0)
+
+- 같은 partial human test와 CUDA synchronized 조건에서 세 후보를 비교했다.
+  v1.137 weight2는 mixed `384/384`, human `2/2`, p95 `162.480µs`였다.
+  v1.130 weight4는 `384/384`, human `2/2`, p95 `165.024µs`로 조금 느렸다.
+- v1.132 hybrid weight2는 human `2/2`였지만 mixed test가 `343/384 (89.3229%)`,
+  p95 `325.152µs`로 정확도와 latency 모두 탈락했다. 세 후보의 1,000-case
+  safety replay는 모두 accuracy `100%`, expected STOP `500/500`, false STOP
+  `0`이어서 safety invariant은 보존됐다.
+- 따라서 현재 후보는 표현을 보존한 v1.137 sparse BOW weight2로 유지한다.
+  human test coverage `2/384`를 해결한 것은 아니므로 99% gate는 여전히 닫혀 있다.
+
 ## 2026-09-21 — CUDA synchronized human replay benchmark (v1.143.0)
 
 - NVIDIA GB10에서 같은 `2/384` human-reviewed partial test를 `--device cuda

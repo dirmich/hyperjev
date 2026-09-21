@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.143.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.144.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -169,6 +169,11 @@ v1.142.0에서는 사용자가 control test sample 2개를 실제 검수했다. 
 v1.143.0에서는 NVIDIA GB10 CUDA synchronized replay를 추가했다. 같은 384개에서
 mixed target `384/384`, human `2/2`, STOP recall `1.0`, CUDA p95 `162.480µs`를
 기록했다. latency는 통과했지만 human coverage는 여전히 `2/384`다.
+
+v1.144.0에서는 세 checkpoint 후보를 재생해 v1.137 sparse BOW weight2를
+선택했다. hybrid 후보는 `343/384`와 p95 `325.152µs`로 폐기했고, weight4는
+정확도는 같지만 p95 `165.024µs`로 보류했다. safety replay는 후보 모두
+`500/500` STOP recall이었다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

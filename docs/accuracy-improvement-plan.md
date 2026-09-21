@@ -1,8 +1,24 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.143.0
+현재 버전: 1.144.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.144.0 — checkpoint candidate selection
+
+동일한 partial human test, registry, CUDA synchronized replay 조건으로 세
+checkpoint 후보를 비교했다.
+
+| 후보 | mixed test | human subset | CUDA p95 | 판정 |
+| --- | ---: | ---: | ---: | --- |
+| v1.137 sparse BOW weight2 | `384/384` | `2/2` | `162.480µs` | 선택 |
+| v1.130 BOW weight4 | `384/384` | `2/2` | `165.024µs` | 보류 |
+| v1.132 hybrid weight2 | `343/384 (89.3229%)` | `2/2` | `325.152µs` | 폐기 |
+
+세 후보 모두 safety replay `1000/1000`, expected STOP `500/500`, false STOP `0`을
+통과했지만 hybrid는 일반 control 정확도와 latency를 동시에 잃었다. v1.137
+weight2를 유지하되, 현재 human coverage `2/384` 때문에 99% production gate는
+아직 통과시키지 않는다.
 
 ## v1.143.0 — CUDA synchronized partial human replay
 
