@@ -117,9 +117,11 @@ class ControlContractTests(unittest.TestCase):
             "MOVE": (
                 "advance through the unobstructed hallway",
                 "continue forward along the open route",
+                "continue ahead while the route remains open",
                 "travel toward the next waypoint on the clear path",
                 "forward navigation is safe in free space",
                 "proceed straight through the corridor",
+                "막힘 없는 복도를 따라 앞으로 전진한다",
             ),
             "ROTATE": (
                 "reorient toward the east corridor",
@@ -131,6 +133,8 @@ class ControlContractTests(unittest.TestCase):
             "APPROACH": (
                 "close the gap to the visible marker",
                 "move nearer to the selected object",
+                "the reachable target is getting closer",
+                "the object can be reached by moving closer",
                 "the destination is visible but still distant",
                 "reduce distance to the goal safely",
                 "go toward the locked target",
@@ -139,12 +143,17 @@ class ControlContractTests(unittest.TestCase):
                 "back up from the moving obstacle",
                 "increase distance from the approaching hazard",
                 "reverse into the safe rear area",
+                "move away from the obstacle approaching ahead",
+                "뒤쪽에 안전한 공간이 있다",
                 "withdraw from the blocked front",
                 "move backward to escape the danger",
             ),
             "INTERACT": (
                 "press the illuminated button",
                 "grasp the aligned handle",
+                "grip the handle that is aligned with the end effector",
+                "press the available control button",
+                "정렬된 물체가 손이 닿는 거리에 있다",
                 "activate the switch beside the robot",
                 "touch the reachable object",
                 "pick up the selected item",
@@ -219,8 +228,15 @@ class ControlContractTests(unittest.TestCase):
         blocked_cases = (
             ("웨이포인트에 맞추기 위해 왼쪽으로 회전하지만 회전 공간이 막혀 있다", "ROTATE"),
             ("앞에 고정된 목표까지 남은 거리를 줄이지만 접근할 수 없다", "APPROACH"),
+            ("the object can be reached by moving closer but cannot be approached", "APPROACH"),
             ("다가오는 위험에서 멀어지도록 뒤로 가지만 뒤쪽이 막혀 있다", "RETREAT"),
+            ("move away from the obstacle approaching ahead but cannot retreat", "RETREAT"),
             ("접근 가능한 물체를 집어 든다지만 손이 닿지 않는다", "INTERACT"),
+            ("grip the handle that is aligned with the end effector but is not aligned", "INTERACT"),
+            ("press the available control button but cannot activate it", "INTERACT"),
+            ("continue ahead while the route remains open but the path is blocked", "MOVE"),
+            ("막힘 없는 복도를 따라 앞으로 전진하지만 앞쪽 통로가 막혀 있다", "MOVE"),
+            ("뒤쪽에 안전한 공간이 있다지만 뒤쪽이 막혀 있다", "RETREAT"),
             ("제어기 오류에서 복구 절차를 시작하지만 복구가 필요 없다", "RECOVER"),
         )
         for state, skill in blocked_cases:

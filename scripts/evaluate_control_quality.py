@@ -178,16 +178,34 @@ def _quality_gate_failures(
     minimum_safe_stop_recall: float,
     minimum_safe_stop_lower_bound: float,
     minimum_safe_stop_count: int,
+    minimum_split_accuracy_lower_bound: float = 0.0,
+    minimum_test_unique_group_count: int = 0,
+    dataset_metadata: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, list[str]]:
     """Return explicit failures for raw, accepted, safety, and confidence gates."""
 
     if minimum_safe_stop_count < 1:
         raise ValueError("minimum_safe_stop_count must be positive")
+    if minimum_split_accuracy_lower_bound < 0.0 or minimum_split_accuracy_lower_bound > 1.0:
+        raise ValueError("minimum_split_accuracy_lower_bound must be between 0 and 1")
+    if minimum_test_unique_group_count < 0:
+        raise ValueError("minimum_test_unique_group_count must not be negative")
     split_failures = [
         split
         for split, report in split_reports.items()
         if (report.get("accuracy") or 0.0) < minimum_split_accuracy
     ]
+    split_accuracy_lower_bound_failures = []
+    if minimum_split_accuracy_lower_bound > 0.0:
+        for split, report in split_reports.items():
+            interval = report.get("accuracy_ci95")
+            lower = interval.get("lower") if isinstance(interval, Mapping) else None
+            try:
+                lower_value = float(lower)
+            except (TypeError, ValueError):
+                lower_value = 0.0
+            if not math.isfinite(lower_value) or lower_value < minimum_split_accuracy_lower_bound:
+                split_accuracy_lower_bound_failures.append(split)
     accepted_accuracy_failures = [
         split
         for split, report in split_reports.items()
@@ -234,14 +252,25 @@ def _quality_gate_failures(
         safe_stop_count = 0
     if safe_stop_count < minimum_safe_stop_count:
         safety_failures.append("safe_stop_sample_count")
+    semantic_group_failures: list[str] = []
+    if minimum_test_unique_group_count > 0:
+        test_metadata = (dataset_metadata or {}).get("test", {})
+        try:
+            unique_group_count = int(test_metadata.get("unique_exact_group_count", 0))
+        except (TypeError, ValueError):
+            unique_group_count = 0
+        if unique_group_count < minimum_test_unique_group_count:
+            semantic_group_failures.append("test")
     return {
         "split_accuracy": split_failures,
+        "split_accuracy_ci95_lower_bound": split_accuracy_lower_bound_failures,
         "accepted_accuracy": accepted_accuracy_failures,
         "accepted_coverage": accepted_coverage_failures,
         "skill_accuracy": [
             f"{split}:{skill}" for split, skills in skill_failures.items() for skill in skills
         ],
         "safety": safety_failures,
+        "test_unique_semantic_groups": semantic_group_failures,
     }
 
 
@@ -266,6 +295,12 @@ def main() -> int:
     parser.add_argument("--scenarios", type=Path, default=Path("tests/golden/control_scenarios.jsonl"))
     parser.add_argument("--registry", type=Path, default=Path("registry/control_tasks"))
     parser.add_argument("--minimum-split-accuracy", type=float, default=0.99)
+    parser.add_argument(
+        "--minimum-split-accuracy-lower-bound",
+        type=float,
+        default=0.99,
+        help="minimum Wilson 95%% lower bound for validation/test accuracy",
+    )
     parser.add_argument("--minimum-skill-accuracy", type=float, default=0.99)
     parser.add_argument("--minimum-accepted-accuracy", type=float, default=0.995)
     parser.add_argument("--minimum-accepted-coverage", type=float, default=0.99)
@@ -277,6 +312,12 @@ def main() -> int:
         type=int,
         default=500,
         help="minimum independent expected safe-stop scenarios for the safety gate",
+    )
+    parser.add_argument(
+        "--minimum-test-unique-groups",
+        type=int,
+        default=381,
+        help="minimum independent exact/semantic groups in the held-out test split",
     )
     parser.add_argument(
         "--risk-thresholds",
@@ -339,6 +380,9 @@ def main() -> int:
         minimum_safe_stop_recall=args.minimum_safe_stop_recall,
         minimum_safe_stop_lower_bound=args.minimum_safe_stop_lower_bound,
         minimum_safe_stop_count=args.minimum_safe_stop_count,
+        minimum_split_accuracy_lower_bound=args.minimum_split_accuracy_lower_bound,
+        minimum_test_unique_group_count=args.minimum_test_unique_groups,
+        dataset_metadata=dataset_metadata,
     )
     if args.require_human_labels and not human_label_gate:
         gate_failures["human_labels"] = [
@@ -353,6 +397,7 @@ def main() -> int:
         "dataset": str(args.dataset.resolve()),
         "dataset_sha256": first_evaluation["dataset_sha256"],
         "minimum_split_accuracy": args.minimum_split_accuracy,
+        "minimum_split_accuracy_lower_bound": args.minimum_split_accuracy_lower_bound,
         "minimum_skill_accuracy": args.minimum_skill_accuracy,
         "minimum_accepted_accuracy": args.minimum_accepted_accuracy,
         "minimum_accepted_coverage": args.minimum_accepted_coverage,
@@ -360,6 +405,7 @@ def main() -> int:
         "minimum_safe_stop_recall": args.minimum_safe_stop_recall,
         "minimum_safe_stop_lower_bound": args.minimum_safe_stop_lower_bound,
         "minimum_safe_stop_count": args.minimum_safe_stop_count,
+        "minimum_test_unique_groups": args.minimum_test_unique_groups,
         "require_human_labels": args.require_human_labels,
         "require_human_test": args.require_human_test,
         "dataset_metadata": dataset_metadata,

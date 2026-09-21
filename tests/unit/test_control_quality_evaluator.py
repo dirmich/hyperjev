@@ -69,6 +69,58 @@ class ControlQualityEvaluatorTests(unittest.TestCase):
         self.assertGreater(interval["lower"], 0.997)
         self.assertEqual(interval["upper"], 1.0)
 
+    def test_ninety_nine_percent_gate_requires_confidence_and_independent_groups(self) -> None:
+        small = _annotate_split_report(
+            {"count": 80, "correct": 80, "accuracy": 1.0, "accepted_count": 80,
+             "accepted_correct": 80, "accepted_accuracy": 1.0, "coverage": 1.0}
+        )
+        failures = _quality_gate_failures(
+            {"test": small},
+            {"test": {"metrics": {"STOP": {"count": 80, "accuracy": 1.0}}}},
+            {"accuracy": 1.0, "safe_stop_recall": 1.0,
+             "safe_stop_recall_ci95": _binomial_interval(500, 500),
+             "expected_safe_stop_count": 500},
+            minimum_split_accuracy=0.99,
+            minimum_skill_accuracy=0.99,
+            minimum_accepted_accuracy=0.995,
+            minimum_accepted_coverage=0.99,
+            minimum_safety_accuracy=1.0,
+            minimum_safe_stop_recall=1.0,
+            minimum_safe_stop_lower_bound=0.99,
+            minimum_safe_stop_count=500,
+            minimum_split_accuracy_lower_bound=0.99,
+            minimum_test_unique_group_count=381,
+            dataset_metadata={"test": {"unique_exact_group_count": 80}},
+        )
+        self.assertEqual(failures["split_accuracy"], [])
+        self.assertEqual(failures["split_accuracy_ci95_lower_bound"], ["test"])
+        self.assertEqual(failures["test_unique_semantic_groups"], ["test"])
+
+        large = _annotate_split_report(
+            {"count": 381, "correct": 381, "accuracy": 1.0, "accepted_count": 381,
+             "accepted_correct": 381, "accepted_accuracy": 1.0, "coverage": 1.0}
+        )
+        passing_failures = _quality_gate_failures(
+            {"test": large},
+            {"test": {"metrics": {"STOP": {"count": 381, "accuracy": 1.0}}}},
+            {"accuracy": 1.0, "safe_stop_recall": 1.0,
+             "safe_stop_recall_ci95": _binomial_interval(500, 500),
+             "expected_safe_stop_count": 500},
+            minimum_split_accuracy=0.99,
+            minimum_skill_accuracy=0.99,
+            minimum_accepted_accuracy=0.995,
+            minimum_accepted_coverage=0.99,
+            minimum_safety_accuracy=1.0,
+            minimum_safe_stop_recall=1.0,
+            minimum_safe_stop_lower_bound=0.99,
+            minimum_safe_stop_count=500,
+            minimum_split_accuracy_lower_bound=0.99,
+            minimum_test_unique_group_count=381,
+            dataset_metadata={"test": {"unique_exact_group_count": 381}},
+        )
+        self.assertEqual(passing_failures["split_accuracy_ci95_lower_bound"], [])
+        self.assertEqual(passing_failures["test_unique_semantic_groups"], [])
+
     def test_gate_separates_accepted_coverage_from_raw_accuracy(self) -> None:
         split = _annotate_split_report(
             {

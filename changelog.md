@@ -3,6 +3,21 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — tighten 99% confidence gate and promote reviewed control phrases (v1.122.0)
+
+- Qwen control draft에서 반복된 명확한 문구를 safety blocker 검사를 통과하는
+  compound fast path로 추가했다. `APPROACH`, `MOVE`, `RETREAT`, `INTERACT`의
+  English/Korean 문구를 추가했고, blocker가 함께 있으면 기존처럼 Student/safety
+  policy로 defer한다.
+- `/tmp/control-review-v2-1000.jsonl` 800-row replay에서 fast-path coverage가
+  `327/800 (40.875%)`에서 `358/800 (44.75%)`로 늘었고, integrated runtime은
+  `800/800 (100%)`, synthetic STOP recall `100%`를 유지했다.
+- 품질 gate가 point accuracy만으로 99%를 승인하지 않도록 validation/test Wilson
+  95% 하한 `>=0.99`와 held-out test unique semantic group `>=381`을 요구하게
+  했다. 80/80 정답은 이 gate를 통과하지 못한다.
+- 이 버전도 human label `0` 상태이므로 production-ready가 아니며, synthetic
+  replay 수치는 human accuracy로 승격하지 않는다.
+
 ## 2026-09-21 — reject Gemma control candidate and fix partial draft denominator (v1.121.0)
 
 - `gemma4-26b-a4b-uncensored-hauhaucs-balanced` + `reasoning_effort=none`로

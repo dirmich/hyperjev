@@ -1,8 +1,25 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.113.0
+현재 버전: 1.122.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.122.0 — confidence-gated 99% claim and low-latency phrase coverage
+
+이번 단계의 목표는 synthetic point score를 부풀리는 것이 아니라, 실제 99% 주장을
+통계적으로 방어할 수 있는 gate와 빠른 control 경로를 동시에 고정하는 것이다.
+
+- Qwen draft에서 반복된 명확한 상태 문장을 compound fast path에 추가했다. 모든
+  추가 rule은 blocker가 있으면 결정하지 않으며, STOP interlock보다 우선하지 않는다.
+- 800-row control replay에서 fast-path coverage는 `327 -> 358`로 증가했지만,
+  Student fallback을 포함한 integrated runtime의 synthetic 정확도 `800/800`과
+  STOP recall `100%`는 유지됐다.
+- validation/test의 point accuracy가 1.0이어도 Wilson 95% 하한이 `0.99`보다 낮으면
+  실패한다. held-out test는 독립 exact/semantic group을 최소 381개 확보해야 한다.
+  이는 381/381에서 하한 약 `0.990018`이 되는 보수적 최소 표본이다.
+- 현재 human label은 여전히 `0/800`이므로 이 gate는 아직 production 승인을 만들지
+  않는다. 다음 단계는 381개 이상의 독립 test group에 대해 blind dual human review,
+  disagreement adjudication, 그리고 non-trigger safety near-miss를 수행하는 것이다.
 
 ## 1. 목표와 원칙
 

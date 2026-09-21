@@ -155,6 +155,7 @@
 | 1.119.0 | 진행 중 | Korean fast path blocker 5종 defer regression 고정 |
 | 1.120.0 | 진행 중 | Gemma reasoning option·candidate probe 및 partial-run evaluator denominator 교정 |
 | 1.121.0 | 진행 중 | Gemma control candidate 13/20 rejection 및 partial draft accuracy gate 교정 |
+| 1.122.0 | 진행 중 | Qwen 반복 control phrase fast path 추가, blocker 회귀 확장, Wilson 하한·381 group 99% gate |
 
 ## 다음 기록 규칙
 

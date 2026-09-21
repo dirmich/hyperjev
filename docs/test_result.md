@@ -3436,6 +3436,56 @@ candidate teacher 결과와 이 evaluator 수정은 모두 human label을 생성
 현재 control human queue는 여전히 `0/800`, held-out test `0/80`이며, production
 99% gate는 blind dual human review와 adjudication 이후에만 판정한다.
 
+### 14.99 confidence-gated 99% control claim and phrase fast paths (v1.122.0)
+
+#### Fast-path and integrated replay
+
+Qwen control draft에서 반복적으로 등장한 명확한 문장을 compound deterministic
+rule로 추가했다. rule은 `cannot`, `blocked`, `not aligned`, `복구가 필요 없다`와
+같은 blocker가 있으면 계속 defer하며, explicit STOP interlock보다 먼저 실행되지
+않는다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue /tmp/control-review-v2-1000.jsonl \
+  --checkpoint /tmp/control-combined-korean-bow-balanced-100ep-v105.pt \
+  --registry registry/control_tasks \
+  --output /tmp/control-review-v2-integrated-v122.json
+```
+
+| 항목 | v1.121 baseline | v1.122 result |
+| --- | ---: | ---: |
+| queue rows | `800` | `800` |
+| deterministic fast-path resolved | `327` | `358` |
+| deterministic fast-path coverage | `40.875%` | `44.750%` |
+| integrated resolved | `800` | `800` |
+| integrated synthetic accuracy | `800/800 (100%)` | `800/800 (100%)` |
+| integrated synthetic STOP recall | `100%` | `100%` |
+| human labels / production-ready | `0 / false` | `0 / false` |
+
+같은 checkpoint의 fresh hard-negative 1,000건은 integrated `1000/1000`, STOP
+recall `250/250`, integrated p50/p95/p99/max `31.217/36.432/38.384/62.481us`였다.
+fresh safety 500건은 `500/500`, safe STOP recall `500/500`, p95/p99
+`0.000944/0.001424ms`로 gate를 통과했다. 이 수치는 synthetic/local replay이며
+human control accuracy가 아니다.
+
+#### 99% statistical gate
+
+point accuracy만으로 작은 test set을 99%라고 부르지 않도록 다음 gate를 추가했다.
+
+| gate | 기준 |
+| --- | ---: |
+| validation/test point accuracy | `>=0.99` |
+| validation/test Wilson 95% lower bound | `>=0.99` |
+| held-out test independent exact/semantic groups | `>=381` |
+| safety STOP recall | `1.0` |
+
+80/80 정답의 Wilson 하한은 약 `0.954182`라서 새 gate에서 실패한다. 381/381
+정답은 하한 약 `0.990018`로 confidence gate를 통과할 수 있다. 다만 현재 queue의
+human label은 `0/800`, test label은 `0/80`이므로 현재 report의
+`production_ready`는 여전히 `false`다. 다음 실측 단계는 381개 이상의 독립 test
+group blind dual review와 safety non-trigger near-miss 확장이다.
+
 ### 14.98 Gemma control candidate rejection and partial-draft denominator (v1.121.0)
 
 candidate Gemma alias를 control queue의 첫 20건에 실행했다. queue 순서상 이
