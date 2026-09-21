@@ -3,6 +3,21 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — vocab/hidden latency ablation rejected (v1.136.0)
+
+- v1.134 targeted dataset에서 `vocab=16384, hidden=128`, `vocab=32768,
+  hidden=128`, `vocab=16384, hidden=256`을 비교했다. 모든 후보의
+  validation/test는 `484/484`였고 safety STOP recall은 `500/500`이었다.
+- 16k/128 checkpoint `ec8e581575b6e13ff59d0dd5dcb16582600140387d966170379fe49a1a16ea11`은
+  hard/English/Korean `100%/100%/95%`, CUDA p95 `9.403/4.908/9.296ms`였다.
+- 32k/128 checkpoint `b545140a5fe962fb075c541b497d5fa240ecf53e53326ba2714bf202f4321cb8`은
+  hard/English/Korean `100%/100%/97.5%`, CUDA p95 `9.619/9.657/9.660ms`였다.
+- 16k/256 checkpoint `c8b5d64e8769272ea886069479c10aacb64251361280b341d500f3e70ecb388e`은
+  hard/English/Korean `100%/100%/95%`였다. 축소 후보는 multilingual OOD 또는
+  hard latency gate를 만족하지 못해 모두 폐기한다.
+- 정확도 기준선은 v1.134의 32k/256 targeted BOW로 유지하되, human `0/5192`와
+  model-only OOD p95 약 10ms라는 production blocker는 그대로다.
+
 ## 2026-09-21 — warmup/CUDA-synchronized latency benchmark (v1.135.0)
 
 - `evaluate_control_fast_path.py`에 `--warmup N`과 `--cuda-sync`를 추가했다.

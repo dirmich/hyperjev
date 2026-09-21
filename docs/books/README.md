@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.135.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.136.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -125,6 +125,11 @@ v1.135.0에서는 warmup 10회와 CUDA synchronize를 evaluator 계약으로 고
 500ms급 비동기 outlier는 사라졌지만 Student-only English/Korean OOD p95는 약
 10.4ms로 5ms gate를 넘었다. 다음 장은 vocab/hidden 축소와 preallocation을
 정확도 회귀 없이 비교한다.
+
+v1.136.0에서는 16k/128, 32k/128, 16k/256 축소 모델을 모두 폐기했다. 일부
+English p95는 좋아졌지만 Korean OOD가 95~97.5%로 내려가거나 hard latency가
+약 9.4~9.7ms였다. 정확도 기준선은 32k/256 targeted BOW로 유지하고, 다음은
+runtime allocation 최적화다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

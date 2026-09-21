@@ -1,8 +1,27 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.135.0
+현재 버전: 1.136.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.136.0 — vocab/hidden 축소 ablation 폐기
+
+batch-1 Student latency를 낮추기 위해 targeted dataset에서 세 축소 후보를
+학습했다. 공통으로 validation/test `484/484`, safety STOP recall `500/500`을
+기록했지만, multilingual OOD와 latency를 동시에 통과한 후보는 없었다.
+
+| 후보 | hard | English OOD | Korean OOD | CUDA p95 hard/English/Korean | 판정 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 16k / 128 | 100% | 100% | 95% | `9.403/4.908/9.296ms` | 폐기 |
+| 32k / 128 | 100% | 100% | 97.5% | `9.619/9.657/9.660ms` | 폐기 |
+| 16k / 256 | 100% | 100% | 95% | `9.445/9.445/0.182ms` | 폐기 |
+| 32k / 256 | 100% | 100% | 100% | OOD 약 10.4ms | 정확도 기준선 |
+
+작은 vocab은 Korean typed choice의 hash 충돌/표현 손실을 만들고, hidden 축소는
+hard/OOD latency를 안정적으로 5ms 아래로 내리지 못했다. 따라서 다음 최적화는
+모델 차원 축소가 아니라 preallocated tensor, cached tokenization, batched tick,
+또는 TorchScript/compiled inference처럼 표현을 보존하는 runtime 경로를
+비교한다.
 
 ## v1.135.0 — latency 계측을 warmup/CUDA event 경계로 고정
 

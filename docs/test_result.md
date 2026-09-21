@@ -3844,6 +3844,29 @@ uv run python scripts/evaluate_control_fast_path.py \
 크기와 preallocated batch-1 input을 비교하며, human label gate와 별도로
 판정한다.
 
+### 15.13 vocab/hidden 축소 ablation (v1.136.0)
+
+v1.134 targeted checkpoint의 정확도를 유지하면서 batch-1 CUDA latency를 낮출 수
+있는지 세 가지 StudentConfig를 학습했다. 모든 평가는 `--model-only
+--device cuda --warmup 10 --cuda-sync`로 실행했다.
+
+| checkpoint | SHA-256 | hard | English OOD | Korean OOD | p95 hard/English/Korean |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 16k / 128 | `ec8e5815…16ea11` | 100% | 100% | 95% | `9.403/4.908/9.296ms` |
+| 32k / 128 | `b545140a…4321cb8` | 100% | 100% | 97.5% | `9.619/9.657/9.660ms` |
+| 16k / 256 | `c8b5d64e…ecb388e` | 100% | 100% | 95% | `9.445/9.445/0.182ms` |
+| 32k / 256 기준선 | `87898c7b…4b2380` | 100% | 100% | 100% | OOD 약 10.4ms |
+
+모든 후보의 merged validation/test는 `484/484`, safety replay는 `1000/1000`과
+STOP recall `500/500`이었다. 그러나 축소 후보는 Korean OOD 정확도 또는 hard/OOD
+latency 기준을 잃으므로 production 후보로 선택하지 않는다. 16k/256 Korean
+p95의 낮은 값은 40-row 표본과 source 구성에 민감하므로, accuracy 회귀가 있는
+후보를 latency 하나만으로 선택하지 않는다.
+
+결론은 BOW 표현 크기를 줄이는 것만으로 5ms를 달성할 수 없다는 것이다. 다음은
+동일 32k/256 checkpoint의 tokenization/model allocation 경로를 최적화하고,
+동시에 human-labeled novel state에서 실제 fallback coverage를 측정한다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행
