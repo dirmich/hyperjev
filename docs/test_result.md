@@ -3587,6 +3587,33 @@ uv run hyperjev control review-pack \
 `control review-status`는 test coverage `0.0`, `test_ready=false`를 보고했다. 실제
 정확도는 다음 단계의 reviewer A/B blind 입력과 adjudication 결과로만 계산한다.
 
+### 15.07 adjudication review-pack provenance (v1.130.0)
+
+Qwen/Gemma adjudication manifest를 target-excluded review pack으로 재생성했다.
+
+```bash
+uv run hyperjev control review-pack \
+  --registry registry/control_tasks \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --draft /tmp/control-review-v3-test-adjudicated-prompt-v3.jsonl \
+  --output /tmp/control-review-v3-test-adjudication-pack-v129.jsonl \
+  --allow-raw --prioritize --split test
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| provider | `qwen+gemma` |
+| model | `qwen38fn|gemma4-26b-a4b-uncensored-hauhaucs-balanced` |
+| prompt version | `3` |
+| sample count / target excluded | `384 / true` |
+| first item | `control-review-01517` |
+| first item Qwen / Gemma | `ROTATE / MOVE` |
+| draft SHA-256 | `639c1bd7970a6014cfc2808ebe6d4e9d17278ecb73e583a2b1ed0235c192f4b4` |
+
+pack은 두 teacher의 comparison을 보존하지만 synthetic target과 queue labels를
+포함하지 않는다. 사람 reviewer가 이 disagreement를 판단하기 전에는 dataset
+materialize나 checkpoint promotion을 수행하지 않는다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행

@@ -215,6 +215,22 @@ def export_review_pack(
         raise ValueError("draft must start with a supported teacher draft manifest")
     if manifest.get("queue_sha256") != queue_sha256:
         raise ValueError("queue SHA-256 does not match the draft manifest")
+    pack_provider = manifest.get("provider")
+    pack_model = manifest.get("model")
+    pack_prompt_version = manifest.get("prompt_version")
+    if manifest.get("record_type") == "golden_teacher_adjudication_manifest":
+        pack_provider = manifest.get("provider") or "qwen+gemma"
+        pack_model = "|".join(
+            str(model)
+            for model in (manifest.get("qwen_model"), manifest.get("gemma_model"))
+            if model
+        ) or None
+        prompt_versions = {
+            value
+            for value in (manifest.get("qwen_prompt_version"), manifest.get("gemma_prompt_version"))
+            if value is not None
+        }
+        pack_prompt_version = next(iter(prompt_versions)) if len(prompt_versions) == 1 else None
     by_sample: dict[str, dict[str, Any]] = {}
     for record in draft_records[1:]:
         sample_id = str(record.get("sample_id", ""))
@@ -260,9 +276,9 @@ def export_review_pack(
         "queue_sha256": queue_sha256,
         "draft_path": str(draft.resolve()),
         "draft_sha256": draft_sha256,
-        "provider": manifest.get("provider"),
-        "model": manifest.get("model"),
-        "prompt_version": manifest.get("prompt_version"),
+        "provider": pack_provider,
+        "model": pack_model,
+        "prompt_version": pack_prompt_version,
         "sample_count": len(samples),
         "review_split": review_split,
         "raw_inputs_included": True,

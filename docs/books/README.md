@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.129.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.130.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -93,6 +93,10 @@ v1.129.0에서는 Gemma fast alias를 held-out 384개에 독립 실행해 `383/3
 synthetic match와 Qwen/Gemma agreement `383/384`를 확인했다. disagreement 한 건은
 사람 adjudication 전까지 승격하지 않으며, 실제 model/prompt provenance가 manifest에
 기록되도록 수정했다.
+
+v1.130.0에서는 adjudication 결과를 export한 blind review pack에도 두 teacher의
+실제 model, prompt version, comparison을 보존했다. 유일한 disagreement가 첫
+review item으로 남아 사람 판단을 기다린다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

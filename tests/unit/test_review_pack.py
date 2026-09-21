@@ -754,6 +754,53 @@ class ReviewPackTests(unittest.TestCase):
         self.assertNotIn('"target"', text)
         self.assertNotIn('"labels"', text)
 
+    def test_adjudication_pack_preserves_actual_teacher_provenance(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            draft = root / "adjudication.jsonl"
+            output = root / "review-pack.jsonl"
+            generate_control_review_queue(queue, registry, count_per_skill=1, seed=7)
+            sample = json.loads(queue.read_text(encoding="utf-8").splitlines()[0])
+            queue_sha256 = __import__("hashlib").sha256(queue.read_bytes()).hexdigest()
+            draft_records = [
+                {
+                    "record_type": "golden_teacher_adjudication_manifest",
+                    "queue_sha256": queue_sha256,
+                    "provider": None,
+                    "qwen_model": "qwen38fn",
+                    "gemma_model": "gemma4-fast",
+                    "qwen_prompt_version": 3,
+                    "gemma_prompt_version": 3,
+                }
+            ]
+            for row in [json.loads(line) for line in queue.read_text(encoding="utf-8").splitlines()]:
+                draft_records.append(
+                    {
+                        "record_type": "golden_teacher_adjudication",
+                        "sample_id": row["sample_id"],
+                        "provider": "qwen+gemma",
+                        "model": "qwen38fn|gemma4-fast",
+                        "normalized_result": None,
+                        "schema_valid": False,
+                        "status": "disagreement",
+                        "teacher_comparison": {},
+                    }
+                )
+            draft.write_text(
+                "\n".join(json.dumps(record) for record in draft_records) + "\n",
+                encoding="utf-8",
+            )
+            export_review_pack(queue, draft, output, registry, include_raw=True)
+            manifest = json.loads(output.read_text(encoding="utf-8").splitlines()[0])
+
+        self.assertEqual(manifest["provider"], "qwen+gemma")
+        self.assertEqual(manifest["model"], "qwen38fn|gemma4-fast")
+        self.assertEqual(manifest["prompt_version"], 3)
+        self.assertEqual(manifest["sample_count"], 8)
+        self.assertEqual(sample["task_id"], "control.skill")
+
     def test_raw_context_requires_explicit_opt_in(self) -> None:
         config = load_config(ROOT / "configs" / "phase0.toml")
         registry = TaskRegistry.load(config.registry_path)

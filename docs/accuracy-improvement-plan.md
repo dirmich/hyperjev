@@ -1,8 +1,25 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.129.0
+현재 버전: 1.130.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.130.0 — adjudication review-pack provenance
+
+Qwen/Gemma adjudication 결과를 사람 검수 pack으로 내보낼 때 teacher metadata가
+유실되지 않도록 보강했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| provider | `qwen+gemma` |
+| model | `qwen38fn|gemma4-26b-a4b-uncensored-hauhaucs-balanced` |
+| prompt version | `3` |
+| target excluded | `true` |
+| first priority item | `control-review-01517` |
+| Qwen / Gemma | `ROTATE / MOVE` |
+
+teacher disagreement는 human adjudication 전까지 정답이나 silver label로 자동
+승격하지 않는다.
 
 ## v1.129.0 — Gemma full cross-validation and provenance binding
 

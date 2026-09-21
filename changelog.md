@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — preserve Qwen/Gemma provenance in adjudication review packs (v1.130.0)
+
+- adjudication manifest를 review pack으로 export할 때 provider/model/prompt version이
+  null로 사라지던 문제를 수정했다. 실제 pack은 `qwen+gemma`,
+  `qwen38fn|gemma4-26b-a4b-uncensored-hauhaucs-balanced`, prompt `3`을 보존한다.
+- target-excluded pack의 첫 review item은 유일한 disagreement
+  `control-review-01517`이며 Qwen/Gemma typed comparison을 함께 보존한다.
+- 이 변경은 human label을 생성하지 않으며, disagreement를 자동 선택하지 않는
+  review provenance 보정이다.
+
 ## 2026-09-21 — full Gemma cross-validation and model provenance fix (v1.129.0)
 
 - Gemma fast alias `gemma4-26b-a4b-uncensored-hauhaucs-balanced`를 reasoning
