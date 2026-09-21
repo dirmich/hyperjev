@@ -215,6 +215,13 @@ class ControlDatasetQualityTests(unittest.TestCase):
         self.assertEqual(generation["sample_count"], 64)
         self.assertEqual(generation["language"], "ko")
         self.assertEqual(set(generation["skill_counts"].values()), {8})
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        interact_states = {
+            row["state"]
+            for row in rows
+            if row["target"] == "INTERACT"
+        }
+        self.assertTrue(any("스위치를 눌러 장치를 활성화한다" in state for state in interact_states))
         report = validate_control_dataset(path, self.registry)
         self.assertTrue(report["passed"])
         self.assertEqual(report["split_counts"], {"train": 64})

@@ -1,8 +1,32 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.133.0
+현재 버전: 1.134.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.134.0 — Korean INTERACT boundary 보강과 latency 미통과
+
+Student-only Korean OOD의 잔여 오류 한 건(`INTERACT`를 `STOP`으로 분류)을
+분석한 뒤, Korean train-only generator의 기존 8개 균형을 깨지 않는 범위에서
+INTERACT 표현 하나를 `옆의 스위치를 눌러 장치를 활성화한다`로 교체했다. 이
+문장은 held-out OOD 원문과 동일하지 않으며, generator output은 계속 train split에
+한정된다.
+
+| 지표 | 결과 |
+| --- | ---: |
+| augmented rows / split | `5192 / 4224-484-484` |
+| validation / test | `484/484`, `484/484` |
+| Student-only hard / English / Korean OOD | `100% / 100% / 100%` |
+| STOP recall | `500/500 (100%)` |
+| model-only CPU p95 | `13.451 / 19.572 / 19.291ms` |
+| model-only CUDA p95 | `9.958 / 10.840 / 10.884ms` |
+| CUDA p99 outlier | `503~546ms` |
+
+정확도 synthetic gate는 개선됐지만 model-only latency 5ms gate는 실패했다. 특히
+CUDA p99 outlier는 inference 호출별 warmup/synchronization 또는 allocator 비용을
+분리하지 않으면 실시간 claim을 할 수 없다는 증거다. 이 checkpoint는 다음
+latency 최적화 실험의 accuracy 기준선으로만 보류하고, human label 없는 상태에서
+production promotion은 하지 않는다.
 
 ## v1.133.0 — hybrid-BOW ablation 폐기
 

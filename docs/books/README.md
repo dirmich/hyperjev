@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.133.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.134.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -115,6 +115,11 @@ v1.133.0에서는 hybrid word+character BOW를 폐기했다. merged validation/t
 100%였지만 Student-only hard `99.7%`, English OOD `62.5%`, Korean OOD `50.0%`로
 weight-2 BOW보다 악화됐다. 따라서 독립 OOD 회귀를 통과하지 못한 backbone은
 production 후보가 될 수 없다는 원칙을 추가했다.
+
+v1.134.0에서는 Korean INTERACT 경계를 train-only로 보강해 Student-only
+English/Korean OOD를 `40/40`으로 만들었지만, CUDA model-only p95가 약
+`10.0~10.9ms`, p99에 `503~546ms` outlier가 있어 latency gate를 통과하지 못했다.
+정확도와 bounded latency를 별도 gate로 운영하는 이유를 이 실험으로 남겼다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

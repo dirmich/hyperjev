@@ -167,6 +167,7 @@
 | 1.131.0 | 진행 중 | 5,000-row mixed hard-negative 학습, weight 2/4 OOD 비교, synthetic safety 재검증 |
 | 1.132.0 | 진행 중 | integrated fast path와 Student-only OOD/latency 측정 경계 분리 |
 | 1.133.0 | 진행 중 | hybrid-BOW ablation OOD 회귀 측정 및 후보 폐기 |
+| 1.134.0 | 진행 중 | Korean INTERACT train-only 보강, Student OOD 100%, CUDA latency gate 실패 기록 |
 
 ## 다음 기록 규칙
 

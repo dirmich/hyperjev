@@ -3,6 +3,26 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — targeted Korean interaction augmentation (v1.134.0)
+
+- Student-only Korean OOD의 유일한 오답이 `INTERACT → STOP`인 것을 확인하고,
+  기존 Korean train-only template 8개 중 하나를
+  `옆의 스위치를 눌러 장치를 활성화한다`로 교체했다. OOD 원문을 dataset에
+  복사하지 않고 generator의 균형과 train-only split을 유지했다.
+- targeted merged dataset은 `5192` rows (`train/validation/test=4224/484/484`),
+  SHA-256 `85bf54addc558484114558bbcda8a9acfcfe8bd5ac2262a147144ed1f6de95f9`다.
+  checkpoint SHA-256은
+  `87898c7b0b0241415fa1ec7a56c43ebe852ff3fae09fb4f989320ff4354b2380`이다.
+- validation/test `484/484`, synthetic Student-only hard/English/Korean OOD는
+  각각 `1000/1000`, `40/40`, `40/40`, safety STOP recall `500/500`이었다.
+- 그러나 model-only latency는 CPU p95가 hard/English/Korean
+  `13.451/19.572/19.291ms`, CUDA p95가 `9.958/10.840/10.884ms`였고,
+  CUDA p99에는 `503~546ms` outlier가 나타났다. model p95 5ms gate를 통과하지
+  못했으므로 정확도 후보일 뿐 production checkpoint로 승격하지 않는다.
+- human label은 `0/5192`, production-ready는 `false`다. 다음 작업은 GPU
+  warmup/batching/inference synchronization을 고정한 latency 최적화와 human
+  novel-state review다.
+
 ## 2026-09-21 — reject hybrid-BOW multilingual regression (v1.133.0)
 
 - v1.131.0과 같은 5,000-row merged dataset, seed, optimizer, 100 epoch 조건에서

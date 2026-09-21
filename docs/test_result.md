@@ -3763,6 +3763,62 @@ merged split point score와 safety는 통과했지만 독립 OOD가 weight-2 BOW
 올라간다”는 가정을 반증하며, 다음 개선은 feature 추가보다 human-labeled
 confusion pair와 calibration/abstention을 우선해야 한다.
 
+### 15.11 targeted Korean INTERACT augmentation과 latency gate (v1.134.0)
+
+hybrid 후보를 폐기한 뒤 weight-2 BOW의 Korean OOD 잔여 오답 하나를 진단했다.
+`control-ko-ood-033`의 `옆에 있는 스위치를 눌러 활성화한다`가
+`INTERACT` 대신 `STOP`으로 예측됐다. OOD row 자체를 train에 복사하지 않고,
+Korean train-only generator의 기존 INTERACT 표현 하나를
+`옆의 스위치를 눌러 장치를 활성화한다`로 교체해 재학습했다.
+
+```bash
+uv run hyperjev control korean \
+  --registry registry/control_tasks \
+  --output /tmp/control-korean-v134-targeted.jsonl --seed 17
+uv run hyperjev control merge \
+  --input /tmp/control-review-v3-plus-hard.jsonl \
+  --input /tmp/control-compositional-v134.jsonl \
+  --input /tmp/control-korean-v134-targeted.jsonl \
+  --input /tmp/control-boundary-v134.jsonl \
+  --output /tmp/control-review-v3-plus-hard-augmented-targeted-v134.jsonl
+uv run hyperjev control train \
+  --registry registry/control_tasks \
+  --dataset /tmp/control-review-v3-plus-hard-augmented-targeted-v134.jsonl \
+  --output /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --model-id hyperjev-control-review-v3-plus-hard-augmented-targeted-bow-weight2 \
+  --backbone reference-control-bow-encoder \
+  --hidden-size 256 --vocab-size 32768 --max-sequence-length 256 \
+  --precision fp32 --epochs 100 --batch-size 64 --learning-rate 0.01 \
+  --class-balanced --hard-negative-weight 2 --device cuda --seed 17
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| merged dataset SHA-256 | `85bf54addc558484114558bbcda8a9acfcfe8bd5ac2262a147144ed1f6de95f9` |
+| checkpoint SHA-256 | `87898c7b0b0241415fa1ec7a56c43ebe852ff3fae09fb4f989320ff4354b2380` |
+| rows / split | `5192 / 4224-484-484` |
+| validation / test | `484/484`, `484/484` |
+| Student-only hard / English / Korean | `1000/1000`, `40/40`, `40/40` |
+| safety STOP recall | `500/500 (100%)` |
+| human labels / production-ready | `0/5192 / false` |
+
+#### model-only latency
+
+`--device cpu`와 `--device cuda`를 같은 checkpoint와 queue에 적용했다. 정확도는
+양쪽 모두 동일했지만 latency는 production gate와 분리해 기록한다.
+
+| queue | CPU p95 | CUDA p95 | CUDA p99/max |
+| --- | ---: | ---: | ---: |
+| hard 1,000 | `13.451ms` | `9.958ms` | `10.738/520.024ms` |
+| English OOD 40 | `19.572ms` | `10.840ms` | `503.324/503.324ms` |
+| Korean OOD 40 | `19.291ms` | `10.884ms` | `545.542/545.542ms` |
+
+정확도는 100%에 가까워졌지만 model-only p95 5ms와 CUDA p99 bounded-latency
+조건은 실패했다. 이는 benchmark 호출마다 GPU synchronization/allocator/warmup
+비용이 섞였을 가능성이 있으므로, 다음 단계에서 warmup 횟수, `inference_mode`,
+batch/streaming tick, CUDA event latency를 분리 측정한다. 그 최적화 전에는 이
+checkpoint를 실시간 actuator 경로에 연결하지 않는다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행

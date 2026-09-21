@@ -184,6 +184,20 @@ production accuracy나 99% 보증이 아니다. 다음 학습은 human adjudicat
 확정된 correction만 target으로 materialize하고, 사람 오류가 확인된 pair만
 추가해야 한다.
 
+## 6.8 한 건의 혼동쌍을 보강할 때 지켜야 할 것
+
+targeted OOD 진단에서 Korean `INTERACT` 한 건이 `STOP`으로 잘못 분류됐다.
+해결을 위해 held-out 문장 자체를 train에 복사하지 않고, train-only Korean
+template 하나를 “옆의 스위치를 눌러 장치를 활성화한다”로 교체했다. 이 작은
+변경 후 hard/English/Korean Student-only OOD가 모두 100%가 됐지만, CUDA p95는
+약 10~11ms, p99는 503~546ms outlier로 5ms 실시간 gate를 통과하지 못했다.
+
+이 사례는 두 가지를 보여준다. 첫째, confusion-pair augmentation은 정확도를
+올릴 수 있지만 human label을 대신하지 않는다. 둘째, encoder가 100%를 내도
+inference timing이 bounded하지 않으면 로봇/게임 actuator에 연결할 수 없다.
+따라서 다음 장에서는 accuracy 후보와 latency 후보를 같은 checkpoint에 대해
+분리 측정하고, warmup/batch/CUDA event 기준을 고정한다.
+
 ```bash
 uv run hyperjev model manifest \
   --training-plan runs/phase3/training-plan.json \
