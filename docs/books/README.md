@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.120.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.121.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -150,6 +150,10 @@ v1.120.0에서는 Gemma의 reasoning control을 환경변수로 주입할 수 �
 부분 benchmark의 sample denominator를 실제 run 범위로 고쳤다. candidate Gemma
 alias는 reasoning을 끄면 6/6 typed draft를 반환했지만 human label이나 production
 judge 승격 근거는 아니다.
+
+v1.121.0에서는 candidate Gemma를 control STOP slice 20건으로 검증한 결과
+`13/20`에 그쳐 폐기했고, partial teacher draft의 full-queue accuracy를 `null`로
+보수화했다. 이는 schema-valid와 실제 판단 정확도를 분리하는 검증 원칙이다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

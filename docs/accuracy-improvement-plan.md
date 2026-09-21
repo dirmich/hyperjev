@@ -1518,6 +1518,18 @@ teacher 설정과 `HYPERJEV_GEMMA_REASONING_EFFORT` 환경 override로 일반화
 record의 unique sample ID이며, 이로써 부분 probe의 accuracy/coverage 숫자를
 과대 또는 과소 해석할 위험을 줄였다.
 
+### v1.121.0 Gemma control candidate rejection and partial-draft gate
+
+candidate Gemma alias로 control queue 첫 20건을 실행한 결과는 schema-valid
+`20/20`이었지만 STOP synthetic target 일치는 `13/20 (65.0%)`였다. 따라서 이
+alias는 Qwen/Gemma cross-validation judge 후보에서 제외한다. schema 완주만으로
+정확도가 확보된 것으로 해석하지 않는 이유를 실제 control 결과로 확인했다.
+
+partial draft quality report도 보수적으로 고쳤다. 800-row queue 중 20건만
+처리된 경우 `sample_count=800`, `processed_sample_count=20`, processed accuracy
+`0.65`, full-queue accuracy `null`을 기록한다. 이로써 부분 실행을 800건 전체
+품질처럼 표시해 99% 계획을 오판하는 것을 막는다.
+
 ### v1.115.0 malformed quality report rejection hardening
 
 정확도 gate는 모델 후보를 자동 승인하는 장치가 아니라, 기준 미달 후보를 안전하게

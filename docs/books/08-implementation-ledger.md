@@ -154,6 +154,7 @@
 | 1.118.0 | 진행 중 | Korean integrated control fast path 40/40·1800/1800 및 latency 재검증 |
 | 1.119.0 | 진행 중 | Korean fast path blocker 5종 defer regression 고정 |
 | 1.120.0 | 진행 중 | Gemma reasoning option·candidate probe 및 partial-run evaluator denominator 교정 |
+| 1.121.0 | 진행 중 | Gemma control candidate 13/20 rejection 및 partial draft accuracy gate 교정 |
 
 ## 다음 기록 규칙
 

@@ -3436,6 +3436,29 @@ candidate teacher 결과와 이 evaluator 수정은 모두 human label을 생성
 현재 control human queue는 여전히 `0/800`, held-out test `0/80`이며, production
 99% gate는 blind dual human review와 adjudication 이후에만 판정한다.
 
+### 14.98 Gemma control candidate rejection and partial-draft denominator (v1.121.0)
+
+candidate Gemma alias를 control queue의 첫 20건에 실행했다. queue 순서상 이
+구간은 STOP 20건이며, 실행 manifest SHA는 queue
+`3c1696dccc1c9545e4dc03f96bdc2b6a50010dac7457f84cbd88d2ae01fc8d84`, draft SHA는
+`559f574f6c5e54ab1bc0ac49f9e39d9ea3eec59710f24cc5d8b17965866e14c5`다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| model / reasoning | `gemma4-26b-a4b-uncensored-hauhaucs-balanced` / `none` |
+| completed / schema-valid | `20/20` / `20/20` |
+| STOP synthetic target match | `13/20 (65.0%)` |
+| latency p50/p95/p99/max | `2423.391/2675.646/3325.515/3325.515ms` |
+| human labels / production-ready | `0 / false` |
+
+schema-valid completion은 operational 개선이지만 judge 정확도 기준을 만족하지
+못한다. 이 alias를 production judge로 채택하지 않고, default
+`google/gemma-4-12b` timeout 문제도 별도 운영 blocker로 유지한다.
+
+또한 partial draft report는 800-row queue에 20건만 있으면
+`processed_sample_count=20`, processed accuracy `0.65`, full-queue accuracy
+`null`로 기록한다. 이전처럼 `13/800=1.625%`를 전체 정확도처럼 표시하지 않는다.
+
 ### 14.96 Korean fast-path blocker regression (v1.119.0)
 
 새로 추가한 한국어 phrase rule이 차단 조건이 있는 문장을 직접 실행하지 않는지

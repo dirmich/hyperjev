@@ -3,6 +3,17 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — reject Gemma control candidate and fix partial draft denominator (v1.121.0)
+
+- `gemma4-26b-a4b-uncensored-hauhaucs-balanced` + `reasoning_effort=none`로
+  control queue 첫 20건(STOP slice)을 교차 검증했다. schema-valid는 `20/20`이지만
+  synthetic target 일치는 `13/20 (65.0%)`에 그쳐 judge 후보를 폐기했다.
+- partial teacher draft evaluator가 처리한 20건을 800건 전체 정확도로 표시하지
+  않도록 `processed_sample_count`와 `synthetic_target_accuracy_on_processed`를
+  분리했다. 불완전한 draft의 full-queue accuracy는 `null`로 보수적으로 표시한다.
+- 이 결과는 Gemma 후보를 production judge로 승격하지 않으며, human label gate와
+  100% safety STOP recall gate는 그대로 유지한다.
+
 ## 2026-09-21 — make Gemma reasoning effort configurable and fix limited-run metrics (v1.120.0)
 
 - OpenAI-compatible teacher payload에 optional `reasoning_effort`를 추가하고,

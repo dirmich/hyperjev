@@ -101,6 +101,7 @@ def evaluate_control_teacher_draft(
         "provider": manifest.get("provider"),
         "model": manifest.get("model"),
         "sample_count": sample_count,
+        "processed_sample_count": len(records),
         "record_count": len(records),
         "completed_count": sum(record.get("status") == "completed" for record in records.values()),
         "schema_valid_count": valid_count,
@@ -110,7 +111,10 @@ def evaluate_control_teacher_draft(
         if valid_count
         else None,
         "synthetic_target_accuracy_overall": round(correct_count / sample_count, 6)
-        if sample_count
+        if sample_count and len(records) == sample_count
+        else None,
+        "synthetic_target_accuracy_on_processed": round(correct_count / len(records), 6)
+        if records
         else None,
         "schema_repaired_count": repaired_count,
         "human_labeled_count": human_labeled_count,
