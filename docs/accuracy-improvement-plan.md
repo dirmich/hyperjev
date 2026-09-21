@@ -1,8 +1,47 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.130.0
+현재 버전: 1.131.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.131.0 — mixed hard-negative curriculum, weight-2 선택
+
+4,000-row bilingual seed와 1,000-row counterfactual hard-negative queue를
+병합해 학습 분포와 OOD 분포를 동시에 확인했다. merge dataset은
+`train/validation/test=4032/484/484`, exact group `5000`, semantic group
+`4500`, human label `0/5000`이며 SHA-256은
+`0abe4503452da7962edcd5dc513505199dbe2e966d51430cde8ada63e13ec8f5`다.
+
+hard-negative loss weight를 `2`와 `4`로 비교했다. weight 4는 신규 hard queue는
+맞혔지만 기존 English OOD가 `33/40 (82.5%)`로 내려가 균형 후보에서 제외했다.
+weight 2 checkpoint는 다음 결과를 냈다.
+
+| 평가 경로 | 결과 |
+| --- | ---: |
+| validation / test | `484/484`, `484/484` |
+| Wilson 95% lower bound | `0.992126 / 0.992126` |
+| accepted coverage | `100% / 100%` |
+| hard queue integrated | `1000/1000 (100%)` |
+| existing English OOD | `35/40 (87.5%)` |
+| existing Korean OOD | `34/40 (85.0%)` |
+| safety STOP recall | `500/500 (100%)` |
+| false safe STOP | `0/500 (0%)` |
+| safety p95 / p99 | `0.031296 / 0.033184ms` |
+
+따라서 weight 2를 다음 review용 synthetic candidate로 보류 선택한다. 다만
+quality evaluator의 유일한 실패는 `human_test`이며, dataset human label은
+`0/5000`이다. 이 결과는 synthetic/reference 일반화와 안전 회귀를 보여줄 뿐,
+human accuracy 99% 또는 production 승인을 의미하지 않는다.
+
+다음 stop condition은 model 변경이 아니라 label 품질이다.
+
+1. adjudication pack의 384개 held-out row를 reviewer A/B가 blind 검수한다.
+2. 유일한 Qwen/Gemma disagreement `control-review-01517`을 포함한 모든
+   disagreement를 adjudicate한다.
+3. human-only test accuracy, skill별 recall, calibration, non-trigger false
+   STOP을 다시 계산한다.
+4. human gate가 통과한 뒤에만 이 checkpoint를 materialize/promotion 후보로
+   올리고, 실패한 혼동쌍만 다음 hard-negative queue에 추가한다.
 
 ## v1.130.0 — adjudication review-pack provenance
 

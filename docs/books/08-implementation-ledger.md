@@ -164,6 +164,7 @@
 | 1.128.0 | 진행 중 | 4,000-row Student 학습, semantic-group 99% gate, safety/latency 재검증 |
 | 1.129.0 | 진행 중 | Gemma 384건 cross-validation, 1건 disagreement, adjudication provenance 교정 |
 | 1.130.0 | 진행 중 | Qwen/Gemma adjudication review pack provenance 보존 |
+| 1.131.0 | 진행 중 | 5,000-row mixed hard-negative 학습, weight 2/4 OOD 비교, synthetic safety 재검증 |
 
 ## 다음 기록 규칙
 

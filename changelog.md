@@ -3,6 +3,29 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — mixed hard-negative curriculum ablation (v1.131.0)
+
+- 기존 4,000-row bilingual queue와 별도 hard-negative 1,000-row queue를
+  provenance-aware merge해 5,000-row dataset을 만들었다. split은
+  `4032/484/484`, exact group `5000`, semantic group `4500`, human label은
+  `0/5000`이다. dataset SHA-256은
+  `0abe4503452da7962edcd5dc513505199dbe2e966d51430cde8ada63e13ec8f5`다.
+- class-balanced `reference-control-bow-encoder`를 hard-negative loss weight
+  `2`로 100 epoch 학습했다. checkpoint SHA-256은
+  `7293a1d82ed4bedb3eb63db50453ed77554ccd09f3c888ffa5f9ad899f529330`이다.
+- merged validation/test는 모두 `484/484 (100%)`, Wilson 95% lower bound는
+  `0.992126`, accepted coverage는 `100%`였다. forced STOP 500개와
+  non-trigger 500개를 합친 safety replay도 `1000/1000`, STOP recall
+  `500/500`, false STOP `0/500`, p95/p99 `0.031296/0.033184ms`였다.
+- 신규 hard queue 1,000개 integrated 결과는 `1000/1000`; 기존 English OOD
+  40개는 `35/40 (87.5%)`, Korean OOD 40개는 `34/40 (85.0%)`였다. 기존
+  4,000-row checkpoint 대비 hard queue는 `77.3% → 100%`로 개선됐고 기존 OOD
+  정확도는 유지됐다. hard-negative weight `4` 후보는 English OOD가 `33/40
+  (82.5%)`로 회귀해 채택하지 않았다.
+- `--require-human-test`의 유일한 실패는 `human_test`; 현재 production-ready는
+  `false`다. 이 checkpoint는 다음 human review를 위한 연구 후보이며,
+  synthetic target을 human truth 또는 production 정확도로 주장하지 않는다.
+
 ## 2026-09-21 — preserve Qwen/Gemma provenance in adjudication review packs (v1.130.0)
 
 - adjudication manifest를 review pack으로 export할 때 provider/model/prompt version이

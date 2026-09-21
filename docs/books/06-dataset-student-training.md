@@ -163,6 +163,27 @@ Gemma와 human review로 계속 내려간다. `abstained=true`는 확률이 높�
 checkpoint가 실제로 생성되고 calibration manifest가 준비되면 두 artifact를
 git provenance와 함께 registry manifest로 묶는다.
 
+## 6.7 Mixed hard-negative curriculum을 선택하는 법
+
+seed queue만으로 validation/test가 100%여도 기존 OOD에서 어떤 혼동쌍이 남는지
+알 수 없다. 그래서 4,000-row bilingual seed와 1,000-row counterfactual
+hard-negative queue를 provenance-aware merge한 5,000-row dataset을 사용했다.
+학습 split은 `4032/484/484`이고 exact group은 `5000`, semantic group은 `4500`이다.
+
+같은 데이터에 hard-negative loss weight `2`와 `4`를 각각 100 epoch 학습했다.
+weight 4는 신규 hard queue 1,000개를 맞혔지만 기존 English OOD가 `33/40`으로
+하락했다. weight 2는 hard queue `1000/1000`, 기존 English OOD `35/40`, Korean
+OOD `34/40`으로 seed-only 후보의 OOD 기준을 유지했다. 따라서 단일 aggregate
+score가 아니라 `기존 OOD 회귀 없음 + hard queue 개선 + STOP recall 유지`를
+선택 규칙으로 삼아 weight 2를 다음 review 후보로 보류 선택했다.
+
+이 실험의 전체 정확도는 여전히 synthetic target 기준이다. human label은
+`0/5000`이고 quality evaluator는 `--require-human-test`에서 실패한다. 그러므로
+hard-negative curriculum은 혼동쌍을 줄이는 학습 방법의 증거이지, 곧바로
+production accuracy나 99% 보증이 아니다. 다음 학습은 human adjudication으로
+확정된 correction만 target으로 materialize하고, 사람 오류가 확인된 pair만
+추가해야 한다.
+
 ```bash
 uv run hyperjev model manifest \
   --training-plan runs/phase3/training-plan.json \

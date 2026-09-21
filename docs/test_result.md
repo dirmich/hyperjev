@@ -3614,6 +3614,88 @@ pack은 두 teacher의 comparison을 보존하지만 synthetic target과 queue l
 포함하지 않는다. 사람 reviewer가 이 disagreement를 판단하기 전에는 dataset
 materialize나 checkpoint promotion을 수행하지 않는다.
 
+### 15.08 mixed hard-negative curriculum ablation (v1.131.0)
+
+#### 시험 목적과 재현 명령
+
+4,000-row bilingual seed만 학습한 후보가 신규 counterfactual confusion pair에
+얼마나 일반화하는지 확인하기 위해 hard-negative 1,000-row queue를 merge했다.
+weight `2`와 `4`를 같은 seed, optimizer, epoch, split에서 비교하고, 기존
+English/Korean OOD 회귀와 안전 경계를 함께 측정했다. 두 queue의 target은
+synthetic이므로 이 단계는 human accuracy 시험이 아니다.
+
+```bash
+uv run hyperjev control merge \
+  --inputs /tmp/control-review-v3-4000.jsonl /tmp/hyperjev-control-hard-500.jsonl \
+  --output /tmp/control-review-v3-plus-hard.jsonl
+
+uv run hyperjev control train \
+  --registry registry/control_tasks \
+  --dataset /tmp/control-review-v3-plus-hard.jsonl \
+  --output /tmp/control-review-v3-plus-hard-bow-weight2-100ep.pt \
+  --model-id hyperjev-control-review-v3-plus-hard-bow-weight2 \
+  --backbone reference-control-bow-encoder \
+  --hidden-size 256 --vocab-size 32768 --max-sequence-length 256 \
+  --precision fp32 --epochs 100 --batch-size 64 --learning-rate 0.01 \
+  --class-balanced --hard-negative-weight 2 --device cuda --seed 17
+
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /tmp/control-review-v3-plus-hard-bow-weight2-100ep.pt \
+  --dataset /tmp/control-review-v3-plus-hard.jsonl \
+  --scenarios /tmp/control-safety-combined-v127.jsonl \
+  --registry registry/control_tasks \
+  --minimum-safe-stop-count 500 --minimum-test-unique-groups 381 \
+  --require-human-test
+```
+
+#### dataset과 checkpoint provenance
+
+| 항목 | 결과 |
+| --- | ---: |
+| rows / train-validation-test | `5000 / 4032-484-484` |
+| exact / semantic groups | `5000 / 4500` |
+| dataset SHA-256 | `0abe4503452da7962edcd5dc513505199dbe2e966d51430cde8ada63e13ec8f5` |
+| hard source SHA-256 | `f88cec23d06b1bae9c688bcc5f3cea4dc3b68912980b43e98c8d72fd986e5f0d` |
+| weight-2 checkpoint SHA-256 | `7293a1d82ed4bedb3eb63db50453ed77554ccd09f3c888ffa5f9ad899f529330` |
+| human labels | `0/5000` |
+
+#### quality와 safety 결과
+
+| 측정 | 결과 |
+| --- | ---: |
+| validation | `484/484 (100%)`, Wilson lower `0.992126` |
+| test | `484/484 (100%)`, Wilson lower `0.992126` |
+| accepted coverage | `100% / 100%` |
+| safety total | `1000/1000 (100%)` |
+| expected STOP / STOP recall | `500 / 500 (100%)` |
+| expected non-STOP / false STOP | `500 / 0 (0%)` |
+| safety p50/p95/p99/max | `0.028560/0.031296/0.033184/0.061712ms` |
+| quality evaluator gate | human test만 실패 |
+| production-ready | `false` |
+
+#### OOD 비교와 후보 선택
+
+`evaluate_control_fast_path.py --model-only`의 `runtime` 결과를 비교했다. 즉,
+deterministic phrase fast path의 coverage가 아니라 Student model + safety
+policy 경로의 정확도다.
+
+| runtime model-only queue | seed-only v1.128 | weight 4 | weight 2 |
+| --- | ---: | ---: | ---: |
+| 신규 hard queue 1,000 | `773/1000 (77.3%)` | `1000/1000 (100%)` | **`1000/1000 (100%)`** |
+| existing English OOD 40 | `35/40 (87.5%)` | `33/40 (82.5%)` | **`35/40 (87.5%)`** |
+| existing Korean OOD 40 | `34/40 (85.0%)` | `34/40 (85.0%)` | `34/40 (85.0%)` |
+
+weight 4는 hard queue에는 강했지만 기존 English OOD에서 5 percentage-point
+회귀가 있어 폐기했다. weight 2는 hard queue를 개선하면서 기존 OOD 기준을
+회복했으므로 다음 human review용 synthetic candidate로 보류 선택했다. 이
+선택은 aggregate synthetic 점수가 아니라 회귀 방지, hard pair 개선, STOP
+recall 유지의 세 조건으로 결정했다.
+
+모든 수치는 human target이 없는 synthetic/reference 결과다. 따라서 `100%`를
+사람 판단 정확도나 실제 게임·로봇 scene의 99% 보증으로 해석하지 않는다. 다음
+필수 단계는 384개 held-out adjudication pack의 blind dual human review이며,
+현재 reviewed `0/384`, production-ready `false`다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행
