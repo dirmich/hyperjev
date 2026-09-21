@@ -144,6 +144,10 @@ v1.150.0의 새 adversarial queue들은 teacher label이 아니라 generator tar
 state/question을 확인한 correction과는 provenance가 다르므로 human ledger에
 추가하지 않는다.
 
+v1.151.0에서 confidence도 같은 provenance 원칙을 적용했다. synthetic test의
+`0.999985` confidence와 temperature `0.25`는 teacher나 human calibration이
+아니므로 review priority 참고값일 뿐, 사람 검수 완료를 의미하지 않는다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

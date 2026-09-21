@@ -229,3 +229,8 @@ point accuracy만 보고 승격하지 않는다. 현재 status `2/384`는 아직
 v1.150.0 fresh adversarial replay는 새 hard-negative `1000/1000`과 세 가지
 64-row queue `64/64`를 확인했다. 각 replay의 STOP recall은 `1.0`이고 CUDA
 p95는 모두 `176.112µs` 이하였지만, human gate가 닫힌 상태는 변하지 않는다.
+
+v1.151.0 confidence audit는 threshold를 `0.90`에서 `0.99`로 올려도 모든
+synthetic row가 accepted되는 과신을 확인했다. calibration temperature가
+검색 하한에 붙었으므로 human ECE/NLL 전에는 runtime confidence gate를
+승격하지 않는다.

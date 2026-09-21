@@ -184,6 +184,7 @@
 | 1.148.0 | 진행 중 | 공식 quality gate, validation/test Wilson bound와 500-case safety STOP confidence 재검증 |
 | 1.149.0 | 진행 중 | control human test 384개 Wilson 99% acceptance boundary와 1-error 실패 조건 고정 |
 | 1.150.0 | 진행 중 | seed 113 fresh hard-negative/boundary/compositional/Korean adversarial replay 통과 |
+| 1.151.0 | 진행 중 | confidence threshold/calibration 과신 audit, human calibration 전 runtime 승격 보류 |
 
 ## 다음 기록 규칙
 

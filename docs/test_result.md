@@ -4232,6 +4232,22 @@ uv run hyperjev control korean --registry registry/control_tasks \
 generalization과 latency evidence다. human control accuracy는 여전히 별도
 review feedback으로만 계산한다.
 
+### 15.28 confidence overclaim rejection (v1.151.0)
+
+현재 checkpoint의 held-out test를 세 confidence threshold로 평가했다.
+
+| threshold | accepted | accuracy | coverage | quality gate |
+| ---: | ---: | ---: | ---: | --- |
+| `0.90` | `484/484` | `100%` | `100%` | human labels required |
+| `0.95` | `484/484` | `100%` | `100%` | human labels required |
+| `0.99` | `484/484` | `100%` | `100%` | human labels required |
+
+confidence 최솟값은 `0.999985`였다. validation calibration 명령도 실행했지만
+temperature `0.25`가 검색 하한, NLL `0.0 → 0.0`, human label `0/484`,
+`production_eligible=false`였다. 따라서 이 confidence와 calibration을 human
+accuracy의 대리값으로 사용하지 않는다. 독립 human calibration set에서 ECE,
+NLL, accepted risk를 확인한 뒤에만 runtime calibration을 검토한다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

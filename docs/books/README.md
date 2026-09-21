@@ -211,6 +211,11 @@ v1.150.0에서는 seed `113`의 새 adversarial queue를 생성했다. hard-nega
 `1.0`, CUDA p95는 `166.272/176.112/170.512/171.905µs`였다. 새 표현에서도
 회귀가 없었지만 synthetic 결과이므로 human accuracy로 승격하지 않는다.
 
+v1.151.0에서는 세 confidence threshold 모두 `484/484` accepted와 100%를
+보였지만, confidence 최솟값 `0.999985`와 calibration temperature 하한 `0.25`가
+과신 신호로 나타났다. human calibration 없이 이를 production confidence로
+사용하지 않는 것이 정확도를 지키는 핵심이다.
+
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
 정확도·STOP recall을 부풀리는 실수를 회귀 테스트로 막는다. 500-case 재생은

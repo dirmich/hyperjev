@@ -1,8 +1,22 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.150.0
+현재 버전: 1.151.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.151.0 — confidence overclaim rejection
+
+현재 checkpoint의 test split을 `minimum-confidence=0.90/0.95/0.99`로 각각
+평가했다. 세 threshold 모두 `accepted 484/484`, accuracy `100%`, coverage
+`100%`였지만 quality gate는 `human_labels_required`로 닫혔다. confidence의
+최솟값은 `0.999985`라서 synthetic accuracy와 confidence가 함께 과도하게
+높은 상태다.
+
+validation calibration 결과도 temperature `0.25`가 검색 하한에 도달했고
+NLL은 `0.0 → 0.0`, human label은 `0/484`, `production_eligible=false`였다.
+이 결과는 현재 checkpoint가 틀릴 때도 높은 confidence를 낼 가능성을 배제하지
+못한다. 그러므로 human calibration set 없이 temperature나 threshold를 runtime에
+연결하지 않고, 다음 gate를 독립 human ECE/NLL·risk-coverage로 유지한다.
 
 ## v1.150.0 — fresh adversarial control replay
 

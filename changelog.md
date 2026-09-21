@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — confidence overclaim rejected (v1.151.0)
+
+- 현재 control test 484개를 `control evaluate`로 threshold `0.90/0.95/0.99`에서
+  각각 재평가했다. 세 threshold 모두 accepted `484/484`, accuracy `100%`,
+  coverage `100%`였지만 quality gate 이유는 `human_labels_required`였다.
+- prediction confidence는 최솟값 `0.999985` 이상으로 과신에 가깝다. 별도
+  validation calibration도 temperature `0.25` 검색 하한, NLL `0.0 → 0.0`,
+  human label `0/484`, `production_eligible=false`였다.
+- 따라서 confidence threshold를 낮추거나 synthetic temperature를 runtime에
+  연결해 99%를 주장하지 않는다. 독립 human calibration set에서 ECE/NLL과
+  accepted risk를 확인하기 전까지 calibration artifact는 연구용으로만 둔다.
+
 ## 2026-09-21 — fresh adversarial control replay (v1.150.0)
 
 - seed `113`으로 새로 생성한 hard-negative `1000`개에서 `1000/1000`, STOP
