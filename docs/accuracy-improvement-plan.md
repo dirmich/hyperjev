@@ -1,8 +1,26 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.132.0
+현재 버전: 1.133.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.133.0 — hybrid-BOW ablation 폐기
+
+동일한 5,000-row merged dataset과 hard-negative weight `2`에서
+`reference-hybrid-bow-encoder`를 비교했다. validation/test는 `484/484`로
+겉보기에는 통과했지만 Student-only 독립 OOD는 크게 악화됐다.
+
+| 평가 | weight-2 BOW | hybrid-BOW | 판정 |
+| --- | ---: | ---: | --- |
+| hard queue 1,000 | `1000/1000` | `997/1000` | hybrid 폐기 |
+| English OOD 40 | `35/40 (87.5%)` | `25/40 (62.5%)` | hybrid 폐기 |
+| Korean OOD 40 | `34/40 (85.0%)` | `20/40 (50.0%)` | hybrid 폐기 |
+| safety STOP recall | `500/500` | `500/500` | safety 유지 |
+
+이번 결과는 train/validation/test point accuracy가 100%여도 backbone의 OOD
+일반화를 보장하지 않는다는 회귀 증거다. hybrid checkpoint는 registry 후보로
+등록하지 않고, weight-2 BOW checkpoint를 유지한다. 다음 모델 변경은 반드시
+기존 OOD 세트, 신규 hard queue, STOP/non-trigger safety를 모두 재실행한다.
 
 ## v1.132.0 — integrated path와 Student-only gate 분리
 

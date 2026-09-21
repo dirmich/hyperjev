@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — reject hybrid-BOW multilingual regression (v1.133.0)
+
+- v1.131.0과 같은 5,000-row merged dataset, seed, optimizer, 100 epoch 조건에서
+  `reference-hybrid-bow-encoder` + hard-negative weight `2`를 추가 비교했다.
+  checkpoint SHA-256은
+  `eeb60ce2a74e2fb3cd0415f482135e0ddc08e727f3e465a46c231c933fbc0926`다.
+- validation/test는 각각 `484/484 (100%)`, Wilson lower `0.992126`이고 safety
+  STOP recall은 `500/500`이었다. 그러나 Student-only hard queue는
+  `997/1000 (99.7%)`, English OOD `25/40 (62.5%)`, Korean OOD `20/40 (50.0%)`로
+  떨어졌다.
+- 기존 weight-2 BOW 후보의 hard `1000/1000`, English `35/40`, Korean `34/40`보다
+  모든 일반화 지표가 나빠졌으므로 hybrid 후보는 폐기했다. validation/test
+  100%만으로 backbone을 선택하지 않고 독립 OOD 회귀를 필수 gate로 유지한다.
+- human label은 여전히 `0/5000`, production-ready는 `false`이며, 선택 후보는
+  v1.131.0 weight-2 BOW checkpoint로 유지한다.
+
 ## 2026-09-21 — separate integrated fast-path from Student-only evidence (v1.132.0)
 
 - v1.131.0 weight-2 checkpoint를 실제 제품 경로처럼 deterministic safety/phrase

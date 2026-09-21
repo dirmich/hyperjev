@@ -3730,6 +3730,39 @@ deterministic fast path의 실시간 경계와 fallback 안전성을 증명하�
 결정하지 못한 human-labeled novel state를 Student-only 또는 실제 fallback
 경로에서 측정해야 한다.
 
+### 15.10 hybrid-BOW ablation 폐기 (v1.133.0)
+
+weight-2 BOW와 동일한 5,000-row merged dataset에서 hybrid word+character BOW를
+학습했다. 학습 명령의 차이는 backbone뿐이다.
+
+```bash
+uv run hyperjev control train \
+  --registry registry/control_tasks \
+  --dataset /tmp/control-review-v3-plus-hard.jsonl \
+  --output /tmp/control-review-v3-plus-hard-hybrid-weight2-100ep.pt \
+  --model-id hyperjev-control-review-v3-plus-hard-hybrid-weight2 \
+  --backbone reference-hybrid-bow-encoder \
+  --hidden-size 256 --vocab-size 32768 --max-sequence-length 256 \
+  --precision fp32 --epochs 100 --batch-size 64 --learning-rate 0.01 \
+  --class-balanced --hard-negative-weight 2 --device cuda --seed 17
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| checkpoint SHA-256 | `eeb60ce2a74e2fb3cd0415f482135e0ddc08e727f3e465a46c231c933fbc0926` |
+| validation / test | `484/484`, `484/484` |
+| hard queue Student-only | `997/1000 (99.7%)` |
+| English OOD Student-only | `25/40 (62.5%)` |
+| Korean OOD Student-only | `20/40 (50.0%)` |
+| safety STOP recall | `500/500 (100%)` |
+| quality human gate | 실패 (`human 0/5000`) |
+
+merged split point score와 safety는 통과했지만 독립 OOD가 weight-2 BOW보다 크게
+나빠졌다. 따라서 hybrid checkpoint는 폐기하고 model registry/production 후보에
+넣지 않는다. 이 실험은 “multilingual character feature를 추가하면 정확도가
+올라간다”는 가정을 반증하며, 다음 개선은 feature 추가보다 human-labeled
+confusion pair와 calibration/abstention을 우선해야 한다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행
