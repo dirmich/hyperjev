@@ -3548,6 +3548,42 @@ uv run python scripts/validate_control_dataset.py /tmp/control-review-v3-4000.js
 human label로 간주하지 않으며, 실제 99% 판정은 test 384개에 대한 blind dual human
 review와 adjudication 이후에만 가능하다.
 
+### 15.02 held-out Qwen draft and target-excluded review pack (v1.125.0)
+
+v1.124.0에서 준비한 4,000-row queue에서 test split만 분리해 Qwen draft를 실행했다.
+Qwen은 후보 teacher 진단용이며 human reviewer의 정답을 대신하지 않는다.
+
+```bash
+jq -c 'select(.provenance.split == "test")' \
+  /tmp/control-review-v3-4000.jsonl \
+  > /tmp/control-review-v3-test-384.jsonl
+uv run hyperjev control draft \
+  --provider qwen \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --registry registry/control_tasks \
+  --output /tmp/qwen-control-review-v3-test-384.jsonl \
+  --timeout 30 --max-tokens 128
+uv run hyperjev control review-pack \
+  --registry registry/control_tasks \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --draft /tmp/qwen-control-review-v3-test-384.jsonl \
+  --output /tmp/control-review-v3-test-pack.jsonl \
+  --allow-raw --prioritize --split test
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| Qwen completed | `384/384` |
+| schema-valid | `378/384 (98.4375%)` |
+| schema-repaired | `1` |
+| Qwen vs synthetic target | `365/384 (95.0521%)` |
+| Qwen latency p50/p95/p99/max | `2114.887/2328.132/2492.530/2581.903ms` |
+| review pack target excluded | `true` |
+| human reviewed / pending | `0 / 384` |
+
+`control review-status`는 test coverage `0.0`, `test_ready=false`를 보고했다. 실제
+정확도는 다음 단계의 reviewer A/B blind 입력과 adjudication 결과로만 계산한다.
+
 ### 14.98 Gemma control candidate rejection and partial-draft denominator (v1.121.0)
 
 candidate Gemma alias를 control queue의 첫 20건에 실행했다. queue 순서상 이

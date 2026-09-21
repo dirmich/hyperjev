@@ -1,8 +1,36 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.124.0
+현재 버전: 1.125.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.125.0 — held-out blind review pack preparation
+
+seed 17 queue에서 test split 384개를 분리해 Qwen draft와 target-excluded review
+pack을 준비했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| Qwen completed | `384/384` |
+| schema-valid | `378/384` |
+| Qwen vs synthetic target | `365/384 (95.0521%)` |
+| target-excluded pack | `384` |
+| human reviewed / pending | `0 / 384` |
+
+Qwen 수치는 human truth가 아니므로 training target이나 99% production evidence로
+사용하지 않는다. reviewer는 다음처럼 독립적으로 입력한다.
+
+```bash
+uv run hyperjev control review-session \
+  --registry registry/control_tasks \
+  --review-pack /tmp/control-review-v3-test-pack.jsonl \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --feedback-output /tmp/control-review-v3-reviewer-a.jsonl \
+  --reviewer human-a --blind --offset 0 --limit 96
+```
+
+reviewer B도 같은 384건을 독립 검수하고, dual agreement/adjudication 이후에만
+human-only test accuracy를 계산한다.
 
 ## v1.124.0 — held-out population preparation
 

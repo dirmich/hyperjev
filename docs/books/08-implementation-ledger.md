@@ -158,6 +158,7 @@
 | 1.122.0 | 진행 중 | Qwen 반복 control phrase fast path 추가, blocker 회귀 확장, Wilson 하한·381 group 99% gate |
 | 1.123.0 | 진행 중 | safety forced-STOP 편향을 보완하는 non-trigger near-miss matrix와 false-safe-stop gate |
 | 1.124.0 | 진행 중 | skill별 48개씩 384 held-out test group을 만드는 explicit control seed quota |
+| 1.125.0 | 진행 중 | held-out 384건 Qwen draft와 target-excluded blind review pack 준비 |
 
 ## 다음 기록 규칙
 

@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — prepare blind review pack for 384 held-out groups (v1.125.0)
+
+- seed 17의 4,000-row queue에서 test split 384건을 분리하고 Qwen `qwen38fn`
+  draft를 모두 실행했다. `completed=384`, schema-valid `378/384`, synthetic
+  target 일치 `365/384 (95.0521%)`, human label `0`이다.
+- target-excluded `golden_review_pack` 384건을 생성했으며 현재 review status는
+  reviewed `0`, pending `384`, test_ready `false`다.
+- Qwen draft는 human label이 아니며, 다음 실측은 `--blind` dual reviewer A/B,
+  disagreement adjudication, 그리고 human-only quality report 생성이다.
+
 ## 2026-09-21 — prepare a statistically adequate held-out control queue (v1.124.0)
 
 - `control seed`에 명시적 `--test-count-per-skill`와
