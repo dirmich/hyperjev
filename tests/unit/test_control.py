@@ -66,6 +66,7 @@ class ControlContractTests(unittest.TestCase):
     def test_explicit_collision_signal_is_a_planned_stop(self) -> None:
         self.assertTrue(explicit_stop_signal("Obstacle is directly ahead"))
         self.assertTrue(explicit_stop_signal("Emergency hazard is detected inside the collision zone"))
+        self.assertTrue(explicit_stop_signal("장애물이 안전 구역 안에 있다"))
         self.assertFalse(explicit_stop_signal("obstacle is far behind"))
 
     def test_control_fast_path_requires_compound_semantics(self) -> None:
@@ -172,11 +173,36 @@ class ControlContractTests(unittest.TestCase):
             "STOP": ("전방 장애물이 제동 거리 안으로 들어왔다", "충돌할 위험이 있다"),
             "HOLD": ("자세가 안정되어 현재 위치를 그대로 유지한다", "위험이 없어 다음 명령을 기다린다"),
             "MOVE": ("앞쪽 통로가 비어 있어 직진한다", "열린 경로를 따라 계속 앞으로 이동한다"),
-            "ROTATE": ("다음 복도를 향해 로봇의 방향을 돌린다", "목표 방향에 맞도록 제자리에서 회전한다"),
-            "APPROACH": ("눈앞의 표지판까지 거리를 줄인다", "선택된 물체에 가까워지도록 이동한다"),
-            "RETREAT": ("다가오는 장애물에서 멀어지도록 후진한다", "뒤쪽의 안전 구역으로 물러난다"),
-            "INTERACT": ("손이 닿는 버튼을 눌러 장치를 작동한다", "정렬된 손잡이를 잡는다"),
-            "RECOVER": ("위치 추적이 끊겨 복구 절차를 시작한다", "넘어진 뒤 균형을 되찾아야 한다"),
+            "ROTATE": (
+                "다음 복도를 향해 로봇의 방향을 돌린다",
+                "목표 방향에 맞도록 제자리에서 회전한다",
+                "웨이포인트에 맞추기 위해 왼쪽으로 회전한다",
+                "목표 방향을 바라보도록 제자리에서 회전한다",
+            ),
+            "APPROACH": (
+                "눈앞의 표지판까지 거리를 줄인다",
+                "선택된 물체에 가까워지도록 이동한다",
+                "앞에 고정된 목표까지 남은 거리를 줄인다",
+            ),
+            "RETREAT": (
+                "다가오는 장애물에서 멀어지도록 후진한다",
+                "뒤쪽의 안전 구역으로 물러난다",
+                "다가오는 위험에서 멀어지도록 뒤로 물러난다",
+                "앞의 위험 구역을 벗어나기 위해 뒤로 간다",
+                "막힌 앞쪽 대신 비어 있는 뒤쪽으로 물러난다",
+            ),
+            "INTERACT": (
+                "손이 닿는 버튼을 눌러 장치를 작동한다",
+                "정렬된 손잡이를 잡는다",
+                "접근 가능한 물체를 집어 든다",
+            ),
+            "RECOVER": (
+                "위치 추적이 끊겨 복구 절차를 시작한다",
+                "넘어진 뒤 균형을 되찾아야 한다",
+                "제어기 오류에서 복구 절차를 시작한다",
+                "불안정한 자세를 안정화한 뒤 다시 시작한다",
+                "추적 실패 후 로봇의 위치를 다시 확보한다",
+            ),
         }
         for expected, states in cases.items():
             for state in states:

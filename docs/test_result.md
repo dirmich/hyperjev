@@ -3344,3 +3344,49 @@ accuracy가 아니다. 두 reviewer가 target-excluded pack을 `control review-s
 target이나 checkpoint는 바뀌지 않았고, 전체 테스트는 `183 passed, 1 skipped`,
 Ruff와 `git diff --check`도 통과했다. 이 단계는 정확도를 올리는 학습 실험이
 아니며, 품질 report가 손상됐을 때 후보를 보수적으로 거부하는 안전성 개선이다.
+
+### 14.95 Korean integrated control fast path coverage (v1.118.0)
+
+한국어 OOD에서 식별된 명확한 제어 문장 10개를 복합 phrase rule로 추가하고,
+`장애물이 안전 구역 안에 있다`를 explicit STOP signal로 추가했다. rule은
+단일 키워드를 사용하지 않으며, 모호하거나 blocker가 있는 문장은 계속 Student
+fallback에 남긴다.
+
+#### Korean OOD integrated replay
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue tests/golden/control_ood_korean.jsonl \
+  --checkpoint /tmp/control-combined-korean-bow-balanced-100ep-v105.pt \
+  --registry registry/control_tasks \
+  --output /tmp/control-ood-korean-v118-integrated.json
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| rows / resolved | `40 / 40` |
+| coverage | `1.0` |
+| synthetic accuracy | `40/40 (100.0%)` |
+| STOP recall | `5/5 (100.0%)` |
+| source | `control-rule 35`, `safety-rule 5` |
+| integrated p50/p95/p99/max | `32.336/35.904/66.880/66.880us` |
+| human labels / production-ready | `0 / false` |
+
+#### Combined integrated replay
+
+동일 checkpoint로 1,800-row combined queue도 다시 재생했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| rows / resolved | `1800 / 1800` |
+| coverage | `1.0` |
+| synthetic accuracy | `1800/1800 (100.0%)` |
+| STOP recall | `350/350 (100.0%)` |
+| source | `control-rule 1450`, `safety-rule 350` |
+| integrated p50/p95/p99/max | `28.976/33.536/34.624/47.136us` |
+| human labels / production-ready | `0 / false` |
+
+이 단계는 model-only raw 정확도를 바꾼 것이 아니라 명확한 문장을 안전한 typed
+control rule로 조기 결정해 fallback latency를 제거한 것이다. 따라서 100% 수치는
+synthetic target과 integrated rule coverage에 대한 결과이며, human golden이 없는
+상태에서 상용 정확도나 99% human accuracy로 주장할 수 없다.

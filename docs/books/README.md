@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.117.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.118.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -133,6 +133,13 @@ v1.117.0 상태 점검에서 v2 queue는 `0/800` human reviewed, held-out test�
 `0/80`으로 확인됐다. 이 책은 synthetic 점수와 human production accuracy를
 분리하며, 다음 장의 실제 검수·adjudication·human-only training이 완료되기 전에는
 99% 달성을 주장하지 않는다.
+
+v1.118.0에서는 Korean OOD의 명확한 제어 문장 10개를 복합 phrase fast path로
+라우팅하고 explicit Korean STOP signal을 보강했다. integrated Korean OOD와
+combined replay가 각각 `40/40`, `1800/1800`으로 resolved 되었고 p99는 각각
+`66.880us`, `34.624us`였다. 이는 raw model-only 정확도가 아니라 안전한 typed
+rule coverage와 latency 개선이며, human label `0/800` 상태에서 상용 정확도를
+의미하지 않는다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두

@@ -3,6 +3,20 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — expand Korean control fast path (v1.118.0)
+
+- 한국어 OOD에서 모델 fallback으로 남아 있던 명확한 ROTATE, APPROACH, RETREAT,
+  INTERACT, RECOVER 문구 10종을 단일 키워드가 아닌 복합 phrase rule로 추가했다.
+  안전 STOP 신호 `장애물이 안전 구역 안에 있다`도 명시적 STOP 계약에 포함했다.
+- 40-row Korean OOD integrated replay는 `40/40`, coverage `1.0`, synthetic
+  accuracy `1.0`, STOP recall `1.0`이 되었고 integrated p95/p99는
+  `35.904/66.880us`였다. 이전 10건 model fallback이 모두 제거됐다.
+- 1,800-row combined integrated replay는 `1800/1800`, coverage `1.0`, synthetic
+  accuracy `1.0`, STOP recall `1.0`, p95/p99 `33.536/34.624us`였다.
+- 위 수치는 synthetic target과 integrated rule 경로 증거다. human label은 여전히
+  `0/800` source queue, held-out `0/80`이므로 production-ready나 99% human
+  accuracy로 해석하지 않으며, model-only raw accuracy도 변경하지 않았다.
+
 ## 2026-09-21 — record human-label evidence gate status (v1.117.0)
 
 - v2 source queue를 다시 점검한 결과 `800`건 중 human review가 `0`건이며,

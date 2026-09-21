@@ -1473,6 +1473,28 @@ uv run hyperjev control review-session \
 통과할 수 없으므로, 현재 계획의 다음 stop condition은 human-only held-out test
 report 생성이다.
 
+### v1.118.0 Korean integrated fast-path coverage
+
+v1.105 BOW checkpoint의 Korean OOD에서 남은 10개 fallback 문장을 검토해, 각
+skill의 의도가 충분히 명시된 복합 phrase만 deterministic fast path에 추가했다.
+단일 단어 rule은 추가하지 않았고, STOP은 별도 explicit safety signal로 먼저
+판정되는 기존 우선순위를 유지했다.
+
+| 평가 | 결과 |
+| --- | ---: |
+| Korean OOD integrated | `40/40`, coverage `1.0` |
+| Korean OOD STOP recall | `5/5` |
+| Korean OOD integrated p95/p99 | `35.904/66.880us` |
+| combined integrated | `1800/1800`, coverage `1.0` |
+| combined STOP recall | `350/350` |
+| combined integrated p95/p99 | `33.536/34.624us` |
+
+이는 model-only raw checkpoint의 정확도 향상이 아니라, 명확한 안전 제어 문장을
+빠른 typed rule로 라우팅한 integrated runtime 개선이다. human source queue가
+`0/800`, held-out test가 `0/80`인 동안에는 production accuracy나 99% 달성으로
+승격하지 않는다. 다음 정확도 gate는 여전히 blind dual human review와
+adjudication이다.
+
 ### v1.115.0 malformed quality report rejection hardening
 
 정확도 gate는 모델 후보를 자동 승인하는 장치가 아니라, 기준 미달 후보를 안전하게
