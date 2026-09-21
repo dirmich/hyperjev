@@ -88,6 +88,12 @@ review pack에 묶었다. teacher disagreement `1/384`와 Student uncertainty
 `labels.human`을 자동으로 만들지 않으며, 실제 사람이 state/question을 보고
 typed value를 입력해야만 golden gate가 열린다.
 
+v1.140.0에서는 control review 입력을 한두 글자 alias로 단축했다. `a/h/i/m/s`와
+`ro/rt/rc`는 각각 registry action으로 변환되고, 입력 비교는 대소문자를
+무시한다. `s`가 `STOP`이므로 보류 명령은 `sk`/`skip`이다. alias도 full action과
+마찬가지로 registry validation을 거치며, reviewer가 실제 입력한 값만 golden
+feedback으로 남는다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

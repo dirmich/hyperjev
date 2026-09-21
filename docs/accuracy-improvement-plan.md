@@ -1,8 +1,24 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.139.0
+현재 버전: 1.140.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.140.0 — one/two-letter control review aliases
+
+반복되는 control action을 빠르게 입력할 수 있도록 review shell에 짧은 alias를
+추가했다. 소문자 입력을 기준으로 설명하지만 비교 시 대소문자를 무시한다.
+
+| 입력 | typed value |
+| --- | --- |
+| `a` / `h` / `i` / `m` / `s` | `APPROACH` / `HOLD` / `INTERACT` / `MOVE` / `STOP` |
+| `ro` / `rt` / `rc` | `ROTATE` / `RETREAT` / `RECOVER` |
+| `t` / `f` | boolean `true` / `false` |
+
+`s`는 `STOP`이므로 다음/이전/보류/종료 명령은 각각 `n`, `p`, `sk`, `q`다.
+full action 이름도 호환되며, alias는 현재 task registry의 candidate로 변환된 뒤
+기존 typed validation을 통과해야 feedback으로 저장된다. 이 기능은 reviewer의
+입력량을 줄일 뿐 human label을 자동 생성하지 않는다.
 
 ## v1.139.0 — control flat-value review shell
 
@@ -21,7 +37,7 @@ uv run hyperjev control review-shell \
 
 화면에는 `state`, `question`, 허용 action 목록만 표시된다. `value>`에
 `STOP`, `MOVE` 같은 값을 직접 입력하면 registry candidate 검증 후 typed
-feedback을 append한다. `n`, `p`, `s`, `q`는 각각 다음/이전/보류/종료다.
+feedback을 append한다. 짧은 alias는 v1.140.0에서 추가됐다.
 task, language, domain, state, question이 모두 같은 exact duplicate는 하나의
 group으로 접고 한 번 입력한 correction을 각 sample ID에 기록한다. 따라서
 review 화면의 판단 수와 human label 수는 다를 수 있으며 unique group 수를 함께

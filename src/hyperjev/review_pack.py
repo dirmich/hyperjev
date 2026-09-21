@@ -916,12 +916,52 @@ def _review_value_options(item: dict[str, Any], registry: TaskRegistry) -> str:
     task_id, task_version = parse_task_reference(str(item.get("task", "")))
     task = registry.get(task_id, task_version)
     if task.output_type == "boolean":
-        return "true / false"
+        return "t=true / f=false"
     if task.output_type == "choice":
-        return " / ".join(str(candidate) for candidate in task.output.get("candidates", []))
+        return " / ".join(
+            f"{alias}={candidate}"
+            for candidate in task.output.get("candidates", [])
+            for alias in (_control_value_alias(str(candidate)),)
+        )
     if task.output_type == "score":
         return "number between 0 and 1"
     return str(task.output_type)
+
+
+def _control_value_alias(candidate: str) -> str:
+    """Return an unambiguous one- or two-letter control action alias."""
+
+    aliases = {
+        "APPROACH": "a",
+        "HOLD": "h",
+        "INTERACT": "i",
+        "MOVE": "m",
+        "STOP": "s",
+        "ROTATE": "ro",
+        "RETREAT": "rt",
+        "RECOVER": "rc",
+    }
+    return aliases.get(candidate.upper(), candidate[:2].lower())
+
+
+def _control_value_from_input(
+    item: dict[str, Any], raw_value: str, registry: TaskRegistry
+) -> dict[str, Any]:
+    """Translate a short control alias, while retaining full-value compatibility."""
+
+    task_id, task_version = parse_task_reference(str(item.get("task", "")))
+    task = registry.get(task_id, task_version)
+    value = raw_value.strip()
+    if task.output_type == "boolean":
+        aliases = {"t": "true", "f": "false"}
+        value = aliases.get(value.lower(), value)
+    elif task.output_type == "choice":
+        aliases = {
+            _control_value_alias(str(candidate)): str(candidate)
+            for candidate in task.output.get("candidates", [])
+        }
+        value = aliases.get(value.lower(), value)
+    return _correction_from_value(item, value, registry)
 
 
 def _review_value_label(correction: dict[str, Any]) -> str:
@@ -1052,7 +1092,7 @@ def run_control_review_shell(
         output_fn(f"allowed values: {_review_value_options(item, registry)}")
         if sample_id in latest:
             output_fn(f"current value: {_review_value_label(latest[sample_id]['correction'])}")
-        output_fn("Enter a value directly, or use [n]ext [p]revious [s]kip [q]uit")
+        output_fn("Enter a value directly, or use [n]ext [p]revious [sk]ip [q]uit")
         try:
             raw_value = input_fn("value> ").strip()
         except (EOFError, KeyboardInterrupt):
@@ -1062,7 +1102,7 @@ def run_control_review_shell(
         if command in {"q", "quit"}:
             stopped = True
             break
-        if command in {"n", "next", "s", "skip"}:
+        if command in {"n", "next", "sk", "skip"}:
             if index < len(selected_groups) - 1:
                 index += 1
             continue
@@ -1071,7 +1111,7 @@ def run_control_review_shell(
                 index -= 1
             continue
         try:
-            correction = _correction_from_value(item, raw_value, registry)
+            correction = _control_value_from_input(item, raw_value, registry)
         except (TypeError, ValueError) as exc:
             output_fn(f"Invalid value: {exc}")
             continue

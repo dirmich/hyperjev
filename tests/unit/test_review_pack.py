@@ -1195,7 +1195,7 @@ class ReviewPackTests(unittest.TestCase):
                 feedback,
                 registry,
                 reviewer="human-a",
-                input_fn=lambda _prompt: queue_records[0]["target"],
+                input_fn=lambda _prompt: "rc",
                 output_fn=output.append,
             )
 
@@ -1209,10 +1209,11 @@ class ReviewPackTests(unittest.TestCase):
         self.assertTrue(report["deduplicated_exact"])
         self.assertTrue(report["flat_value_input"])
         self.assertEqual(len(feedback_records), 2)
-        self.assertTrue(any("allowed values:" in line for line in output))
+        self.assertTrue(any("rc=RECOVER" in line for line in output))
         self.assertTrue(any("state:" in line for line in output))
         self.assertTrue(any("question:" in line for line in output))
         self.assertFalse(any("normalized_result" in line or "Qwen" in line for line in output))
+        self.assertTrue(all(json.loads(line)["correction"]["selected"] == "RECOVER" for line in feedback_records))
 
     def test_control_dual_review_requires_adjudication_before_finalization(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")

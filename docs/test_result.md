@@ -3962,13 +3962,41 @@ uv run hyperjev control review-shell \
 
 이 쉘은 nested teacher JSON을 표시하지 않고 raw `state`, `question`, registry의
 flat allowed values만 표시한다. `value>` prompt에 `STOP` 또는 `MOVE`를 직접
-입력하면 typed feedback을 append한다. `n/p/s/q`는 next/previous/skip/quit이다.
+입력하면 typed feedback을 append한다. v1.140.0에서 짧은 alias와
+`n/p/sk/q` 명령으로 입력 계약을 확장했다.
 exact duplicate는 한 그룹으로 묶지만 feedback은 각 sample ID에 기록한다.
 
 검증된 동작은 exact duplicate 2개를 한 번 입력해 feedback 2건을 저장하는 것,
 허용 action 목록과 state/question을 출력하는 것, teacher `normalized_result`와
 Qwen nested JSON을 출력하지 않는 것이다. 기존 review pack suite는 `32 passed`다.
 이 쉘은 human value를 요구하므로 자동으로 production gate를 통과시키지 않는다.
+
+### 15.17 one/two-letter control review aliases (v1.140.0)
+
+reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에
+한두 글자 alias를 추가했다.
+
+| 입력 | typed value |
+| --- | --- |
+| `a` / `h` / `i` / `m` / `s` | `APPROACH` / `HOLD` / `INTERACT` / `MOVE` / `STOP` |
+| `ro` / `rt` / `rc` | `ROTATE` / `RETREAT` / `RECOVER` |
+| `t` / `f` | boolean `true` / `false` |
+
+alias lookup은 `.lower()` 기준이므로 `rc`, `RC`, `Rc`가 모두 허용된다. full
+candidate 이름도 계속 허용하며, 변환 뒤 기존 `_correction_from_value`와 task
+registry candidate 검증을 통과해야 feedback이 append된다. `s`가 STOP으로
+예약되어 navigation 보류는 `sk` 또는 `skip`으로 분리했다.
+
+검증 결과:
+
+- `uv run pytest -q tests/unit/test_review_pack.py`: `32 passed`
+- `uv run ruff check src/hyperjev/review_pack.py tests/unit/test_review_pack.py`:
+  passed
+- `git diff --check`: passed
+
+unit test는 lower-case `rc`를 입력해 duplicate group 두 건 모두
+`RECOVER` typed feedback으로 저장되는지 확인했다. 이 단계도 입력 계층만
+개선한 것이며, human label을 자동 생성하거나 control accuracy를 주장하지 않는다.
 
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 

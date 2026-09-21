@@ -173,6 +173,7 @@
 | 1.137.0 | 진행 중 | 표현 동치를 유지한 sparse BOW projection, OOD·safety·CUDA latency 재검증 |
 | 1.138.0 | 진행 중 | Qwen endpoint probe, Qwen/Gemma disagreement·Student bound human review pack |
 | 1.139.0 | 진행 중 | nested teacher 출력을 숨긴 control flat-value review shell과 exact duplicate 축약 |
+| 1.140.0 | 진행 중 | control review-shell one/two-letter lower-case aliases와 STOP/skip 명령 충돌 해소 |
 
 ## 다음 기록 규칙
 

@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — one/two-letter control review aliases (v1.140.0)
+
+- `control review-shell`의 control action 입력을 한두 글자 alias로 줄였다.
+  `a/h/i/m/s`는 각각 `APPROACH/HOLD/INTERACT/MOVE/STOP`이고, `ro/rt/rc`는
+  `ROTATE/RETREAT/RECOVER`다. full action 이름도 계속 입력할 수 있다.
+- alias 비교는 대소문자를 무시하므로 `rc`, `RC`, `Rc`가 모두 같은 action을
+  가리킨다. boolean typed task는 `t=true`, `f=false`를 지원한다.
+- `s`가 `STOP`이 되었으므로 navigation 보류는 `sk` 또는 `skip`으로
+  분리했다. 잘못된 값은 기존 registry validation과 append-only feedback 경로에서
+  거부된다.
+- 입력 편의성만 개선한 단계이며 human label을 자동 생성하거나 accuracy를
+  production 수치로 올려 주장하지 않는다.
+
 ## 2026-09-21 — flat control review shell (v1.139.0)
 
 - `hyperjev control review-shell`을 추가했다. review pack의 nested Qwen/Gemma

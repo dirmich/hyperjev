@@ -174,3 +174,8 @@ duplicate를 접어 입력량을 줄인다. `state/question`과 flat candidate�
 teacher JSON은 숨긴다. 입력된 값은 registry validation을 통과한 뒤 append-only
 feedback으로 저장되므로, 사람이 실제로 입력한 label만 다음 materialize gate에
 사용된다.
+
+v1.140.0의 review shell은 action을 `a`, `h`, `i`, `m`, `s`, `ro`, `rt`, `rc`로
+입력할 수 있고 대소문자를 무시한다. `s`는 안전 동작인 `STOP`이므로 보류는
+`sk`/`skip`으로 분리했다. alias는 표시 편의와 입력 속도만 바꾸며, typed registry
+검증과 human-label gate는 그대로 유지한다.

@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.139.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.140.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -149,6 +149,12 @@ nested teacher JSON 대신 state/question과 허용 action만 보고 `STOP`, `MO
 값을 한 건씩 입력한다. exact duplicate는 한 번만 판단하고 feedback은 각 sample
 ID에 남긴다. 이 기능은 사람 검수 throughput을 높이지만 human label을 자동으로
 만들지는 않는다.
+
+v1.140.0에서는 control action을 한두 글자로 입력할 수 있게 했다. `a/h/i/m/s`는
+각각 `APPROACH/HOLD/INTERACT/MOVE/STOP`, `ro/rt/rc`는
+`ROTATE/RETREAT/RECOVER`이며 대소문자를 구분하지 않는다. `s`를 STOP으로
+예약했기 때문에 보류는 `sk`/`skip`으로 분리했다. 이는 review throughput을
+높이는 입력 계층일 뿐 human label이나 production accuracy를 자동 생성하지 않는다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
