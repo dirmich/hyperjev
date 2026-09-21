@@ -1289,6 +1289,9 @@ control checkpoint를 독립적으로 유지한다.
 재현 명령은 다음과 같다.
 
 ```bash
+jq -s -c '.[]' tests/golden/control_safety_500.jsonl \
+  /tmp/control-safety-near-miss-v122.jsonl \
+  > /tmp/control-safety-combined-v127.jsonl
 uv run hyperjev control train \
   --dataset tests/golden/control_smoke.jsonl \
   --output runs/control/control-student-48-300.pt \
@@ -3583,6 +3586,64 @@ uv run hyperjev control review-pack \
 
 `control review-status`는 test coverage `0.0`, `test_ready=false`를 보고했다. 실제
 정확도는 다음 단계의 reviewer A/B blind 입력과 adjudication 결과로만 계산한다.
+
+### 15.05 4,000-row Student semantic-group gate (v1.128.0)
+
+#### Student 학습과 quality evaluator
+
+명시적 quota queue를 `reference-control-bow-encoder`에 학습했다. prompt v3
+Qwen 결과와 Student synthetic 결과는 별도의 증거로 관리한다.
+
+```bash
+uv run hyperjev control train \
+  --registry registry/control_tasks \
+  --dataset /tmp/control-review-v3-4000.jsonl \
+  --output /tmp/control-review-v3-bow-balanced-100ep.pt \
+  --model-id hyperjev-control-review-v3-bow \
+  --backbone reference-control-bow-encoder \
+  --hidden-size 256 --vocab-size 32768 --max-sequence-length 256 \
+  --precision fp32 --epochs 100 --batch-size 64 --learning-rate 0.01 \
+  --class-balanced --device cuda --seed 17
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /tmp/control-review-v3-bow-balanced-100ep.pt \
+  --dataset /tmp/control-review-v3-4000.jsonl \
+  --scenarios /tmp/control-safety-combined-v127.jsonl \
+  --registry registry/control_tasks \
+  --minimum-safe-stop-count 500 \
+  --minimum-test-unique-groups 381 \
+  --require-human-test
+```
+
+quality evaluator exit code는 `1`이다. 실패 원인은 human test label만이며,
+synthetic/independence/safety/latency gate는 모두 통과했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| train / validation / test | `3232 / 384 / 384` |
+| checkpoint SHA-256 | `e1612513bc018131b5cc21fd968ea17bb1fb3f5cbf0f45fae99a4b080833f2c7` |
+| dataset SHA-256 | `c9e68eb0ae819edb5ca806e23aca4b36195969d86547d9b8f5257a30053dfe95` |
+| validation | `384/384 (100%)`, Wilson lower `0.990095` |
+| test | `384/384 (100%)`, Wilson lower `0.990095` |
+| accepted coverage | `100% / 100%` |
+| unique semantic groups | `384 / 384` |
+| human labels | `0/4000` |
+| production-ready | `false` |
+
+#### Safety와 latency
+
+forced STOP 500건과 valid non-trigger near-miss 500건을 결합해 실행했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| total / accuracy | `1000 / 1000 (100%)` |
+| expected STOP / recall | `500 / 500 (100%)` |
+| expected non-STOP / false STOP | `500 / 0 (0%)` |
+| p95 / p99 / max | `0.030832 / 0.032688 / 0.063392ms` |
+| latency gate | pass (`p95,p99 <= 5ms`) |
+
+이 결과는 synthetic reference와 local CPU/GPU checkpoint replay다. blind human
+review 전에는 실제 게임/로봇 환경의 99% 정확도나 production 승격을 의미하지
+않는다.
 
 ### 15.04 prompt v3 target-excluded blind review pack (v1.127.0)
 

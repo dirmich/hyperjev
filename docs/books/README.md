@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.127.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.128.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -83,6 +83,11 @@ accuracy나 checkpoint 승격으로 해석하지 않는다.
 v1.127.0에서는 이 prompt v3 draft의 hash에 바인딩된 target-excluded blind review
 pack을 새로 만들었다. reviewed `0/384`, `test_ready=false`이므로 다음 단계는
 사람 A/B의 독립 검수와 disagreement adjudication이다.
+
+v1.128.0에서는 4,000-row bilingual queue로 Student checkpoint를 학습해
+validation/test `384/384`와 Wilson 하한 `0.990095`를 확인했다. safety 1,000건도
+STOP recall `100%`, false STOP `0%`, p99 `0.032688ms`였다. 그러나 human label은
+`0/4000`이므로 이 checkpoint는 production 모델이 아니다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

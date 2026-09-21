@@ -1,8 +1,32 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.127.0
+현재 버전: 1.128.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.128.0 — 4,000-row Student training and semantic-group quality gate
+
+prompt v3 teacher 결과와 별개로, 동일한 4,000-row bilingual queue를
+`reference-control-bow-encoder` Student에 학습시켜 encoder 경로를 평가했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| train / validation / test | `3232 / 384 / 384` |
+| checkpoint SHA-256 | `e1612513bc018131b5cc21fd968ea17bb1fb3f5cbf0f45fae99a4b080833f2c7` |
+| dataset SHA-256 | `c9e68eb0ae819edb5ca806e23aca4b36195969d86547d9b8f5257a30053dfe95` |
+| validation / test | **384/384, 384/384** |
+| Wilson 95% lower bound | **0.990095 / 0.990095** |
+| accepted coverage | `100% / 100%` |
+| unique semantic groups | `384 / 384` |
+| human labels | `0/4000` |
+
+evaluator는 이전의 exact-group 수가 아니라 provenance의
+`unique_semantic_group_count`를 99% 독립성 gate에 사용하도록 교정했다.
+
+Safety combined replay는 forced STOP 500건과 non-trigger 500건으로 구성했다.
+전체 정확도 `1000/1000`, STOP recall `500/500`, false-safe-stop `0/500`,
+p95/p99 `0.030832/0.032688ms`로 통과했다. 다만 synthetic target과 local
+replay이므로 human control accuracy나 production 승격 증거가 아니다.
 
 ## v1.127.0 — prompt v3 blind review pack rebinding
 

@@ -272,7 +272,7 @@ def _quality_gate_failures(
     if minimum_test_unique_group_count > 0:
         test_metadata = (dataset_metadata or {}).get("test", {})
         try:
-            unique_group_count = int(test_metadata.get("unique_exact_group_count", 0))
+            unique_group_count = int(test_metadata.get("unique_semantic_group_count", 0))
         except (TypeError, ValueError):
             unique_group_count = 0
         if unique_group_count < minimum_test_unique_group_count:
@@ -381,6 +381,7 @@ def main() -> int:
         split: {
             "row_count": evaluation["row_count"],
             "unique_exact_group_count": evaluation["unique_exact_group_count"],
+            "unique_semantic_group_count": evaluation["unique_semantic_group_count"],
             "human_labeled_count": evaluation["golden"]["human_labeled_count"],
             "human_label_gate": evaluation["golden"]["human_labeled_count"] == evaluation["row_count"],
         }

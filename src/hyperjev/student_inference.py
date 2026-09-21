@@ -38,6 +38,13 @@ def _exact_group_key(sample: CanonicalSample) -> tuple[str, int, str, str, str, 
     )
 
 
+def _semantic_group_key(sample: CanonicalSample) -> str:
+    """Return the provenance group used to measure independent examples."""
+
+    value = sample.provenance.get("semantic_group_id")
+    return str(value) if value else f"sample:{sample.sample_id}"
+
+
 def _deduplicate_exact(samples: list[CanonicalSample]) -> list[CanonicalSample]:
     """Keep one deterministic representative per exact semantic group."""
 
@@ -250,6 +257,7 @@ def evaluate_student_checkpoint(
     if not selected_samples:
         raise StudentInferenceError(f"dataset has no samples for split: {split}")
     unique_exact_group_count = len({_exact_group_key(sample) for sample in selected_samples})
+    unique_semantic_group_count = len({_semantic_group_key(sample) for sample in selected_samples})
     samples = _deduplicate_exact(selected_samples) if deduplicate_exact else selected_samples
     targets: dict[str, tuple[Any, str]] = {}
     predictions = []
@@ -325,6 +333,7 @@ def evaluate_student_checkpoint(
         "deduplicate_exact": deduplicate_exact,
         "row_count": len(selected_samples),
         "unique_exact_group_count": unique_exact_group_count,
+        "unique_semantic_group_count": unique_semantic_group_count,
         "minimum_confidence": minimum_confidence,
         "score_auto_accept": allow_score,
         "rules_enabled": with_rules,

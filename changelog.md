@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — validate 4,000-row Student checkpoint with semantic-group gate (v1.128.0)
+
+- 4,000-row bilingual queue(`train/validation/test=3232/384/384`)로
+  `reference-control-bow-encoder` checkpoint를 CUDA에서 100 epoch 학습했다.
+  checkpoint SHA-256은 `e1612513bc018131b5cc21fd968ea17bb1fb3f5cbf0f45fae99a4b080833f2c7`,
+  dataset SHA-256은 `c9e68eb0ae819edb5ca806e23aca4b36195969d86547d9b8f5257a30053dfe95`다.
+- validation/test 모두 `384/384 (100%)`, accepted coverage `100%`, Wilson 95%
+  하한 `0.990095`로 99% 수치 gate를 통과했다. 두 split 모두 unique semantic
+  group `384`를 evaluator가 직접 검사한다.
+- forced STOP 500건과 non-trigger near-miss 500건을 합친 1,000건 safety replay는
+  전체 `1000/1000`, STOP recall `500/500 (100%)`, false-safe-stop `0/500 (0%)`,
+  p95/p99 `0.030832/0.032688ms`로 latency gate를 통과했다.
+- dataset human label은 `0/4000`이고 `--require-human-test`는 의도적으로
+  실패했다. 따라서 이 checkpoint는 synthetic validation candidate이며
+  production-ready가 아니다.
+
 ## 2026-09-21 — bind blind review pack to prompt v3 (v1.127.0)
 
 - prompt v3로 재실행한 held-out 384건 draft의 SHA-256을 새

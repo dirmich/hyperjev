@@ -247,6 +247,7 @@ class StudentContractTests(unittest.TestCase):
             )
 
         self.assertEqual(report["overall"]["count"], 1)
+        self.assertEqual(report["unique_semantic_group_count"], 1)
         self.assertIn("accuracy", report["overall"])
         self.assertIn("coverage", report["overall"])
         self.assertEqual(report["overall"]["accepted_count"], 0)

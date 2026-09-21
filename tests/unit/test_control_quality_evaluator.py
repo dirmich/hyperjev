@@ -90,7 +90,7 @@ class ControlQualityEvaluatorTests(unittest.TestCase):
             minimum_safe_stop_count=500,
             minimum_split_accuracy_lower_bound=0.99,
             minimum_test_unique_group_count=381,
-            dataset_metadata={"test": {"unique_exact_group_count": 80}},
+            dataset_metadata={"test": {"unique_semantic_group_count": 80}},
         )
         self.assertEqual(failures["split_accuracy"], [])
         self.assertEqual(failures["split_accuracy_ci95_lower_bound"], ["test"])
@@ -116,7 +116,7 @@ class ControlQualityEvaluatorTests(unittest.TestCase):
             minimum_safe_stop_count=500,
             minimum_split_accuracy_lower_bound=0.99,
             minimum_test_unique_group_count=381,
-            dataset_metadata={"test": {"unique_exact_group_count": 381}},
+            dataset_metadata={"test": {"unique_semantic_group_count": 381}},
         )
         self.assertEqual(passing_failures["split_accuracy_ci95_lower_bound"], [])
         self.assertEqual(passing_failures["test_unique_semantic_groups"], [])
