@@ -1495,6 +1495,15 @@ skill의 의도가 충분히 명시된 복합 phrase만 deterministic fast path�
 승격하지 않는다. 다음 정확도 gate는 여전히 blind dual human review와
 adjudication이다.
 
+### v1.119.0 Korean fast-path blocker regression
+
+v1.118.0에서 추가한 phrase rule이 부정 조건을 무시하고 정상 action을 내지
+않도록 5개 adversarial 문장을 회귀 테스트로 고정했다. 회전 공간 차단,
+접근 불가, 후방 차단, 손이 닿지 않음, 복구 불필요가 정상 phrase와 함께 있으면
+`deterministic_control_action`은 `None`을 반환해 Student/safety policy로
+넘긴다. 이 단계는 synthetic accuracy를 높이는 변경이 아니며, 명확하지 않은
+입력의 false-positive를 줄이는 control safety precision 보강이다.
+
 ### v1.115.0 malformed quality report rejection hardening
 
 정확도 gate는 모델 후보를 자동 승인하는 장치가 아니라, 기준 미달 후보를 안전하게

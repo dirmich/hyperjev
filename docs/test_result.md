@@ -3390,3 +3390,20 @@ uv run python scripts/evaluate_control_fast_path.py \
 control rule로 조기 결정해 fallback latency를 제거한 것이다. 따라서 100% 수치는
 synthetic target과 integrated rule coverage에 대한 결과이며, human golden이 없는
 상태에서 상용 정확도나 99% human accuracy로 주장할 수 없다.
+
+### 14.96 Korean fast-path blocker regression (v1.119.0)
+
+새로 추가한 한국어 phrase rule이 차단 조건이 있는 문장을 직접 실행하지 않는지
+확인했다.
+
+| blocker case | expected result |
+| --- | --- |
+| 회전 공간이 막혀 있다 | `ROTATE` fast path defer (`None`) |
+| 접근할 수 없다 | `APPROACH` fast path defer (`None`) |
+| 뒤쪽이 막혀 있다 | `RETREAT` fast path defer (`None`) |
+| 손이 닿지 않는다 | `INTERACT` fast path defer (`None`) |
+| 복구가 필요 없다 | `RECOVER` fast path defer (`None`) |
+
+단위 테스트는 `23 passed`, `70 subtests`였고, 전체 suite와 통합 Korean/combined
+replay의 수치는 v1.118.0 결과를 그대로 유지한다. 이 단계는 human label을
+생성하지 않으며 production accuracy gate도 변경하지 않는다.

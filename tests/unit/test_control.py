@@ -215,6 +215,18 @@ class ControlContractTests(unittest.TestCase):
                     assert action is not None
                     self.assertEqual(action.skill, expected)
 
+    def test_new_korean_fast_paths_defer_when_a_blocker_is_present(self) -> None:
+        blocked_cases = (
+            ("웨이포인트에 맞추기 위해 왼쪽으로 회전하지만 회전 공간이 막혀 있다", "ROTATE"),
+            ("앞에 고정된 목표까지 남은 거리를 줄이지만 접근할 수 없다", "APPROACH"),
+            ("다가오는 위험에서 멀어지도록 뒤로 가지만 뒤쪽이 막혀 있다", "RETREAT"),
+            ("접근 가능한 물체를 집어 든다지만 손이 닿지 않는다", "INTERACT"),
+            ("제어기 오류에서 복구 절차를 시작하지만 복구가 필요 없다", "RECOVER"),
+        )
+        for state, skill in blocked_cases:
+            with self.subTest(skill=skill, state=state):
+                self.assertIsNone(deterministic_control_action(state))
+
     def test_low_confidence_and_long_ttl_are_rejected(self) -> None:
         policy = ControlSafetyPolicy(minimum_confidence=0.95, max_action_ttl_ms=100)
         low_confidence = ControlAction(skill="MOVE", confidence=0.8, ttl_ms=50)

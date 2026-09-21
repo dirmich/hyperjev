@@ -3,6 +3,15 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — guard Korean fast paths with blocker regressions (v1.119.0)
+
+- v1.118.0에서 추가한 한국어 ROTATE, APPROACH, RETREAT, INTERACT, RECOVER
+  fast path 각각에 blocker가 함께 나타날 때 deterministic action을 내지 않고
+  Student fallback으로 defer하는 회귀 테스트를 추가했다.
+- 회전 공간 차단, 접근 불가, 후방 차단, 손이 닿지 않음, 복구 불필요의 5개
+  adversarial 문장을 모두 `None`으로 확인했다. 이는 coverage를 부풀리는 변경이
+  아니라 false-positive 제어 결정을 줄이는 안전성 gate다.
+
 ## 2026-09-21 — expand Korean control fast path (v1.118.0)
 
 - 한국어 OOD에서 모델 fallback으로 남아 있던 명확한 ROTATE, APPROACH, RETREAT,

@@ -152,6 +152,7 @@
 | 1.116.0 | 진행 중 | segmented state/question BOW ablation 측정 및 기준선 미달 후보 폐기 |
 | 1.117.0 | 진행 중 | v2 source queue human-label gate 상태와 다음 검수 stop condition 기록 |
 | 1.118.0 | 진행 중 | Korean integrated control fast path 40/40·1800/1800 및 latency 재검증 |
+| 1.119.0 | 진행 중 | Korean fast path blocker 5종 defer regression 고정 |
 
 ## 다음 기록 규칙
 

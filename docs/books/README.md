@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.118.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.119.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -140,6 +140,11 @@ combined replay가 각각 `40/40`, `1800/1800`으로 resolved 되었고 p99는 �
 `66.880us`, `34.624us`였다. 이는 raw model-only 정확도가 아니라 안전한 typed
 rule coverage와 latency 개선이며, human label `0/800` 상태에서 상용 정확도를
 의미하지 않는다.
+
+v1.119.0에서는 새 Korean phrase fast path에 blocker regression을 추가했다.
+차단된 회전·접근·후퇴·상호작용·복구 문장은 deterministic rule에서 defer되어
+false-positive를 줄인다. 이는 human label 없는 synthetic/integrated 결과를
+상용 정확도로 승격시키지 않는 기존 gate와 함께 동작한다.
 
 v1.58.0에서는 control evaluator에 threshold별 risk-coverage를 추가했다.
 synthetic combined checkpoint가 confidence `0.50/0.90/0.95/0.99`에서 모두
