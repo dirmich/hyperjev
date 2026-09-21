@@ -1020,7 +1020,8 @@ def run_control_review_shell(
     Exact duplicates are always collapsed into one group, teacher/nested JSON is
     never displayed, and the reviewer enters only the typed scalar action. The
     append-only feedback stream still records one validated label per sample in
-    the collapsed group.
+    the collapsed group. ``c``/``confirm`` accepts the hidden teacher draft as
+    the reviewer's label after the same feedback validation used for manual values.
     """
 
     if batch_offset < 0:
@@ -1120,7 +1121,10 @@ def run_control_review_shell(
         output_fn(f"allowed values: {_review_value_options(item, registry)}")
         if sample_id in latest:
             output_fn(f"current value: {_review_value_label(latest[sample_id]['correction'])}")
-        output_fn("Enter a value directly, or use [n]ext [p]revious [sk]ip [q]uit")
+        output_fn(
+            "Enter a value directly, or use [c]onfirm teacher "
+            "[n]ext [p]revious [sk]ip [q]uit"
+        )
         try:
             raw_value = input_fn("value> ").strip()
         except (EOFError, KeyboardInterrupt):
@@ -1138,13 +1142,21 @@ def run_control_review_shell(
             if index > 0:
                 index -= 1
             continue
-        try:
-            correction = _control_value_from_input(item, raw_value, registry)
-        except (TypeError, ValueError) as exc:
-            output_fn(f"Invalid value: {exc}")
-            continue
+        if command in {"c", "confirm"}:
+            teacher = item.get("teacher")
+            correction = teacher.get("normalized_result") if isinstance(teacher, dict) else None
+            if not isinstance(correction, dict):
+                output_fn("Teacher draft is unavailable or schema-invalid; enter a value manually.")
+                continue
+            reason = "control review shell: reviewer confirmed teacher draft"
+        else:
+            try:
+                correction = _control_value_from_input(item, raw_value, registry)
+            except (TypeError, ValueError) as exc:
+                output_fn(f"Invalid value: {exc}")
+                continue
+            reason = "control review shell: reviewer entered value"
         affected = group
-        reason = "control review shell: reviewer entered value"
         if len(affected) > 1:
             reason += f"; applied to {len(affected)} exact duplicate samples"
         try:

@@ -106,7 +106,8 @@ uv run hyperjev control review-shell \
 각 화면에서 `state`, `question`, `configured value`, `allowed values`를 보고 `value>`에
 `a/h/i/m/s` 또는 `ro/rt/rc`를 입력한다. 이는 각각
 `APPROACH/HOLD/INTERACT/MOVE/STOP`과 `ROTATE/RETREAT/RECOVER`를 뜻하며,
-full action 이름도 가능하고 대소문자를 구분하지 않는다. `n`/`p`/`sk`/`q`는
-다음/이전/보류/종료다. `s`는 STOP이므로 보류에 사용할 수 없다. 쉘은 teacher
-draft를 승인하지 않으며, 입력값을 registry 기준으로 검증한 뒤 sample별
-append-only feedback으로 저장한다.
+full action 이름도 가능하고 대소문자를 구분하지 않는다. `c`/`confirm`은 화면에
+표시하지 않는 teacher draft를 그대로 승인하여 검수 완료로 저장한다. `n`/`p`/`sk`/`q`는
+다음/이전/보류/종료다. `s`는 STOP이므로 보류에 사용할 수 없다. 직접 입력한 값과
+confirm한 teacher draft 모두 registry 기준으로 검증한 뒤 sample별 append-only
+feedback으로 저장한다.

@@ -1219,6 +1219,77 @@ class ReviewPackTests(unittest.TestCase):
         self.assertFalse(any("normalized_result" in line or "Qwen" in line for line in output))
         self.assertTrue(all(json.loads(line)["correction"]["selected"] == "RECOVER" for line in feedback_records))
 
+    def test_control_review_shell_confirms_teacher_draft(self) -> None:
+        registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = root / "queue.jsonl"
+            pack = root / "review-pack.jsonl"
+            feedback = root / "feedback.jsonl"
+            generate_control_review_queue(queue, registry, count_per_skill=1, seed=11)
+            queue_record = json.loads(queue.read_text(encoding="utf-8").splitlines()[0])
+            queue_sha256 = __import__("hashlib").sha256(queue.read_bytes()).hexdigest()
+            candidates = (
+                "STOP",
+                "HOLD",
+                "MOVE",
+                "ROTATE",
+                "APPROACH",
+                "RETREAT",
+                "INTERACT",
+                "RECOVER",
+            )
+            pack_records = [
+                {
+                    "record_type": "golden_review_pack_manifest",
+                    "queue_sha256": queue_sha256,
+                    "sample_count": 1,
+                },
+                {
+                    "record_type": "golden_review_item",
+                    "sample_id": queue_record["sample_id"],
+                    "task": f"{queue_record['task_id']}@{queue_record['task_version']}",
+                    "state": queue_record["state"],
+                    "question": queue_record["question"],
+                    "language": queue_record["language"],
+                    "domain": queue_record["domain"],
+                    "teacher": {
+                        "normalized_result": {
+                            "type": "choice",
+                            "selected": "STOP",
+                            "probabilities": {
+                                candidate: float(candidate == "STOP") for candidate in candidates
+                            },
+                            "abstained": False,
+                        }
+                    },
+                },
+            ]
+            pack.write_text(
+                "\n".join(json.dumps(record, ensure_ascii=False) for record in pack_records) + "\n",
+                encoding="utf-8",
+            )
+            output: list[str] = []
+            report = run_control_review_shell(
+                pack,
+                queue,
+                feedback,
+                registry,
+                reviewer="human-confirm",
+                input_fn=lambda _prompt: "c",
+                output_fn=output.append,
+            )
+            feedback_records = [
+                json.loads(line) for line in feedback.read_text(encoding="utf-8").splitlines()
+            ]
+
+        self.assertEqual(report["reviewed_count"], 1)
+        self.assertEqual(report["saved_in_session"], 1)
+        self.assertEqual(report["decisions_in_session"], 1)
+        self.assertEqual(feedback_records[0]["correction"]["selected"], "STOP")
+        self.assertIn("confirmed teacher draft", feedback_records[0]["reason"])
+        self.assertTrue(any("[c]onfirm teacher" in line for line in output))
+
     def test_control_dual_review_requires_adjudication_before_finalization(self) -> None:
         registry = TaskRegistry.load(ROOT / "registry" / "control_tasks")
         with tempfile.TemporaryDirectory() as directory:
