@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — review-shell progress visibility (v1.152.0)
+
+- `control review-shell` 시작 시 `review progress: reviewed/total; pending;
+  groups; batch` 요약을 표시하도록 했다. 중단 후 재개해도 현재 feedback 기준
+  진행률을 즉시 확인할 수 있다.
+- 기존처럼 state, question, configured value와 flat alias만 보여주며 nested
+  teacher JSON과 synthetic target은 노출하지 않는다. 진행률 표시는 human label을
+  생성하거나 teacher draft를 정답으로 복사하지 않는다.
+- 전용 review suite `32 passed`, 전체 suite `199 passed, 1 skipped`를 확인했다.
+
 ## 2026-09-21 — confidence overclaim rejected (v1.151.0)
 
 - 현재 control test 484개를 `control evaluate`로 threshold `0.90/0.95/0.99`에서

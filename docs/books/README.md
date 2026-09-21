@@ -216,6 +216,10 @@ v1.151.0에서는 세 confidence threshold 모두 `484/484` accepted와 100%를
 과신 신호로 나타났다. human calibration 없이 이를 production confidence로
 사용하지 않는 것이 정확도를 지키는 핵심이다.
 
+v1.152.0에서는 review shell 시작 시 `2/384 reviewed; 382 pending`처럼 진행률을
+보여주도록 했다. 이는 긴 human review를 재개하기 쉽게 만들지만, label을
+자동으로 만들거나 configured value를 정답으로 승격하지 않는다.
+
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
 정확도·STOP recall을 부풀리는 실수를 회귀 테스트로 막는다. 500-case 재생은

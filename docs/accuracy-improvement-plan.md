@@ -4,6 +4,19 @@
 현재 버전: 1.151.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
+## v1.152.0 — review progress visibility
+
+control review shell 시작 화면에 현재 feedback 기준 진행률을 추가했다.
+
+```text
+review progress: 2/384 reviewed; 382 pending; groups=384; batch=384
+```
+
+이 값은 append-only feedback을 읽어 계산하며, synthetic target이나 teacher draft를
+human label로 간주하지 않는다. reviewer는 중단·재개 시 남은 양과 batch 범위를
+즉시 확인할 수 있고, 기존 configured value·state/question·한두 글자 alias 입력
+계약은 그대로 유지된다.
+
 ## v1.151.0 — confidence overclaim rejection
 
 현재 checkpoint의 test split을 `minimum-confidence=0.90/0.95/0.99`로 각각

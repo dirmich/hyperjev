@@ -148,6 +148,10 @@ v1.151.0에서 confidence도 같은 provenance 원칙을 적용했다. synthetic
 `0.999985` confidence와 temperature `0.25`는 teacher나 human calibration이
 아니므로 review priority 참고값일 뿐, 사람 검수 완료를 의미하지 않는다.
 
+v1.152.0 review shell은 시작할 때 reviewed/pending/group/batch를 표시한다.
+진행률은 feedback audit을 쉽게 할 뿐이며, configured value와 human correction의
+provenance 분리는 그대로 유지한다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

@@ -234,3 +234,6 @@ v1.151.0 confidence audit는 threshold를 `0.90`에서 `0.99`로 올려도 모�
 synthetic row가 accepted되는 과신을 확인했다. calibration temperature가
 검색 하한에 붙었으므로 human ECE/NLL 전에는 runtime confidence gate를
 승격하지 않는다.
+
+v1.152.0 review shell은 `review progress`를 출력해 긴 test 검수의 재개 상태를
+확인할 수 있게 했다. 이는 운영 편의성 개선이며 human gate 자체를 우회하지 않는다.

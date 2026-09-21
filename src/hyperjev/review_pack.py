@@ -1051,6 +1051,16 @@ def run_control_review_shell(
     if not selected_groups:
         raise ValueError("review batch is empty")
 
+    reviewed_count = sum(
+        str(item.get("sample_id", "")) in latest
+        for item in items
+    )
+    output_fn(
+        f"review progress: {reviewed_count}/{len(items)} reviewed; "
+        f"{len(items) - reviewed_count} pending; "
+        f"groups={len(groups)}; batch={len(selected_groups)}"
+    )
+
     propagated = 0
     for group in selected_groups:
         reviewed = [

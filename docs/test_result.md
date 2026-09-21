@@ -4248,6 +4248,24 @@ temperature `0.25`가 검색 하한, NLL `0.0 → 0.0`, human label `0/484`,
 accuracy의 대리값으로 사용하지 않는다. 독립 human calibration set에서 ECE,
 NLL, accepted risk를 확인한 뒤에만 runtime calibration을 검토한다.
 
+### 15.29 review-shell progress visibility (v1.152.0)
+
+review shell 시작 시 현재 feedback을 기준으로 다음 요약을 출력한다.
+
+```text
+review progress: 2/384 reviewed; 382 pending; groups=384; batch=384
+```
+
+이 기능은 검수 재개 시 운영자가 진행률을 확인하게 하는 UI/CLI 보강이다. 실제
+입력값만 append-only feedback에 저장하며, teacher configured value와 synthetic
+target을 자동 label로 바꾸지 않는다.
+
+검증:
+
+- `uv run pytest -q tests/unit/test_review_pack.py`: `32 passed`
+- `uv run ruff check src/hyperjev/review_pack.py tests/unit/test_review_pack.py`: 통과
+- 전체 suite: `199 passed, 1 skipped`
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

@@ -1213,6 +1213,7 @@ class ReviewPackTests(unittest.TestCase):
         self.assertEqual(len(feedback_records), 2)
         self.assertTrue(any("rc=RECOVER" in line for line in output))
         self.assertTrue(any("configured value: STOP (teacher draft)" in line for line in output))
+        self.assertTrue(any("review progress: 0/2 reviewed; 2 pending" in line for line in output))
         self.assertTrue(any("state:" in line for line in output))
         self.assertTrue(any("question:" in line for line in output))
         self.assertFalse(any("normalized_result" in line or "Qwen" in line for line in output))
