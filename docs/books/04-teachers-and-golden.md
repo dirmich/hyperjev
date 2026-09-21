@@ -130,6 +130,11 @@ v1.147.0의 4,000-row seed와 1,800-row hard-combined replay는 teacher draft가
 state/question을 보고 입력한 correction이 아니므로 human golden ledger에는
 추가하지 않는다.
 
+v1.148.0의 공식 quality gate도 같은 원칙을 따른다. validation/test와 safety
+500개는 statistical bound까지 통과했지만, teacher configured value나 synthetic
+target은 사람이 확인한 control correction이 아니므로 production golden으로
+승격하지 않는다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

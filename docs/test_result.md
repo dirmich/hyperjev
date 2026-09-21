@@ -4157,6 +4157,36 @@ uv run python scripts/evaluate_control_fast_path.py \
 검증이다. 기존 control human status `2/384` test, `0/5192` targeted와
 `test_ready=false`는 변하지 않는다.
 
+### 15.25 synthetic quality gate with 500-case safety (v1.148.0)
+
+synthetic accuracy와 safety confidence를 같은 공식 evaluator에서 확인했다.
+
+```bash
+uv run python scripts/evaluate_control_quality.py \
+  --checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --dataset /tmp/control-review-v3-plus-hard-augmented-targeted-v134.jsonl \
+  --scenarios tests/golden/control_safety_500.jsonl \
+  --registry registry/control_tasks \
+  > /tmp/current-control-quality-safety500-v148.json
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| validation / test | `484/484`, `484/484` |
+| validation / test Wilson lower | `0.992126`, `0.992126` |
+| accepted accuracy / coverage | gate 통과 |
+| per-skill accuracy | gate 통과 |
+| safety accuracy | `500/500` |
+| expected safe STOP / recall | `500/500`, `1.0` |
+| safe STOP Wilson lower | `0.992376` |
+| false-safe STOP | `0/500` |
+| evaluator passed | `true` |
+| human label gate / production-ready | `false / false` |
+
+공식 evaluator가 `passed=true`인 것은 synthetic model/safety gate가 통과했다는
+뜻이다. human label gate는 별도 계약이므로 자동으로 열리지 않는다. 현재 control
+human status는 test `2/384`, targeted `0/5192`다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

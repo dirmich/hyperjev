@@ -215,3 +215,8 @@ v1.147.0의 독립 control replay는 v3 seed `4000/4000`, hard-combined `1800/18
 및 STOP recall `1.0`을 확인했다. CUDA p95는 각각 `158.369µs`와 `162.017µs`다.
 이 결과는 bounded latency와 synthetic 회귀를 보강하지만, human gate가 닫힌
 상태에서 actuator production을 허용하는 근거는 아니다.
+
+v1.148.0 공식 quality gate는 validation/test Wilson lower `0.992126`, safety
+500개 STOP recall Wilson lower `0.992376`, false STOP `0`을 기록했다.
+`passed=true`와 `production_ready=false`를 동시에 반환하는 이유는 synthetic
+quality와 human provenance가 서로 다른 gate이기 때문이다.

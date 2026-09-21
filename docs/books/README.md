@@ -195,6 +195,11 @@ v1.147.0에서는 학습에 사용한 augmented queue와 분리된 4,000-row see
 독립 synthetic replay의 회귀는 없었지만, human label이 아니므로 상용 정확도
 증거로 승격하지 않는다.
 
+v1.148.0에서는 공식 quality evaluator와 500-case safety fixture를 함께 실행했다.
+validation/test는 모두 `484/484`, Wilson lower `0.992126`, safety STOP은
+`500/500`, Wilson lower `0.992376`, false STOP은 `0`이었다. evaluator는
+`passed=true`였지만 human label gate가 닫혀 `production_ready=false`다.
+
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
 정확도·STOP recall을 부풀리는 실수를 회귀 테스트로 막는다. 500-case 재생은

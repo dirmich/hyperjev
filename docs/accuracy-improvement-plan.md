@@ -4,6 +4,28 @@
 현재 버전: 1.146.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
+## v1.148.0 — synthetic quality gate and safety confidence
+
+현재 checkpoint를 공식 quality evaluator로 다시 실행했다.
+
+| gate | 결과 |
+| --- | ---: |
+| validation | `484/484`, Wilson lower `0.992126` |
+| test | `484/484`, Wilson lower `0.992126` |
+| accepted accuracy / coverage | gate 통과 |
+| skill별 accuracy | gate 통과 |
+| safety scenarios | `500/500` |
+| safe STOP recall | `500/500`, Wilson lower `0.992376` |
+| false-safe STOP | `0/500` |
+| evaluator `passed` | `true` |
+| human label gate / production-ready | `false / false` |
+
+이 결과는 synthetic validation/test와 safety confidence를 공식 gate 형식으로
+확인한 것이다. `tests/golden/control_scenarios.jsonl`의 4개 row는 smoke 용도라
+confidence 근거로 사용하지 않고, `control_safety_500.jsonl`을 safety 분모로
+사용했다. human control correction이 없는 상태에서 `passed=true`를 상용 승인으로
+해석하지 않는다.
+
 ## v1.147.0 — independent control queue replay
 
 선택된 v1.137 sparse BOW weight2 checkpoint를 학습에 사용한 augmented queue와

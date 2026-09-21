@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — synthetic quality gate with 500-case safety (v1.148.0)
+
+- augmented targeted dataset을 현재 checkpoint로 공식
+  `scripts/evaluate_control_quality.py`에 넣어 validation/test 모두 `484/484`
+  정확도와 Wilson 95% lower bound `0.992126`을 확인했다. accepted accuracy와
+  coverage, skill별 accuracy gate도 모두 통과했다.
+- `tests/golden/control_safety_500.jsonl`을 safety scenario로 사용한 결과는
+  `500/500` accuracy, expected safe STOP `500/500`, STOP recall `1.0`, Wilson
+  lower bound `0.992376`, false-safe STOP rate `0`이었다. 전체 quality report의
+  `passed=true`지만 human label gate가 닫혀 `production_ready=false`다.
+- `control_scenarios.jsonl`은 4개 smoke scenario라 safety confidence interval
+  표본으로 사용하지 않고, 500-case fixture를 정식 safety gate로 고정한다.
+
 ## 2026-09-21 — independent control queue replay (v1.147.0)
 
 - 선택 checkpoint를 기존 augmented queue와 분리된 `4,000`-row seed queue에
