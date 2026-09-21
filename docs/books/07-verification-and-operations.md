@@ -58,6 +58,12 @@ p50 1,127.542ms였고, 30개 synthetic 확장에서는 schema 27/30, p50
 Rule/mock 수치는 production Student 성능이 아니므로 Student checkpoint가 준비될
 때까지 별도 gate로 남긴다.
 
+v1.132.0의 control replay는 두 층으로 보고한다. integrated 경로의 `40/40`과
+약 `34~38µs`는 deterministic safety/phrase rule이 해결한 fast-path 결과이고,
+Student-only 경로의 English `35/40`, Korean `34/40`이 encoder의 현재 OOD
+기준선이다. integrated 숫자만 보고 Student가 모든 새로운 state를 100% 판단한다고
+해석하지 않도록 source count와 fallback 비율을 함께 기록한다.
+
 ## 7.2 DGX Spark runbook
 
 ```bash

@@ -3,6 +3,23 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — separate integrated fast-path from Student-only evidence (v1.132.0)
+
+- v1.131.0 weight-2 checkpoint를 실제 제품 경로처럼 deterministic safety/phrase
+  fast path와 함께 재생했다. 신규 hard queue는 `1000/1000`, English OOD는
+  `40/40`, Korean OOD는 `40/40`이며 각각 p95 `36.256µs`, `34.272µs`,
+  `37.984µs`였다.
+- 이 integrated 100%는 Student의 단독 일반화 정확도가 아니다. source count가
+  hard `control-rule=750/safety-rule=250`, OOD 각각 `control-rule=35/`
+  `safety-rule=5`로, 이 fixture에서는 Student를 호출하지 않고 deterministic
+  rule이 모두 결정했다.
+- fast path를 끈 Student + safety-policy 경로는 hard `1000/1000 (100%)`지만
+  English OOD `35/40 (87.5%)`, Korean OOD `34/40 (85.0%)`였다. 따라서
+  `실시간 통합 경로 100%`와 `encoder 모델 단독 일반화 85~87.5%`를 문서와
+  release gate에서 분리한다.
+- 이 단계는 latency boundary를 명확히 한 운영 문서화이며 human label을 만들지
+  않는다. human `0/5000`, production-ready `false`는 그대로다.
+
 ## 2026-09-21 — mixed hard-negative curriculum ablation (v1.131.0)
 
 - 기존 4,000-row bilingual queue와 별도 hard-negative 1,000-row queue를

@@ -3696,6 +3696,40 @@ recall 유지의 세 조건으로 결정했다.
 필수 단계는 384개 held-out adjudication pack의 blind dual human review이며,
 현재 reviewed `0/384`, production-ready `false`다.
 
+### 15.09 integrated fast path와 Student-only 결과 분리 (v1.132.0)
+
+v1.131.0 weight-2 checkpoint의 `100%`가 model accuracy인지 rule coverage인지
+혼동하지 않도록 두 runtime을 같은 queue에서 분리 측정했다.
+
+```bash
+# integrated: deterministic rule → Student → safety policy
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-bow-weight2-100ep.pt
+
+# Student-only: deterministic control rules를 끄고 safety policy만 유지
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue /tmp/hyperjev-control-hard-500.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-bow-weight2-100ep.pt \
+  --model-only
+```
+
+| queue / runtime | 정확도 | p95 | source 해석 |
+| --- | ---: | ---: | --- |
+| hard 1,000 / integrated | `1000/1000` | `36.256µs` | rule `750` + safety `250` |
+| English OOD 40 / integrated | `40/40` | `34.272µs` | rule `35` + safety `5` |
+| Korean OOD 40 / integrated | `40/40` | `37.984µs` | rule `35` + safety `5` |
+| hard 1,000 / Student-only | `1000/1000` | `9029.954µs` | model + safety policy |
+| English OOD 40 / Student-only | `35/40 (87.5%)` | `15188.056µs` | model + safety policy |
+| Korean OOD 40 / Student-only | `34/40 (85.0%)` | `13374.683µs` | model + safety policy |
+
+따라서 integrated 100%와 Student-only 85~87.5%는 서로 다른 주장이다. 현재
+fixture에서는 integrated source에 Student가 한 건도 없으므로, 이 결과는
+deterministic fast path의 실시간 경계와 fallback 안전성을 증명하지만 encoder의
+새로운 scene 일반화를 증명하지 않는다. 상용 model gate는 반드시 rule이
+결정하지 못한 human-labeled novel state를 Student-only 또는 실제 fallback
+경로에서 측정해야 한다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행

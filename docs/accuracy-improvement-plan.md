@@ -1,8 +1,32 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.131.0
+현재 버전: 1.132.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.132.0 — integrated path와 Student-only gate 분리
+
+v1.131.0 weight-2 checkpoint를 제품 경로(`deterministic safety/phrase fast
+path → Student`)와 Student-only 경로(`--model-only`, safety policy만 유지)로
+나눠 재측정했다.
+
+| 경로 | hard 1,000 | English OOD 40 | Korean OOD 40 |
+| --- | ---: | ---: | ---: |
+| integrated 정확도 | `1000/1000` | `40/40` | `40/40` |
+| integrated p95 | `36.256µs` | `34.272µs` | `37.984µs` |
+| Student-only 정확도 | `1000/1000` | `35/40` | `34/40` |
+| Student-only p95 | `9029.954µs` | `15188.056µs` | `13374.683µs` |
+
+통합 경로의 100%는 이 fixture들이 모두 deterministic `control-rule` 또는
+`safety-rule`로 해결된 결과다. hard queue source는 `750/250`, OOD source는
+`35/5`이므로 이 결과를 encoder가 100% 일반화했다고 표현하지 않는다. 반대로
+Student-only 수치는 실제 encoder + typed head의 OOD 기준선이며, 현재 99% 목표와
+차이가 있음을 명확히 보여준다.
+
+실시간 게임/로봇 적용에서는 fast path를 safety shield와 함께 먼저 사용하되,
+새로운 state가 rule에 매칭되지 않을 때 Student-only 품질과 fallback을 별도
+판정해야 한다. 다음 모델 개선의 stop condition은 `human-labeled novel state`
+에서 Student-only accuracy/coverage를 측정하는 것이다.
 
 ## v1.131.0 — mixed hard-negative curriculum, weight-2 선택
 

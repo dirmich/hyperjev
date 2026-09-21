@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.131.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.132.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -104,6 +104,12 @@ validation/test `484/484`, hard queue `1000/1000`, English OOD `87.5%`, Korean
 OOD `85.0%`, STOP recall `100%`를 기록했다. weight 4의 English OOD 회귀 때문에
 weight 2를 다음 human review용 후보로 선택했지만, human label `0/5000`이므로
 production 모델로 승격하지 않았다.
+
+v1.132.0에서는 같은 checkpoint를 integrated fast path와 Student-only로 나눠
+측정했다. integrated fixture는 rule이 모두 해결해 `40/40` 및 `1000/1000`, p95
+약 `34~38µs`였지만 Student-only OOD는 English `87.5%`, Korean `85.0%`였다.
+책에서는 이 둘을 분리해 기록하며, rule coverage를 encoder 일반화 정확도로
+포장하지 않는다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
