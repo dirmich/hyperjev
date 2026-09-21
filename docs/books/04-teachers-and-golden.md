@@ -100,6 +100,11 @@ v1.141.0에서는 review pack의 teacher normalized result에서 scalar만 추�
 설정값이 없는 item은 `not provided`로 표시되며, 사람의 correction만 feedback에
 기록된다.
 
+v1.142.0에서는 첫 control human review 2건이 feedback에 기록됐다. 두 건 모두
+Student prediction과 일치했지만 test queue는 `2/384`만 검수되어 아직 human
+99% gate를 계산할 수 없다. synthetic target과 human target을 분리해 보고하는
+원칙을 유지한다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

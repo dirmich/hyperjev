@@ -3993,6 +3993,38 @@ human correction을 대신하지 않는다.
 검증은 기존 control review shell test에 configured value 출력 assertion을
 추가해 완료했다.
 
+### 15.19 first control human-label replay (v1.142.0)
+
+사용자가 `control review-shell`에서 실제 control test sample 2개를 검수했다.
+append-only feedback을 적용한 partial queue를 만들고 현재 Student checkpoint를
+같은 test 입력에 재생했다.
+
+```bash
+uv run hyperjev control review-status \
+  --registry registry/control_tasks \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --feedback runs/control/control-human-feedback.jsonl
+
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue runs/control/control-review-v3-test-384-human-reviewed.partial.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --registry registry/control_tasks --device cpu --model-only --warmup 10
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| test reviewed / pending | `2/384` / `382/384` |
+| test coverage / ready | `0.005208` / `false` |
+| mixed target replay | `384/384 (100%)` |
+| actual human-labeled replay | `2/2 (100%)` |
+| STOP recall on replay | `1.0` |
+| CPU latency p50/p95/p99/max | `685.245/2338.839/2839.078/3303.764µs` |
+
+두 human label은 `APPROACH`와 `RECOVER`였고 Student prediction과 모두 일치했다.
+하지만 이 결과는 실제 human evidence가 시작됐다는 의미이지 384개 held-out test의
+99% accuracy 또는 production-ready 판정이 아니다. `test_ready=false`인 동안에는
+materialize, human-only retraining, checkpoint promotion을 진행하지 않는다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

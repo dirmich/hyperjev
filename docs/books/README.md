@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.141.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.142.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -160,6 +160,11 @@ v1.141.0에서는 review 화면에 teacher가 설정한 scalar 값도 표시한�
 `configured value: APPROACH (teacher draft)`처럼 현재 답을 확인할 수 있지만,
 nested probability와 provider metadata, synthetic target은 계속 숨긴다. 설정값이
 없는 pack item은 `not provided`로 표시해 누락을 명확히 한다.
+
+v1.142.0에서는 사용자가 control test sample 2개를 실제 검수했다. test coverage는
+`2/384`이고 두 human label 모두 checkpoint prediction과 일치했지만, `382/384`가
+남아 `test_ready=false`다. mixed replay `384/384`와 CPU p95 `2.339ms`는
+중간 증거일 뿐 99% human accuracy 승인이 아니다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

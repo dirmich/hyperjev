@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — first control human-label replay (v1.142.0)
+
+- 사용자가 `control review-shell`에서 test queue의 2개 sample을 실제 검수했다.
+  현재 status는 `2/384` reviewed, `382/384` pending, coverage `0.005208`,
+  `test_ready=false`다.
+- `/tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt`를
+  partial human-reviewed test에 재생한 결과 mixed target `384/384`, 실제 human
+  label `2/2`를 맞췄다. 이 결과는 첫 human evidence지만 384개 test 전체의
+  production accuracy나 99% gate를 증명하지 않는다.
+- 같은 replay의 CPU model-only-with-safety-policy latency는 warmup 10회 후
+  p50/p95/p99/max `685.245/2338.839/2839.078/3303.764µs`였고, STOP recall은
+  `1.0`이었다. human test gate가 열릴 때까지 checkpoint 승격은 보류한다.
+
 ## 2026-09-21 — show configured scalar in control review shell (v1.141.0)
 
 - control review 화면에 `configured value`를 추가했다. review pack의 teacher

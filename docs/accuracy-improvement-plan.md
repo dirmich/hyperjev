@@ -1,8 +1,29 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.141.0
+현재 버전: 1.142.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.142.0 — first control human-label replay
+
+사용자가 control test pack에서 2개 sample을 실제로 검수했고, feedback을
+`runs/control/control-human-feedback.jsonl`에 append했다. 현재 status는 다음과
+같다.
+
+| gate | 결과 |
+| --- | ---: |
+| test reviewed | `2/384` |
+| test pending | `382/384` |
+| coverage | `0.005208` |
+| test ready | `false` |
+| model mixed-target replay | `384/384` |
+| human-labeled replay | `2/2` |
+
+현재 checkpoint의 CPU model-only-with-safety-policy replay는 warmup 10회 후
+p50/p95/p99/max `685.245/2338.839/2839.078/3303.764µs`, STOP recall `1.0`을
+기록했다. 2개 human label은 모두 맞았지만 표본이 작고 382개가 아직 미검수라
+99% production gate나 human accuracy로 승격하지 않는다. 다음 gate는 같은
+review shell에서 held-out test unique group을 계속 검수하는 것이다.
 
 ## v1.141.0 — show configured scalar in control review shell
 

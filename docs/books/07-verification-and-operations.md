@@ -184,3 +184,8 @@ v1.141.0의 review shell은 teacher draft에서 configured scalar도 표시한�
 `configured value`는 reviewer에게 현재 설정된 선택을 알려주지만 nested
 probability와 synthetic target은 노출하지 않는다. 이 값은 참고용이며 human
 correction을 대신하지 않는다.
+
+v1.142.0의 partial human replay는 2개 human label 중 `2/2` correct였고, 전체
+test coverage는 `2/384`였다. CPU model-only-with-safety-policy replay latency는
+p95 `2.339ms`, p99 `2.839ms`, STOP recall `1.0`이었다. 이 latency와 safety
+결과는 bounded-runtime 회귀 방지용이며 human test completeness와 별도 gate다.
