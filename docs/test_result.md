@@ -3587,6 +3587,66 @@ uv run hyperjev control review-pack \
 `control review-status`는 test coverage `0.0`, `test_ready=false`를 보고했다. 실제
 정확도는 다음 단계의 reviewer A/B blind 입력과 adjudication 결과로만 계산한다.
 
+### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
+
+#### Gemma 독립 실행
+
+Qwen prompt v3 held-out queue 전체를 Gemma fast alias로 실행했다. 환경변수로
+model과 reasoning option을 명시해 config의 기본 `google/gemma-4-12b`와
+분리했다.
+
+```bash
+HYPERJEV_GEMMA_MODEL=gemma4-26b-a4b-uncensored-hauhaucs-balanced \
+HYPERJEV_GEMMA_REASONING_EFFORT=none \
+uv run hyperjev control draft --provider gemma \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --registry registry/control_tasks \
+  --output /tmp/gemma-control-review-v3-test-384-fast.jsonl \
+  --timeout 30 --max-tokens 128
+uv run python scripts/evaluate_control_teacher_draft.py \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --draft /tmp/gemma-control-review-v3-test-384-fast.jsonl \
+  --registry registry/control_tasks
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| model / prompt / reasoning | `gemma4-26b-a4b-uncensored-hauhaucs-balanced` / `3` / `none` |
+| completed / schema-valid | `384/384 / 384/384` |
+| synthetic target match | `383/384 (99.7396%)` |
+| per-skill | STOP/HOLD/MOVE/APPROACH/RETREAT/INTERACT/RECOVER `48/48`, ROTATE `47/48` |
+| p50/p95/p99/max | `2369.739/2554.427/2741.767/3092.195ms` |
+| human labels / production-ready | `0/384 / false` |
+
+기본 config model `google/gemma-4-12b`는 별도 8-sample probe에서 `8/8 timeout`으로
+실패했다. 따라서 fast alias는 실측 후보로만 기록하고, config 기본 judge로 자동
+승격하지 않는다.
+
+#### Qwen/Gemma typed adjudication
+
+```bash
+uv run hyperjev control adjudicate \
+  --config configs/phase0.toml \
+  --registry registry/control_tasks \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --qwen-draft /tmp/qwen-control-review-v3-test-384-prompt-v3.jsonl \
+  --gemma-draft /tmp/gemma-control-review-v3-test-384-fast.jsonl \
+  --output /tmp/control-review-v3-test-adjudicated-prompt-v3.jsonl
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| agreement / disagreement / invalid | `383 / 1 / 0` |
+| disagreement sample | `control-review-01517` |
+| Qwen / Gemma choice | `ROTATE / MOVE` |
+| adjudication manifest SHA-256 | `639c1bd7970a6014cfc2808ebe6d4e9d17278ecb73e583a2b1ed0235c192f4b4` |
+| target excluded / human labels | `true / 0/384` |
+
+adjudication manifest는 실제 draft manifest에서 model과 prompt version을 읽도록
+수정했다. 따라서 fast alias가 기본 config model명으로 잘못 기록되지 않는다.
+유일한 disagreement는 사람 adjudication 전까지 silver label로도 자동 승격하지
+않는다.
+
 ### 15.05 4,000-row Student semantic-group gate (v1.128.0)
 
 #### Student 학습과 quality evaluator

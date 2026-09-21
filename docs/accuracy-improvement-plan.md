@@ -1,8 +1,28 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.128.0
+현재 버전: 1.129.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.129.0 — Gemma full cross-validation and provenance binding
+
+Qwen prompt v3와 동일한 held-out 384개에 Gemma fast alias를 독립 실행하고,
+Qwen/Gemma 결과를 sample ID별로 typed comparison했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| Gemma model | `gemma4-26b-a4b-uncensored-hauhaucs-balanced` |
+| prompt / reasoning | `3` / `none` |
+| completed / schema-valid | `384/384 / 384/384` |
+| synthetic match | `383/384 (99.7396%)` |
+| Gemma p50/p95/p99/max | `2369.739/2554.427/2741.767/3092.195ms` |
+| Qwen/Gemma agreement | `383/384` |
+| disagreement | `1` (`control-review-01517`) |
+
+유일한 disagreement는 Qwen `ROTATE`와 Gemma `MOVE`다. 이를 어느 teacher의
+정답으로 자동 선택하지 않고 blind human adjudication 대상으로 유지한다.
+기본 `google/gemma-4-12b`는 8개 probe에서 모두 timeout했으므로 빠른 alias와
+운영 후보를 혼동하지 않는다.
 
 ## v1.128.0 — 4,000-row Student training and semantic-group quality gate
 

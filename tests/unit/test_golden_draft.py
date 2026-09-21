@@ -180,6 +180,8 @@ class GoldenDraftTests(unittest.TestCase):
 
         self.assertEqual(report["manifest"]["agreement_count"], 7)
         self.assertEqual(report["manifest"]["disagreement_count"], 1)
+        self.assertEqual(report["manifest"]["qwen_model"], "qwen")
+        self.assertEqual(report["manifest"]["gemma_model"], "gemma")
         self.assertEqual(records[1]["status"], "disagreement")
         self.assertIsNone(records[1]["normalized_result"])
         self.assertIn("qwen", records[1]["teacher_comparison"])

@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — full Gemma cross-validation and model provenance fix (v1.129.0)
+
+- Gemma fast alias `gemma4-26b-a4b-uncensored-hauhaucs-balanced`를 reasoning
+  `none`으로 같은 held-out 384개에 실행했다. `384/384` completed/schema-valid,
+  synthetic match `383/384 (99.7396%)`, p50/p95/p99/max
+  `2369.739/2554.427/2741.767/3092.195ms`였다.
+- Qwen prompt v3와의 typed choice 비교는 `383` agreement, `1` disagreement,
+  invalid `0`이다. disagreement는 `control-review-01517` 하나로 Qwen `ROTATE`,
+  Gemma `MOVE`이며 human adjudication 대상으로 남겼다.
+- adjudication manifest가 config의 기본 Gemma model명을 기록하던 provenance bug를
+  수정해 실제 draft manifest의 model/prompt version을 기록한다. 재생성 manifest는
+  Gemma fast alias와 prompt version `3`을 정확히 보존한다.
+- 기본 `google/gemma-4-12b`는 같은 8-sample probe에서 `8/8 timeout`이므로
+  production judge로 승격하지 않는다. fast alias 결과도 human label이 아니며
+  production-ready 판정은 변하지 않는다.
+
 ## 2026-09-21 — validate 4,000-row Student checkpoint with semantic-group gate (v1.128.0)
 
 - 4,000-row bilingual queue(`train/validation/test=3232/384/384`)로
