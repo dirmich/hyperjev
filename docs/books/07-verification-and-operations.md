@@ -225,3 +225,7 @@ v1.149.0에서 held-out human test 384개 전체의 acceptance boundary를 고�
 `384/384`이면 Wilson lower `0.990095`, `383/384`이면 `0.985398`이므로
 point accuracy만 보고 승격하지 않는다. 현재 status `2/384`는 아직 이 gate를
 계산할 충분한 human sample이 아니다.
+
+v1.150.0 fresh adversarial replay는 새 hard-negative `1000/1000`과 세 가지
+64-row queue `64/64`를 확인했다. 각 replay의 STOP recall은 `1.0`이고 CUDA
+p95는 모두 `176.112µs` 이하였지만, human gate가 닫힌 상태는 변하지 않는다.

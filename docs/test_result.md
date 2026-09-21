@@ -4203,6 +4203,35 @@ evaluator와 같은 Wilson 계산을 적용하면 다음과 같다.
 accept한 기록은 사람이 state/question을 확인했다는 correction provenance가
 있을 때만 human label로 계산한다.
 
+### 15.27 fresh adversarial control replay (v1.150.0)
+
+seed `113`으로 기존 queue와 다른 adversarial fixture를 생성했다.
+
+```bash
+uv run hyperjev control hard-negative --registry registry/control_tasks \
+  --pair-count 500 --seed 113 --output /tmp/control-hard-negative-v149.jsonl
+uv run hyperjev control boundary --registry registry/control_tasks \
+  --seed 113 --output /tmp/control-boundary-v149.jsonl
+uv run hyperjev control compositional --registry registry/control_tasks \
+  --seed 113 --output /tmp/control-compositional-v149.jsonl
+uv run hyperjev control korean --registry registry/control_tasks \
+  --seed 113 --output /tmp/control-korean-v149.jsonl
+```
+
+각 queue를 현재 checkpoint에 `--model-only --device cuda --warmup 10 --cuda-sync`로
+재생한 결과:
+
+| queue | rows | accuracy | STOP recall | CUDA p50/p95/p99/max |
+| --- | ---: | ---: | ---: | ---: |
+| hard-negative | `1000` | `1000/1000` | `1.0` | `154.736/166.272/175.536/230.672µs` |
+| boundary | `64` | `64/64` | `1.0` | `157.601/176.112/229.568/229.568µs` |
+| compositional | `64` | `64/64` | `1.0` | `153.792/170.512/188.816/188.816µs` |
+| Korean | `64` | `64/64` | `1.0` | `156.497/171.905/211.345/211.345µs` |
+
+새 adversarial fixture에는 human label이 없으므로 이 결과는 synthetic
+generalization과 latency evidence다. human control accuracy는 여전히 별도
+review feedback으로만 계산한다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

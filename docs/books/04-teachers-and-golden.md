@@ -139,6 +139,11 @@ v1.149.0의 test acceptance 계산은 reviewer의 역할을 명확히 한다. 38
 control test를 모두 확인하고 오답이 없어야 Wilson lower `0.990095`를 얻는다.
 오답 한 건은 point accuracy가 높아도 lower `0.985398`로 gate를 닫는다.
 
+v1.150.0의 새 adversarial queue들은 teacher label이 아니라 generator target으로
+검증했다. hard-negative와 boundary 표현에서 모두 100%였지만, 실제 사람이
+state/question을 확인한 correction과는 provenance가 다르므로 human ledger에
+추가하지 않는다.
+
 control용 `review-shell`은 teacher JSON을 숨기고 `state`, `question`, 허용 action만
 보여준다. reviewer가 `STOP` 또는 `MOVE`처럼 flat value를 입력하면 registry가
 검증한 typed feedback을 append한다. exact duplicate는 한 번만 묻지만 audit trail은

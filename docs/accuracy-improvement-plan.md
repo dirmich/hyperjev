@@ -1,8 +1,24 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.146.0
+현재 버전: 1.150.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.150.0 — fresh adversarial control replay
+
+기존 dataset과 다른 seed `113`으로 control generator를 다시 실행해 새
+adversarial queue를 만들고 현재 checkpoint를 재생했다.
+
+| queue | rows | result | STOP recall | CUDA p95 |
+| --- | ---: | ---: | ---: | ---: |
+| hard-negative | `1000` | `1000/1000` | `1.0` | `166.272µs` |
+| boundary | `64` | `64/64` | `1.0` | `176.112µs` |
+| compositional | `64` | `64/64` | `1.0` | `170.512µs` |
+| Korean | `64` | `64/64` | `1.0` | `171.905µs` |
+
+모두 `--model-only --device cuda --warmup 10 --cuda-sync`로 측정했다. 새 queue에서
+synthetic 회귀가 발견되지 않아 재학습은 하지 않았다. 이 결과는 표현 다양성에
+대한 추가 synthetic evidence이며 control human gate `2/384`를 대체하지 않는다.
 
 ## v1.149.0 — human test acceptance boundary
 

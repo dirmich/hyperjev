@@ -206,6 +206,11 @@ point accuracy가 `99.7396%`여도 lower `0.985398`로 실패한다. 그래서 r
 shell의 목표는 단순히 1000개를 채우는 것이 아니라, control test의 모든 독립
 group을 human correction으로 확인하는 것이다.
 
+v1.150.0에서는 seed `113`의 새 adversarial queue를 생성했다. hard-negative
+`1000/1000`, boundary/compositional/Korean 각각 `64/64`였고 STOP recall은 모두
+`1.0`, CUDA p95는 `166.272/176.112/170.512/171.905µs`였다. 새 표현에서도
+회귀가 없었지만 synthetic 결과이므로 human accuracy로 승격하지 않는다.
+
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
 정확도·STOP recall을 부풀리는 실수를 회귀 테스트로 막는다. 500-case 재생은

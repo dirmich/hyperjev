@@ -183,6 +183,7 @@
 | 1.147.0 | 진행 중 | 독립 4,000-row·1,800-row control replay, synthetic 100%·STOP recall 1.0·CUDA p95 재검증 |
 | 1.148.0 | 진행 중 | 공식 quality gate, validation/test Wilson bound와 500-case safety STOP confidence 재검증 |
 | 1.149.0 | 진행 중 | control human test 384개 Wilson 99% acceptance boundary와 1-error 실패 조건 고정 |
+| 1.150.0 | 진행 중 | seed 113 fresh hard-negative/boundary/compositional/Korean adversarial replay 통과 |
 
 ## 다음 기록 규칙
 

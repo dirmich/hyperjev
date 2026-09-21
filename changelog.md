@@ -3,6 +3,16 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — fresh adversarial control replay (v1.150.0)
+
+- seed `113`으로 새로 생성한 hard-negative `1000`개에서 `1000/1000`, STOP
+  recall `1.0`, CUDA p95 `166.272µs`를 기록했다.
+- 같은 seed의 boundary `64`개, compositional `64`개, Korean `64`개도 각각
+  `64/64`, STOP recall `1.0`을 기록했고 CUDA p95는 `176.112/170.512/171.905µs`였다.
+- 네 queue 모두 synthetic target이므로 human accuracy로 승격하지 않는다. 새
+  adversarial replay에서 오류가 없어 현재 checkpoint는 유지하며, human gate와
+  별개로 safety/latency invariant도 보존됐다.
+
 ## 2026-09-21 — human test acceptance boundary (v1.149.0)
 
 - 현재 control held-out test는 384 rows와 384 unique semantic groups다. 384개를
