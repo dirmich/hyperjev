@@ -220,3 +220,8 @@ v1.148.0 공식 quality gate는 validation/test Wilson lower `0.992126`, safety
 500개 STOP recall Wilson lower `0.992376`, false STOP `0`을 기록했다.
 `passed=true`와 `production_ready=false`를 동시에 반환하는 이유는 synthetic
 quality와 human provenance가 서로 다른 gate이기 때문이다.
+
+v1.149.0에서 held-out human test 384개 전체의 acceptance boundary를 고정했다.
+`384/384`이면 Wilson lower `0.990095`, `383/384`이면 `0.985398`이므로
+point accuracy만 보고 승격하지 않는다. 현재 status `2/384`는 아직 이 gate를
+계산할 충분한 human sample이 아니다.

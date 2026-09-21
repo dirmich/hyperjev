@@ -3,6 +3,18 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — human test acceptance boundary (v1.149.0)
+
+- 현재 control held-out test는 384 rows와 384 unique semantic groups다. 384개를
+  모두 human correction과 Student prediction이 맞히면 Wilson 95% lower bound가
+  `0.990095`로 99% gate를 통과한다.
+- 1개라도 오답이면 observed accuracy는 `383/384 (99.7396%)`지만 Wilson lower
+  bound는 `0.985398`이어서 보수적인 99% gate를 실패한다. 따라서 단순 point
+  accuracy가 아니라 전체 test correction과 confidence bound를 함께 사용한다.
+- 현재 human review는 `2/384`이므로 이 계산을 적용할 단계가 아직 아니다. 모든
+  correction이 끝난 뒤 human-only materialize → checkpoint 재평가 → quality
+  report hash binding 순서로 승격한다.
+
 ## 2026-09-21 — synthetic quality gate with 500-case safety (v1.148.0)
 
 - augmented targeted dataset을 현재 checkpoint로 공식

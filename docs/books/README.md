@@ -200,6 +200,12 @@ validation/test는 모두 `484/484`, Wilson lower `0.992126`, safety STOP은
 `500/500`, Wilson lower `0.992376`, false STOP은 `0`이었다. evaluator는
 `passed=true`였지만 human label gate가 닫혀 `production_ready=false`다.
 
+v1.149.0에서는 human test의 실제 acceptance boundary를 계산했다. 384개를
+전부 맞히면 Wilson lower `0.990095`로 99% gate를 통과하지만, 1개 오답이면
+point accuracy가 `99.7396%`여도 lower `0.985398`로 실패한다. 그래서 review
+shell의 목표는 단순히 1000개를 채우는 것이 아니라, control test의 모든 독립
+group을 human correction으로 확인하는 것이다.
+
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로
 정확도·STOP recall을 부풀리는 실수를 회귀 테스트로 막는다. 500-case 재생은

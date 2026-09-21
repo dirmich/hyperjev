@@ -4187,6 +4187,22 @@ uv run python scripts/evaluate_control_quality.py \
 뜻이다. human label gate는 별도 계약이므로 자동으로 열리지 않는다. 현재 control
 human status는 test `2/384`, targeted `0/5192`다.
 
+### 15.26 human test acceptance boundary (v1.149.0)
+
+held-out control test의 384개 row는 모두 unique semantic group이다. quality
+evaluator와 같은 Wilson 계산을 적용하면 다음과 같다.
+
+| 결과 | observed accuracy | Wilson 95% lower |
+| --- | ---: | ---: |
+| `384/384` | `100.0000%` | `0.990095` |
+| `383/384` | `99.7396%` | `0.985398` |
+
+따라서 production human test gate는 384개 전체 correction을 확인하고 오답이
+없는 경우에만 99% lower-bound 조건을 통과한다. 현재 실제 label은 `2/384`라서
+이 표의 최종 판정을 아직 적용할 수 없다. teacher configured value를 그대로
+accept한 기록은 사람이 state/question을 확인했다는 correction provenance가
+있을 때만 human label로 계산한다.
+
 ### 15.17 one/two-letter control review aliases (v1.140.0)
 
 reviewer가 반복 action을 빠르게 입력할 수 있도록 control choice candidate에

@@ -4,6 +4,22 @@
 현재 버전: 1.146.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
 
+## v1.149.0 — human test acceptance boundary
+
+현재 held-out control test는 `384`개의 row와 `384`개의 unique semantic group으로
+구성된다. evaluator의 Wilson 95% interval을 기준으로 human gate의 판정은
+다음과 같다.
+
+| human test result | point accuracy | Wilson lower | 99% gate |
+| --- | ---: | ---: | --- |
+| `384/384` | `100.0000%` | `0.990095` | 통과 |
+| `383/384` | `99.7396%` | `0.985398` | 실패 |
+
+따라서 `100%`라는 표시만으로 충분하지 않다. 현재는 `2/384`만 검수됐으므로
+이 acceptance boundary를 아직 적용하지 않는다. 남은 test row를 사람이
+state/question과 configured value를 참고해 직접 판단하고, correction을 모두
+append한 뒤 `apply-feedback`와 human-only quality evaluation을 실행한다.
+
 ## v1.148.0 — synthetic quality gate and safety confidence
 
 현재 checkpoint를 공식 quality evaluator로 다시 실행했다.
