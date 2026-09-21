@@ -3819,6 +3819,31 @@ uv run hyperjev control train \
 batch/streaming tick, CUDA event latency를 분리 측정한다. 그 최적화 전에는 이
 checkpoint를 실시간 actuator 경로에 연결하지 않는다.
 
+### 15.12 warmup/CUDA-synchronized latency benchmark (v1.135.0)
+
+v1.134.0의 CUDA p99 outlier가 실제 kernel latency인지 계측 순서 문제인지
+분리하기 위해 evaluator를 보강했다. `--warmup 10`은 첫 10개 호출을 분모에서
+제외하고, `--cuda-sync`는 측정 전후 `torch.cuda.synchronize()`를 실행한다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue tests/golden/control_ood_synthetic.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --model-only --device cuda --warmup 10 --cuda-sync
+```
+
+| queue | p50 | p95 | p99 | max |
+| --- | ---: | ---: | ---: | ---: |
+| hard 1,000 | `0.284ms` | `1.328ms` | `9.756ms` | `10.936ms` |
+| English OOD 40 | `1.534ms` | `10.444ms` | `10.535ms` | `10.535ms` |
+| Korean OOD 40 | `1.534ms` | `10.472ms` | `10.561ms` | `10.561ms` |
+
+동기화 후 500ms급 outlier는 사라졌지만 OOD p95는 5ms를 넘는다. 이 결과는
+모델 정확도 100% synthetic과 실시간 latency gate가 독립임을 다시 확인한다.
+다음 latency ablation은 동일한 dataset/checkpoint contract에서 vocab/hidden
+크기와 preallocated batch-1 input을 비교하며, human label gate와 별도로
+판정한다.
+
 ### 15.06 Gemma full cross-validation and adjudication provenance (v1.129.0)
 
 #### Gemma 독립 실행

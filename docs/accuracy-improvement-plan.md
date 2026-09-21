@@ -1,8 +1,31 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.134.0
+현재 버전: 1.135.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.135.0 — latency 계측을 warmup/CUDA event 경계로 고정
+
+v1.134.0에서 발견된 500ms급 CUDA outlier가 비동기 실행 잔여인지 확인하기
+위해 evaluator에 warmup과 CUDA synchronize를 넣었다.
+
+```bash
+uv run python scripts/evaluate_control_fast_path.py \
+  --queue tests/golden/control_ood_synthetic.jsonl \
+  --checkpoint /tmp/control-review-v3-plus-hard-augmented-targeted-bow-weight2-100ep.pt \
+  --model-only --device cuda --warmup 10 --cuda-sync
+```
+
+| queue | p50 | p95 | p99 | max |
+| --- | ---: | ---: | ---: | ---: |
+| hard 1,000 | `0.284ms` | `1.328ms` | `9.756ms` | `10.936ms` |
+| English OOD 40 | `1.534ms` | `10.444ms` | `10.535ms` | `10.535ms` |
+| Korean OOD 40 | `1.534ms` | `10.472ms` | `10.561ms` | `10.561ms` |
+
+500ms급 outlier는 사라졌지만 OOD p95 5ms gate는 여전히 실패한다. 따라서
+다음 개선은 정확도를 유지하면서 `vocab_size`, `hidden_size`, BOW projection의
+batch-1 비용을 줄이는 ablation이다. warmup/synchronize 기준을 고정하기 전의
+latency 숫자와 이후 숫자를 같은 표에서 섞지 않는다.
 
 ## v1.134.0 — Korean INTERACT boundary 보강과 latency 미통과
 

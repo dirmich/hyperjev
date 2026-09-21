@@ -85,9 +85,16 @@ class ControlFastPathEvaluatorTests(unittest.TestCase):
                 {"student": student_manifest(registry, config), "model_state_dict": model.state_dict()},
                 checkpoint,
             )
-            report = evaluate_runtime(queue, checkpoint, ROOT / "registry" / "control_tasks")
+            report = evaluate_runtime(
+                queue,
+                checkpoint,
+                ROOT / "registry" / "control_tasks",
+                warmup_count=1,
+            )
 
         self.assertEqual(report["source_counts"], {"control-rule": 1, "safety-rule": 1})
+        self.assertEqual(report["warmup_count"], 1)
+        self.assertFalse(report["cuda_synchronized"])
         self.assertEqual(report["synthetic_target"]["accuracy"], 1.0)
         self.assertEqual(report["synthetic_target"]["stop_recall"], 1.0)
         self.assertEqual(

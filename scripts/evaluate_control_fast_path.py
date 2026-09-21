@@ -143,9 +143,15 @@ def evaluate_runtime(
     *,
     device: str = "cpu",
     enable_fast_path: bool = True,
+    warmup_count: int = 0,
+    synchronize_cuda: bool = False,
 ) -> dict[str, Any]:
     """Replay the integrated rule -> Student -> safety runtime on a queue."""
 
+    if warmup_count < 0:
+        raise ValueError("warmup_count must be non-negative")
+    if synchronize_cuda and device != "cuda":
+        raise ValueError("synchronize_cuda requires device='cuda'")
     queue = Path(queue_path)
     checkpoint = Path(checkpoint_path)
     rows = _load_rows(queue)
@@ -156,6 +162,24 @@ def evaluate_runtime(
         enable_fast_path=enable_fast_path,
         device=device,
     )
+    torch = client._client._torch if synchronize_cuda else None
+
+    def _synchronize() -> None:
+        if torch is not None:
+            torch.cuda.synchronize()
+
+    warmup_rows = rows[: min(warmup_count, len(rows))]
+    for row in warmup_rows:
+        client.decide(
+            ControlObservation(
+                observation_id=f"warmup-{row.get('sample_id', 'runtime-row')}",
+                state=row["state"],
+                domain=str(row.get("domain", "control-evaluation")),
+                timestamp_ms=0.0,
+            ),
+            now_ms=1.0,
+        )
+    _synchronize()
     latencies_us: list[float] = []
     source_counts: dict[str, int] = {}
     source_latencies_us: dict[str, list[float]] = {}
@@ -173,8 +197,10 @@ def evaluate_runtime(
             domain=str(row.get("domain", "control-evaluation")),
             timestamp_ms=0.0,
         )
+        _synchronize()
         started = time.perf_counter_ns()
         action = client.decide(observation, now_ms=1.0)
+        _synchronize()
         latencies_us.append((time.perf_counter_ns() - started) / 1000.0)
         source_counts[action.source] = source_counts.get(action.source, 0) + 1
         source_latencies_us.setdefault(action.source, []).append(latencies_us[-1])
@@ -196,6 +222,8 @@ def evaluate_runtime(
         "checkpoint": str(checkpoint.resolve()),
         "checkpoint_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
         "runtime_mode": "integrated" if enable_fast_path else "model_only_with_safety_policy",
+        "warmup_count": len(warmup_rows),
+        "cuda_synchronized": synchronize_cuda,
         "row_count": row_count,
         "source_counts": dict(sorted(source_counts.items())),
         "synthetic_target": {
@@ -233,6 +261,17 @@ def main() -> int:
     parser.add_argument("--registry", type=Path, default=Path("registry/control_tasks"))
     parser.add_argument("--device", default="cpu")
     parser.add_argument(
+        "--warmup",
+        type=int,
+        default=0,
+        help="run this many queue rows before recording latency",
+    )
+    parser.add_argument(
+        "--cuda-sync",
+        action="store_true",
+        help="synchronize CUDA before and after each measured decision",
+    )
+    parser.add_argument(
         "--model-only",
         action="store_true",
         help="disable deterministic control rules while keeping safety policy",
@@ -247,6 +286,8 @@ def main() -> int:
             args.registry,
             device=args.device,
             enable_fast_path=not args.model_only,
+            warmup_count=args.warmup,
+            synchronize_cuda=args.cuda_sync,
         )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

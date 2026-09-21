@@ -64,6 +64,12 @@ Student-only 경로의 English `35/40`, Korean `34/40`이 encoder의 현재 OOD
 기준선이다. integrated 숫자만 보고 Student가 모든 새로운 state를 100% 판단한다고
 해석하지 않도록 source count와 fallback 비율을 함께 기록한다.
 
+v1.135.0부터 CUDA latency는 warmup을 분모에서 제외하고 측정 전후
+`torch.cuda.synchronize()`를 호출한다. 이 기준에서 OOD p95 약 10.4ms가 남았으므로
+Student-only control tick은 아직 5ms actuator gate를 통과하지 못했다. fast-path
+rule latency와 encoder latency를 같은 숫자로 합치지 않고, 각각의 source와
+warmup/sync 조건을 report에 남긴다.
+
 ## 7.2 DGX Spark runbook
 
 ```bash

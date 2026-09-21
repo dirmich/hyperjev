@@ -168,6 +168,7 @@
 | 1.132.0 | 진행 중 | integrated fast path와 Student-only OOD/latency 측정 경계 분리 |
 | 1.133.0 | 진행 중 | hybrid-BOW ablation OOD 회귀 측정 및 후보 폐기 |
 | 1.134.0 | 진행 중 | Korean INTERACT train-only 보강, Student OOD 100%, CUDA latency gate 실패 기록 |
+| 1.135.0 | 진행 중 | warmup/CUDA synchronize latency benchmark와 p95 gate 재측정 |
 
 ## 다음 기록 규칙
 

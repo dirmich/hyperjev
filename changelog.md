@@ -3,6 +3,20 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — warmup/CUDA-synchronized latency benchmark (v1.135.0)
+
+- `evaluate_control_fast_path.py`에 `--warmup N`과 `--cuda-sync`를 추가했다.
+  warmup row는 latency 분모에서 제외하고, CUDA device에서는 각 측정 전후에
+  synchronize해 비동기 kernel 비용을 포함한다. 기존 기본값(`warmup=0`, CPU)은
+  backward compatible하다.
+- targeted v1.134 checkpoint를 warmup 10, CUDA synchronize로 재측정했다. hard
+  queue p50/p95/p99/max는 `0.284/1.328/9.756/10.936ms`, English OOD는
+  `1.534/10.444/10.535/10.535ms`, Korean OOD는
+  `1.534/10.472/10.561/10.561ms`였다.
+- synchronize 전 관측된 `503~546ms` outlier는 제거됐지만 OOD p95는 여전히 5ms
+  gate를 넘는다. 다음 최적화는 batch-1 BOW projection의 vocab/hidden 축소와
+  preallocated input path를 비교해야 한다.
+
 ## 2026-09-21 — targeted Korean interaction augmentation (v1.134.0)
 
 - Student-only Korean OOD의 유일한 오답이 `INTERACT → STOP`인 것을 확인하고,
