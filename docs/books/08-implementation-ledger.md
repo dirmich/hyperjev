@@ -160,6 +160,7 @@
 | 1.124.0 | 진행 중 | skill별 48개씩 384 held-out test group을 만드는 explicit control seed quota |
 | 1.125.0 | 진행 중 | held-out 384건 Qwen draft와 target-excluded blind review pack 준비 |
 | 1.126.0 | 진행 중 | control semantic prompt v3와 held-out 384건 Qwen 재검증 |
+| 1.127.0 | 진행 중 | prompt v3 draft hash에 blind review pack 재바인딩 |
 
 ## 다음 기록 규칙
 

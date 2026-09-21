@@ -3584,6 +3584,46 @@ uv run hyperjev control review-pack \
 `control review-status`는 test coverage `0.0`, `test_ready=false`를 보고했다. 실제
 정확도는 다음 단계의 reviewer A/B blind 입력과 adjudication 결과로만 계산한다.
 
+### 15.04 prompt v3 target-excluded blind review pack (v1.127.0)
+
+v1.126.0의 prompt v3 draft에 맞춰 기존 prompt v2 draft와 분리된 review pack을
+생성했다.
+
+```bash
+uv run hyperjev control review-pack \
+  --registry registry/control_tasks \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --draft /tmp/qwen-control-review-v3-test-384-prompt-v3.jsonl \
+  --output /tmp/control-review-v3-test-pack-prompt-v3.jsonl \
+  --allow-raw --prioritize --split test
+uv run hyperjev control review-status \
+  --registry registry/control_tasks \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --feedback /tmp/control-review-v3-test-feedback-prompt-v3.jsonl
+```
+
+| 항목 | 결과 |
+| --- | ---: |
+| queue SHA-256 | `71ba83053e9dbfbfb6d1c6e011346999aff2436c4b0382c886659eeac1ee11f1` |
+| draft SHA-256 | `de8b48438ce5d69a41dfbfad8227608499cf584a56ad2ec863bda022f675a447` |
+| prompt / provider | `3` / `qwen38fn` |
+| pack rows | `384` |
+| target excluded | `true` |
+| counterfactual groups | `384` |
+| human reviewed / pending | `0 / 384` |
+| coverage / test ready | `0.0 / false` |
+
+검수 시작 명령은 다음과 같다.
+
+```bash
+uv run hyperjev control review-session \
+  --registry registry/control_tasks \
+  --review-pack /tmp/control-review-v3-test-pack-prompt-v3.jsonl \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --feedback-output /tmp/control-review-v3-reviewer-a.jsonl \
+  --reviewer human-a --blind --offset 0 --limit 96
+```
+
 ### 15.03 control semantic prompt v3 held-out validation (v1.126.0)
 
 #### 시험 방법

@@ -3,6 +3,19 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — bind blind review pack to prompt v3 (v1.127.0)
+
+- prompt v3로 재실행한 held-out 384건 draft의 SHA-256을 새
+  target-excluded blind review pack에 바인딩했다. pack은
+  `/tmp/control-review-v3-test-pack-prompt-v3.jsonl`에 생성됐다.
+- pack manifest는 queue SHA
+  `71ba83053e9dbfbfb6d1c6e011346999aff2436c4b0382c886659eeac1ee11f1`, draft
+  SHA `de8b48438ce5d69a41dfbfad8227608499cf584a56ad2ec863bda022f675a447`,
+  prompt version `3`, target excluded `true`를 기록한다.
+- review status는 reviewed `0/384`, pending `384`, coverage `0.0`,
+  `test_ready=false`, `ready_for_materialize=false`다. 사람 검수 전에는 이
+  pack을 production accuracy나 student target으로 사용하지 않는다.
+
 ## 2026-09-21 — control semantic prompt v3 held-out validation (v1.126.0)
 
 - `control.skill` 전용 system prompt에 STOP/HOLD/MOVE/ROTATE/APPROACH/RETREAT/

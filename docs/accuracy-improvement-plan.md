@@ -1,8 +1,26 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.126.0
+현재 버전: 1.127.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.127.0 — prompt v3 blind review pack rebinding
+
+v1.126.0에서 prompt v3의 synthetic held-out 결과가 확인됐으므로, 기존 prompt
+v2 draft에 묶인 review pack을 사용하지 않고 v3 draft hash에 바인딩한 새 pack을
+만들었다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| queue | test 384 |
+| prompt / provider | v3 / Qwen `qwen38fn` |
+| draft SHA-256 | `de8b48438ce5d69a41dfbfad8227608499cf584a56ad2ec863bda022f675a447` |
+| target excluded | `true` |
+| reviewed / pending | `0 / 384` |
+| test ready / materialize ready | `false / false` |
+
+reviewer는 다음 pack을 `--blind` 세션으로 검수해야 하며, Qwen draft는 보조
+정보일 뿐 human correction을 자동 생성하지 않는다.
 
 ## v1.126.0 — control semantic prompt v3 held-out validation
 
