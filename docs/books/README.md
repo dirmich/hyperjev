@@ -40,7 +40,7 @@
 
 ## 현재 스냅샷
 
-현재 `main`은 origin에 push될 1.125.0까지 진행되어 있다. Python 테스트와 skip
+현재 `main`은 origin에 push될 1.126.0까지 진행되어 있다. Python 테스트와 skip
 수는 최신 전체 suite 실행 결과를 기준으로 기록하며, Ruff 검사가 통과한
 상태이다. dataset validator와 training plan,
 reference train CLI, reference Student checkpoint 생성, n-gram Student 비교와
@@ -73,6 +73,12 @@ v1.124.0에서는 human held-out 검수를 위한 explicit split quota를 추가
 v1.125.0에서는 test 384개에 대한 Qwen draft와 target-excluded blind review pack을
 생성했다. Qwen synthetic 비교는 95.0521%였지만 human label은 0건이며, 책의
 production accuracy로 해석하지 않는다.
+
+v1.126.0에서는 control task에만 semantic boundary를 주입하는 prompt v3를
+실험했다. 동일한 held-out 384개에서 Qwen synthetic match가 365/384 (95.0521%)에서
+384/384 (100%)로, schema-valid가 378/384에서 384/384로 올라갔다. 이 수치는
+human label이 아닌 teacher/reference 비교이며, blind review 전에는 production
+accuracy나 checkpoint 승격으로 해석하지 않는다.
 
 v1.103.0에서는 control simulation 입력의 중복 `scenario_id`를 차단했다. 이로써
 `--repeat` latency sampling과 독립 safety scenario 수를 구분하고, 중복 행으로

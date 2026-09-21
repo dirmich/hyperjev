@@ -3584,6 +3584,54 @@ uv run hyperjev control review-pack \
 `control review-status`는 test coverage `0.0`, `test_ready=false`를 보고했다. 실제
 정확도는 다음 단계의 reviewer A/B blind 입력과 adjudication 결과로만 계산한다.
 
+### 15.03 control semantic prompt v3 held-out validation (v1.126.0)
+
+#### 시험 방법
+
+v1.125.0에서 생성한 동일한 held-out test queue를 재사용해 prompt만 v2에서
+v3으로 바꿨다. prompt v3는 `control.skill` task에만 semantic boundary를
+추가한다. 비교 오염을 피하기 위해 queue, sample ID, registry, provider
+(`qwen38fn`), timeout `30s`, max tokens `128`을 유지했다.
+
+```bash
+uv run hyperjev control draft --provider qwen \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --registry registry/control_tasks \
+  --output /tmp/qwen-control-review-v3-test-384-prompt-v3.jsonl \
+  --timeout 30 --max-tokens 128
+uv run python scripts/evaluate_control_teacher_draft.py \
+  --queue /tmp/control-review-v3-test-384.jsonl \
+  --draft /tmp/qwen-control-review-v3-test-384-prompt-v3.jsonl \
+  --registry registry/control_tasks
+```
+
+#### 동일 표본 비교
+
+| 항목 | prompt v2 | prompt v3 |
+| --- | ---: | ---: |
+| sample / completed | 384 / 384 | **384 / 384** |
+| schema-valid | 378/384 (98.4375%) | **384/384 (100%)** |
+| schema repair | 1 | 10 |
+| synthetic target match | 365/384 (95.0521%) | **384/384 (100%)** |
+| valid-only accuracy | 365/378 (96.5608%) | **384/384 (100%)** |
+| human labels | 0/384 | **0/384** |
+| production-ready | false | **false** |
+
+prompt v3의 per-skill 결과는 STOP, HOLD, MOVE, ROTATE, APPROACH, RETREAT,
+INTERACT, RECOVER 각각 `48/48`이다. Qwen latency p50/p95/p99/max는
+`1988.220/2234.267/2430.636/2434.899ms`였다. 384/384에 대한 Wilson 95%
+하한은 `0.990095`이지만 synthetic reference-only이므로 99% human accuracy로
+해석하지 않는다. 특히 schema repair `10`건은 typed output 안정성이 완전히
+해결되지 않았음을 보여주므로 repair rate도 별도 운영 지표로 유지한다.
+
+#### 판정
+
+prompt v3는 같은 held-out synthetic queue에서 채택 기준을 통과했으므로 기본
+control teacher prompt로 반영했다. 다만 `control review-status` 기준 human
+reviewed `0/384`, pending `384`, `test_ready=false`인 상태는 변하지 않았다.
+다음 단계는 target-excluded pack의 blind dual review이며, 그 전에는 Qwen
+draft를 human label이나 production checkpoint 학습 target으로 사용할 수 없다.
+
 ### 14.98 Gemma control candidate rejection and partial-draft denominator (v1.121.0)
 
 candidate Gemma alias를 control queue의 첫 20건에 실행했다. queue 순서상 이

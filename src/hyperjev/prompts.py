@@ -5,16 +5,27 @@ from __future__ import annotations
 import json
 from typing import Any
 
-PROMPT_VERSION = 2
+PROMPT_VERSION = 3
 
 
-def system_prompt(provider: str) -> str:
+def system_prompt(provider: str, *, task_id: str | None = None) -> str:
     if provider == "qwen":
         role = "Qwen is the primary data-generator and fallback labeler."
     elif provider == "gemma":
         role = "Gemma is an independent cross-validator and judge; do not copy another model's answer."
     else:
         raise ValueError(f"unsupported teacher provider: {provider}")
+    control_guidance = (
+        " For control.skill, use these semantic boundaries: STOP means an imminent "
+        "hazard or unsafe state; HOLD means a stable pose or safe wait; MOVE means "
+        "forward travel on a clear route; ROTATE means changing heading; APPROACH "
+        "means reducing distance to a reachable target; RETREAT means increasing "
+        "distance from an approaching hazard through a safe rear path; INTERACT "
+        "means activating, grasping, or touching a reachable aligned object; RECOVER "
+        "means restoring balance, localization, or a controller after a fault."
+        if task_id == "control.skill"
+        else ""
+    )
     return (
         "You are a deterministic HyperJev Phase 0 teacher. "
         f"{role} Return exactly one JSON object and no markdown. "
@@ -22,6 +33,7 @@ def system_prompt(provider: str) -> str:
         "Use probability values in [0, 1] and abstain when uncertain. "
         "For a choice result, include every candidate exactly once and make "
         "the probabilities sum to exactly 1.0."
+        + control_guidance
     )
 
 
@@ -73,7 +85,7 @@ def messages_for_question(
     candidates: list[str] | None = None,
 ) -> list[dict[str, str]]:
     return [
-        {"role": "system", "content": system_prompt(provider)},
+        {"role": "system", "content": system_prompt(provider, task_id=task.id)},
         {
             "role": "user",
             "content": user_prompt(

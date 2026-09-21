@@ -3,6 +3,22 @@
 이 파일은 정확도·coverage·fallback 정책의 중간 결과를 기록한다. 숫자는
 동일한 dataset/split과 실행 명령으로 재현할 수 있는 경우에만 갱신한다.
 
+## 2026-09-21 — control semantic prompt v3 held-out validation (v1.126.0)
+
+- `control.skill` 전용 system prompt에 STOP/HOLD/MOVE/ROTATE/APPROACH/RETREAT/
+  INTERACT/RECOVER의 의미 경계를 명시하고, task ID를 통해 control task에만
+  적용되도록 했다. 일반 memory/query prompt에는 control guidance를 주입하지
+  않는다.
+- 동일한 48개 균형 probe에서 prompt v2는 `44/48 (91.6667%)` overall,
+  valid 기준 `44/46 (95.6522%)`였으나 v3는 `48/48 (100%)`였다.
+- 독립 held-out test 384개 전체를 prompt v3로 재실행해 completed/schema-valid/
+  synthetic target match 모두 `384/384 (100%)`를 기록했다. skill별 8개 모두
+  `48/48`이며 Qwen latency p50/p95/p99/max는
+  `1988.220/2234.267/2430.636/2434.899ms`였다.
+- 이 결과는 Qwen teacher와 synthetic reference 비교일 뿐 human label이 아니다.
+  human reviewed `0/384`, `production_ready=false`이며, 실제 99% 승격은 blind
+  dual human review와 adjudication 이후에만 가능하다.
+
 ## 2026-09-21 — prepare blind review pack for 384 held-out groups (v1.125.0)
 
 - seed 17의 4,000-row queue에서 test split 384건을 분리하고 Qwen `qwen38fn`

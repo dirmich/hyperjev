@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hyperjev"
-version = "1.125.0"
+version = "1.126.0"
 description = "Local-first typed decision engine for Hyper Memory"
 readme = "README.md"
 requires-python = ">=3.10"

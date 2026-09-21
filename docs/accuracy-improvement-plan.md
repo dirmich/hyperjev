@@ -1,8 +1,36 @@
 # HyperJev 정확도 향상 계획
 
 작성일: 2026-09-20  
-현재 버전: 1.125.0
+현재 버전: 1.126.0
 대상: `control.skill@1` 및 이후 memory/query typed heads
+
+## v1.126.0 — control semantic prompt v3 held-out validation
+
+Qwen의 control 오류가 집중된 APPROACH, RETREAT, RECOVER와 schema repair가
+필요했던 응답을 대상으로 task-specific semantic boundary를 system prompt에
+추가했다. guidance는 `task.id == control.skill`일 때만 주입하고, 다른 task의
+prompt 동작은 유지한다.
+
+| 항목 | prompt v2 | prompt v3 |
+| --- | ---: | ---: |
+| balanced probe | 44/48 overall, 44/46 valid | **48/48** |
+| held-out test overall | 365/384 (95.0521%) | **384/384 (100%)** |
+| schema-valid | 378/384 | **384/384** |
+| task별 test 정확도 | 42~48/48 | **8개 skill 모두 48/48** |
+| Qwen p50/p95/p99/max | 2114.887/2328.132/2492.530/2581.903ms | **1988.220/2234.267/2430.636/2434.899ms** |
+| human labels | 0/384 | **0/384** |
+
+384/384 synthetic 정답의 Wilson 95% 하한은 `0.990095`로 현재 수치 gate를
+통과하지만, 이는 synthetic reference-only 결과다. review pack은 여전히
+target-excluded 상태이며 다음 승격 조건은 다음과 같다.
+
+1. 같은 384개 test row에 대해 reviewer A/B가 state와 question을 blind 검수한다.
+2. disagreement를 adjudicate하고, correction provenance와 reviewer coverage를
+   기록한다.
+3. human-only label로 test accuracy, skill별 accuracy, STOP recall과 non-trigger
+   false STOP rate를 다시 계산한다.
+4. human gate가 통과한 경우에만 materialize, student 재학습, checkpoint promotion을
+   수행한다.
 
 ## v1.125.0 — held-out blind review pack preparation
 
